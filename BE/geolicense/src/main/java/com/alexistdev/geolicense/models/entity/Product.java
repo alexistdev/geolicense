@@ -1,4 +1,4 @@
-package com.alexistdev.geolicense.model.entity;
+package com.alexistdev.geolicense.models.entity;
 
 import com.alexistdev.geolicense.config.DatabaseTableNames;
 import jakarta.annotation.Nullable;
@@ -13,6 +13,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Getter
@@ -23,7 +24,7 @@ import java.util.UUID;
 @Table(name = DatabaseTableNames.TB_PRODUCT)
 @SQLDelete(sql = "UPDATE " + DatabaseTableNames.TB_PRODUCT + " SET is_deleted = true WHERE uuid = ?")
 @Where(clause = "is_deleted = false")
-public class Product extends BaseEntity<String>{
+public class Product extends BaseEntity<String> implements Serializable {
 
     @Id
     @EqualsAndHashCode.Include
