@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -23,13 +23,12 @@ import java.util.UUID;
 @DynamicUpdate
 @Table(name = DatabaseTableNames.TB_PRODUCT)
 @SQLDelete(sql = "UPDATE " + DatabaseTableNames.TB_PRODUCT + " SET is_deleted = true WHERE uuid = ?")
-@Where(clause = "is_deleted = false")
+@SQLRestriction("is_deleted = false")
 public class Product extends BaseEntity<String> implements Serializable {
 
     @Id
     @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "uuid")
     private UUID id;
 
     @NotBlank
@@ -53,7 +52,7 @@ public class Product extends BaseEntity<String> implements Serializable {
     private String sku;
 
     @NotNull
-    @Column(name="is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean isActive = true;
 
 
