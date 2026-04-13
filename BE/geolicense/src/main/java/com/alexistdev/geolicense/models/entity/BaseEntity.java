@@ -1,4 +1,4 @@
-package com.alexistdev.geolicense.model.entity;
+package com.alexistdev.geolicense.models.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
