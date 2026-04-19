@@ -20,7 +20,7 @@ import java.util.UUID;
 @Entity
 @DynamicUpdate
 @Table(name = DatabaseTableNames.TB_LICENSE_TYPE)
-@SQLDelete(sql = "UPDATE " + DatabaseTableNames.TB_LICENSE_TYPE + " SET is_deleted = true WHERE uuid = ?")
+@SQLDelete(sql = "UPDATE " + DatabaseTableNames.TB_LICENSE_TYPE + " SET is_deleted = true WHERE id = ?")
 @SQLRestriction("is_deleted = false")
 public class LicenseType extends BaseEntity<String> implements Serializable {
 
