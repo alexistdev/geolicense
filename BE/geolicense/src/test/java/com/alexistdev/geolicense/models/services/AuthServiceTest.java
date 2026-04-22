@@ -2,6 +2,7 @@ package com.alexistdev.geolicense.models.services;
 
 import com.alexistdev.geolicense.dto.AuthResponseDTO;
 import com.alexistdev.geolicense.dto.RegisterRequestDTO;
+import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.models.entity.User;
@@ -19,6 +20,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -61,6 +63,8 @@ class AuthServiceTest {
     @DisplayName("1. Test register method")
     void register_shouldReturnTokenWhenUserDoesNotExist() {
         User savedUser = new User();
+        savedUser.setId(UUID.randomUUID());
+        savedUser.setRole(Role.USER);
         savedUser.setEmail(registerRequest.getEmail());
 
         when(userRepo.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
@@ -68,7 +72,7 @@ class AuthServiceTest {
         when(userRepo.save(any(User.class))).thenReturn(savedUser);
         when(jwtService.generateToken(savedUser)).thenReturn("jwt-token");
 
-        AuthResponseDTO response = authService.register(registerRequest);
+        AuthRegisterDTO response = authService.register(registerRequest);
 
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("jwt-token");
@@ -79,6 +83,8 @@ class AuthServiceTest {
     @DisplayName("2. Test register method saves user with correct fields")
     void register_shouldSaveUserWithCorrectFields() {
         User savedUser = new User();
+        savedUser.setId(UUID.randomUUID());
+        savedUser.setRole(Role.USER);
         savedUser.setEmail(registerRequest.getEmail());
 
         when(userRepo.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
@@ -110,7 +116,7 @@ class AuthServiceTest {
         existingUser.setEmail(registerRequest.getEmail());
 
         when(userRepo.findByEmail(registerRequest.getEmail())).thenReturn(Optional.of(existingUser));
-        when(messagesUtils.getMessage(eq("user.already.exist"), eq(registerRequest.getEmail())))
+        when(messagesUtils.getMessage(eq("userservice.user.exist"), eq(registerRequest.getEmail())))
                 .thenReturn("User john@example.com already exists");
 
         assertThatThrownBy(() -> authService.register(registerRequest))
@@ -126,6 +132,8 @@ class AuthServiceTest {
     @DisplayName("4. Test register method encodes password before saving")
     void register_shouldEncodePasswordBeforeSaving() {
         User savedUser = new User();
+        savedUser.setId(UUID.randomUUID());
+        savedUser.setRole(Role.USER);
         savedUser.setEmail(registerRequest.getEmail());
 
         when(userRepo.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
@@ -147,6 +155,8 @@ class AuthServiceTest {
     @DisplayName("5. Test register method generates token for saved user")
     void register_shouldGenerateTokenForSavedUser() {
         User savedUser = new User();
+        savedUser.setId(UUID.randomUUID());
+        savedUser.setRole(Role.USER);
         savedUser.setEmail(registerRequest.getEmail());
 
         when(userRepo.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
@@ -154,7 +164,7 @@ class AuthServiceTest {
         when(userRepo.save(any(User.class))).thenReturn(savedUser);
         when(jwtService.generateToken(savedUser)).thenReturn("generated-jwt");
 
-        AuthResponseDTO response = authService.register(registerRequest);
+        AuthRegisterDTO response = authService.register(registerRequest);
 
         verify(jwtService).generateToken(savedUser);
         assertThat(response.getToken()).isEqualTo("generated-jwt");

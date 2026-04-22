@@ -1,8 +1,7 @@
 package com.alexistdev.geolicense.services;
 
-import com.alexistdev.geolicense.dto.AuthRequestDTO;
-import com.alexistdev.geolicense.dto.AuthResponseDTO;
-import com.alexistdev.geolicense.dto.RegisterRequestDTO;
+import com.alexistdev.geolicense.dto.*;
+import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.models.entity.User;
@@ -11,6 +10,7 @@ import com.alexistdev.geolicense.security.jwt.JwtService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -32,11 +32,11 @@ public class AuthService {
     private final MessagesUtils messagesUtils;
     private static final Logger logger = Logger.getLogger(AuthService.class.getName());
 
-    public AuthResponseDTO register(RegisterRequestDTO request) {
+    public AuthRegisterDTO register(RegisterRequestDTO request) {
         boolean userExist = userRepo.findByEmail(request.getEmail()).isPresent();
 
         if (userExist) {
-            String message = messagesUtils.getMessage("user.already.exist", request.getEmail());
+            String message = messagesUtils.getMessage("userservice.user.exist", request.getEmail());
             logger.warning(message);
             throw new ExistingException(message);
         }
@@ -54,12 +54,23 @@ public class AuthService {
 
         User userResult = userRepo.save(savedUser);
 
+        AuthRegisterDTO result = new AuthRegisterDTO();
+        result.setUser(convertToUserDTO(userResult));
+        result.setToken(jwtService.generateToken(userResult));
+
         logger.info("User registered successfully: " + userResult.getEmail());
 
-        var jwtToken = jwtService.generateToken(userResult);
-        return AuthResponseDTO.builder()
-                .token(jwtToken)
-                .build();
+        return result;
+    }
+
+    public UserDTO convertToUserDTO(User user) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId().toString());
+        assert user.getRole() != null;
+        userDTO.setRole(user.getRole().toString());
+        userDTO.setFullName(user.getFullName());
+        userDTO.setEmail(user.getEmail());
+        return userDTO;
     }
 
     public AuthResponseDTO authenticate(AuthRequestDTO request) {
