@@ -1,5 +1,6 @@
 package com.alexistdev.geolicense;
 
+import tools.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.boot.SpringApplication;
@@ -28,6 +29,11 @@ public class GeolicenseApplication {
 								context.getSource().toInstant(),
 								ZoneId.systemDefault()));
 		return modelMapper;
+	}
+
+	@Bean
+	public ObjectMapper objectMapper() {
+		return new ObjectMapper();
 	}
 
 }
