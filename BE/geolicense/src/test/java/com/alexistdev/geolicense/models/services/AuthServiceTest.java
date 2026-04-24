@@ -1,6 +1,5 @@
 package com.alexistdev.geolicense.models.services;
 
-import com.alexistdev.geolicense.dto.AuthResponseDTO;
 import com.alexistdev.geolicense.dto.RegisterRequestDTO;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
@@ -16,7 +15,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
@@ -35,12 +33,13 @@ class AuthServiceTest {
 
     @Mock
     private UserRepo userRepo;
+
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
+
     @Mock
     private JwtService jwtService;
-    @Mock
-    private AuthenticationManager authenticationManager;
+
     @Mock
     private MessagesUtils messagesUtils;
 
