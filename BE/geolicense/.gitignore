@@ -33,3 +33,4 @@ build/
 .vscode/
 /D:MYLOG/spring.log
 /D:MYLOG/spring.log.2026-04-13.0.gz
+/.claude/
