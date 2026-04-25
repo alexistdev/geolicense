@@ -1,6 +1,6 @@
 package com.alexistdev.geolicense.controllers;
 
-import com.alexistdev.geolicense.dto.RegisterRequestDTO;
+import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.ResponseData;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.services.AuthService;
@@ -41,7 +41,7 @@ public class AuthController {
 
         RateLimiterConfig config = RateLimiterConfig.custom()
                 .limitRefreshPeriod(Duration.ofSeconds(60))
-                .limitForPeriod(3)
+                .limitForPeriod(100)
                 .timeoutDuration(Duration.ofSeconds(5))
                 .build();
         RateLimiterRegistry registry = RateLimiterRegistry.of(config);
@@ -50,7 +50,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ResponseData<AuthRegisterDTO>> register(@Valid
-            @RequestBody RegisterRequestDTO request, Errors errors
+            @RequestBody RegisterRequest request, Errors errors
     ) {
         Supplier<ResponseEntity<ResponseData<AuthRegisterDTO>>> registerAttempt = () -> {
             ResponseData<AuthRegisterDTO> responseData = new ResponseData<>();

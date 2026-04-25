@@ -1,4 +1,4 @@
-package com.alexistdev.geolicense.dto;
+package com.alexistdev.geolicense.dto.request;
 
 import com.alexistdev.geolicense.models.entity.Role;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegisterRequestDTO {
+public class RegisterRequest {
     private String fullName;
     private String email;
     private String password;

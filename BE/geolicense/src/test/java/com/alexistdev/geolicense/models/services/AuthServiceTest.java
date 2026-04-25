@@ -1,6 +1,6 @@
 package com.alexistdev.geolicense.models.services;
 
-import com.alexistdev.geolicense.dto.RegisterRequestDTO;
+import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
@@ -46,11 +46,11 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    private RegisterRequestDTO registerRequest;
+    private RegisterRequest registerRequest;
 
     @BeforeEach
     void setUp() {
-        registerRequest = RegisterRequestDTO.builder()
+        registerRequest = RegisterRequest.builder()
                 .fullName("John Doe")
                 .email("john@example.com")
                 .password("securePassword123")

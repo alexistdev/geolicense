@@ -1,6 +1,6 @@
 package com.alexistdev.geolicense.controllers;
 
-import com.alexistdev.geolicense.dto.RegisterRequestDTO;
+import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.UserDTO;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
@@ -58,12 +58,12 @@ class AuthControllerTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private RegisterRequestDTO validRequest;
+    private RegisterRequest validRequest;
     private AuthRegisterDTO authRegisterDTO;
 
     @BeforeEach
     void setUp() {
-        validRequest = RegisterRequestDTO.builder()
+        validRequest = RegisterRequest.builder()
                 .fullName("John Doe")
                 .email("john@example.com")
                 .password("securePassword123")
@@ -89,7 +89,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldReturn201OnSuccess() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -104,7 +104,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldHaveStatusTrueOnSuccess() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -119,7 +119,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldContainSuccessMessage() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -134,7 +134,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldContainJwtTokenInPayload() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -149,7 +149,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldContainUserEmailInPayload() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -165,7 +165,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldCallAuthServiceOnce() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -173,7 +173,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andDo(print()).andExpect(status().isCreated());
 
-        verify(authService, times(1)).register(any(RegisterRequestDTO.class));
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
@@ -182,7 +182,7 @@ class AuthControllerTest {
     @WithMockUser
     void register_shouldCallMessagesUtilsWithSuccessKey() throws Exception {
         when(messagesUtils.getMessage("authcontroller.register.success")).thenReturn("Registration successful");
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(authRegisterDTO);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authRegisterDTO);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .with(csrf())
@@ -198,7 +198,7 @@ class AuthControllerTest {
     @DisplayName("8. Register - duplicate user returns 409 CONFLICT")
     @WithMockUser
     void register_shouldReturn409WhenUserAlreadyExists() throws Exception {
-        when(authService.register(any(RegisterRequestDTO.class)))
+        when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new ExistingException("User john@example.com already exists"));
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -213,7 +213,7 @@ class AuthControllerTest {
     @DisplayName("9. Register - duplicate user response has status false")
     @WithMockUser
     void register_shouldHaveStatusFalseOnConflict() throws Exception {
-        when(authService.register(any(RegisterRequestDTO.class)))
+        when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new ExistingException("User john@example.com already exists"));
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -228,7 +228,7 @@ class AuthControllerTest {
     @DisplayName("10. Register - duplicate user response contains error message")
     @WithMockUser
     void register_shouldContainErrorMessageOnConflict() throws Exception {
-        when(authService.register(any(RegisterRequestDTO.class)))
+        when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new ExistingException("User john@example.com already exists"));
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -243,7 +243,7 @@ class AuthControllerTest {
     @DisplayName("11. Register - duplicate user does not call messagesUtils for success key")
     @WithMockUser
     void register_shouldNotCallMessagesUtilsOnConflict() throws Exception {
-        when(authService.register(any(RegisterRequestDTO.class)))
+        when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new ExistingException("User john@example.com already exists"));
 
         mockMvc.perform(post("/api/v1/auth/register")

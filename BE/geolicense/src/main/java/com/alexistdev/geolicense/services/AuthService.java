@@ -1,6 +1,7 @@
 package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.*;
+import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
@@ -31,7 +32,7 @@ public class AuthService {
     private final MessagesUtils messagesUtils;
     private static final Logger logger = Logger.getLogger(AuthService.class.getName());
 
-    public AuthRegisterDTO register(RegisterRequestDTO request) {
+    public AuthRegisterDTO register(RegisterRequest request) {
         boolean userExist = userRepo.findByEmail(request.getEmail()).isPresent();
 
         if (userExist) {
