@@ -1,6 +1,17 @@
+/*
+ * Copyright (c) 2026.
+ * Project: Geolicense
+ * Author: Alexsander Hendra Wijaya
+ * Github: https://github.com/alexistdev
+ * Email: alexistdev@gmail.com
+ */
+
 package com.alexistdev.geolicense.models.services;
 
+import com.alexistdev.geolicense.dto.UserDTO;
+import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
+import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
@@ -15,13 +26,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,6 +52,9 @@ class AuthServiceTest {
 
     @Mock
     private MessagesUtils messagesUtils;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
 
     @InjectMocks
     private AuthService authService;
@@ -73,8 +86,8 @@ class AuthServiceTest {
 
         AuthRegisterDTO response = authService.register(registerRequest);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getToken()).isEqualTo("jwt-token");
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals("jwt-token", response.getToken());
     }
 
     @Test
@@ -97,14 +110,14 @@ class AuthServiceTest {
         verify(userRepo).save(userCaptor.capture());
 
         User capturedUser = userCaptor.getValue();
-        assertThat(capturedUser.getFullName()).isEqualTo("John Doe");
-        assertThat(capturedUser.getEmail()).isEqualTo("john@example.com");
-        assertThat(capturedUser.getPassword()).isEqualTo("encodedPassword");
-        assertThat(capturedUser.getRole()).isEqualTo(Role.USER);
-        assertThat(capturedUser.getCreatedBy()).isEqualTo("System");
-        assertThat(capturedUser.getModifiedBy()).isEqualTo("System");
-        assertThat(capturedUser.getCreatedDate()).isNotNull();
-        assertThat(capturedUser.getModifiedDate()).isNotNull();
+        Assertions.assertEquals("John Doe", capturedUser.getFullName());
+        Assertions.assertEquals("john@example.com", capturedUser.getEmail());
+        Assertions.assertEquals("encodedPassword", capturedUser.getPassword());
+        Assertions.assertEquals(Role.USER, capturedUser.getRole());
+        Assertions.assertEquals("System", capturedUser.getCreatedBy());
+        Assertions.assertEquals("System", capturedUser.getModifiedBy());
+        Assertions.assertNotNull(capturedUser.getCreatedDate());
+        Assertions.assertNotNull(capturedUser.getModifiedDate());
     }
 
     @Test
@@ -118,9 +131,7 @@ class AuthServiceTest {
         when(messagesUtils.getMessage(eq("userservice.user.exist"), eq(registerRequest.getEmail())))
                 .thenReturn("User john@example.com already exists");
 
-        assertThatThrownBy(() -> authService.register(registerRequest))
-                .isInstanceOf(ExistingException.class)
-                .hasMessage("User john@example.com already exists");
+        Assertions.assertThrows(ExistingException.class, () -> authService.register(registerRequest));
 
         verify(userRepo, never()).save(any(User.class));
         verify(jwtService, never()).generateToken(any(User.class));
@@ -146,7 +157,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepo).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().getPassword()).isEqualTo("$2a$10$encodedHash");
+        Assertions.assertEquals("$2a$10$encodedHash", userCaptor.getValue().getPassword());
     }
 
     @Test
@@ -166,6 +177,88 @@ class AuthServiceTest {
         AuthRegisterDTO response = authService.register(registerRequest);
 
         verify(jwtService).generateToken(savedUser);
-        assertThat(response.getToken()).isEqualTo("generated-jwt");
+        Assertions.assertEquals("generated-jwt", response.getToken());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Test authenticate method returns token for valid credentials")
+    void authenticate_shouldReturnToken_whenCredentialsAreValid() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("alexistdev@gmail.com");
+        loginRequest.setPassword("password");
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail(loginRequest.getEmail());
+
+        org.springframework.security.core.Authentication mockAuthentication =
+                mock(org.springframework.security.core.Authentication.class);
+        when(mockAuthentication.getPrincipal()).thenReturn(user); // Set the principal to the created user
+        when(authenticationManager.authenticate(any(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
+        when(jwtService.generateToken(user)).thenReturn("valid-jwt-token");
+
+        AuthLoginResponse response = authService.authenticate(loginRequest);
+        verify(authenticationManager).authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+        );
+
+        verify(jwtService).generateToken(user);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals("valid-jwt-token", response.getToken());
+        Assertions.assertEquals(user.getId().toString(), response.getId());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Test authenticate method throws exception for invalid credentials")
+    void authenticate_shouldThrowException_whenCredentialsAreInvalid() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("nonexistent@example.com");
+        loginRequest.setPassword("wrongPassword");
+
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Invalid email or password"));
+
+        Assertions.assertThrows(BadCredentialsException.class, () ->
+            authService.authenticate(loginRequest));
+
+        verify(jwtService, never()).generateToken(any(User.class));
+    }
+
+    @Test
+    @Order(8) // Adjust order as needed
+    @DisplayName("8. Test convertToUserDTO method maps fields correctly")
+    void convertToUserDTO_shouldMapUserFieldsCorrectly() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setFullName("Jane Doe");
+        user.setEmail("jane.doe@example.com");
+        user.setRole(Role.ADMIN);
+
+        UserDTO userDTO = authService.convertToUserDTO(user);
+
+        Assertions.assertNotNull(userDTO);
+        Assertions.assertEquals(userId.toString(), userDTO.getId());
+        Assertions.assertEquals("Jane Doe", userDTO.getFullName());
+        Assertions.assertEquals("jane.doe@example.com", userDTO.getEmail());
+        Assertions.assertEquals(Role.ADMIN.toString(), userDTO.getRole());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Test convertToUserDTO throws error for null role")
+    void convertToUserDTO_shouldThrowErrorForNullRole() {
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setFullName("Jane Doe");
+        user.setEmail("jane.doe@example.com");
+        user.setRole(null);
+
+        Assertions.assertThrows(AssertionError.class, () ->
+            authService.convertToUserDTO(user));
     }
 }

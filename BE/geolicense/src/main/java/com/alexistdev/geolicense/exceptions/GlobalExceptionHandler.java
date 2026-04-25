@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2026.
+ * Project: Geolicense
+ * Author: Alexsander Hendra Wijaya
+ * Github: https://github.com/alexistdev
+ * Email: alexistdev@gmail.com
+ */
+
 package com.alexistdev.geolicense.exceptions;
 
 import com.alexistdev.geolicense.dto.ResponseData;
@@ -46,6 +54,24 @@ public class GlobalExceptionHandler {
         response.setStatus(false);
         response.getMessages().add("Error: " + ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.security.authentication.LockedException.class)
+    public ResponseEntity<ResponseData<Void>> handleLocked(org.springframework.security.authentication.LockedException ex) {
+        log.warn("Attempt to login with locked account: {}", ex.getMessage());
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("Your account has been suspended.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    public ResponseEntity<ResponseData<Void>> handleBadCredentials(org.springframework.security.authentication.BadCredentialsException ex) {
+        log.warn("Bad credentials login attempt: {}", ex.getMessage());
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("Invalid email or password.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
 }

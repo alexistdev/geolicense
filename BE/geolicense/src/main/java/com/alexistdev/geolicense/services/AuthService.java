@@ -1,7 +1,9 @@
 package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.*;
+import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
+import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -73,18 +76,21 @@ public class AuthService {
         return userDTO;
     }
 
-    public AuthResponseDTO authenticate(AuthRequestDTO request) {
-        authenticationManager.authenticate(
+    public AuthLoginResponse authenticate(LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()
                 )
         );
-        var user = userRepo.findByEmail(request.getEmail())
-                .orElseThrow();
+        var user = (User) authentication.getPrincipal();
         var jwtToken = jwtService.generateToken(user);
-        return AuthResponseDTO.builder()
-                .token(jwtToken)
-                .build();
+
+        AuthLoginResponse response = new AuthLoginResponse();
+        response.setId(user.getId().toString());
+        response.setToken(jwtToken);
+        return response;
     }
+
+
 }
