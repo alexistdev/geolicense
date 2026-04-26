@@ -87,7 +87,10 @@ public class AuthService {
         var jwtToken = jwtService.generateToken(user);
 
         AuthLoginResponse response = new AuthLoginResponse();
+        assert user != null;
         response.setId(user.getId().toString());
+        assert user.getRole() != null;
+        response.setRole(user.getRole().toString());
         response.setToken(jwtToken);
         return response;
     }

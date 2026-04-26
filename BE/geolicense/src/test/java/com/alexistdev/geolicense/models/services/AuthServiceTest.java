@@ -190,11 +190,14 @@ class AuthServiceTest {
 
         User user = new User();
         user.setId(UUID.randomUUID());
+        user.setFullName("Alexsander Hendra Wijaya");
         user.setEmail(loginRequest.getEmail());
+        user.setPassword("encodedPassword");
+        user.setRole(Role.USER);
 
         org.springframework.security.core.Authentication mockAuthentication =
                 mock(org.springframework.security.core.Authentication.class);
-        when(mockAuthentication.getPrincipal()).thenReturn(user); // Set the principal to the created user
+        when(mockAuthentication.getPrincipal()).thenReturn(user);
         when(authenticationManager.authenticate(any(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
         when(jwtService.generateToken(user)).thenReturn("valid-jwt-token");
 
