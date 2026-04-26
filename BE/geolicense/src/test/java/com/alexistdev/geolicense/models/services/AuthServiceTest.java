@@ -208,6 +208,10 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
         when(jwtService.generateToken(user)).thenReturn("valid-jwt-token");
 
+        ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
+        when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
+        doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
+
         AuthLoginResponse response = authService.authenticate(loginRequest);
         verify(authenticationManager).authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
@@ -216,7 +220,7 @@ class AuthServiceTest {
         verify(jwtService).generateToken(user);
 
         Assertions.assertNotNull(response);
-        Assertions.assertEquals("valid-jwt-token", response.getToken());
+        Assertions.assertNotNull(response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
     }
 
@@ -312,7 +316,7 @@ class AuthServiceTest {
         Assertions.assertEquals(generatedJwt, jwtTokenCaptor.getValue());
         Assertions.assertEquals(Duration.ofHours(1), durationCaptor.getValue());
         Assertions.assertNotNull(response);
-        Assertions.assertEquals(generatedJwt, response.getToken());
+        Assertions.assertEquals(sessionIdCaptor.getValue(), response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
     }
 }

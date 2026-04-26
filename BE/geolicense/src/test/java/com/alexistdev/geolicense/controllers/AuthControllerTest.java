@@ -95,7 +95,7 @@ class AuthControllerTest {
 
         authLoginResponse = AuthLoginResponse.builder()
                 .id("some-uuid")
-                .token("login-jwt-token")
+                .sessionToken("login-jwt-token")
                 .build();
     }
 
@@ -328,7 +328,7 @@ class AuthControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
-                .andExpect(jsonPath("$.payload.token").value("login-jwt-token"));
+                .andExpect(jsonPath("$.payload.sessionToken").value("login-jwt-token"));
     }
 
     @Test

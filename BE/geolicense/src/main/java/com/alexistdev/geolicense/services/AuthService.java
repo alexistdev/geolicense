@@ -98,7 +98,7 @@ public class AuthService {
         response.setId(user.getId().toString());
         assert user.getRole() != null;
         response.setRole(user.getRole().toString());
-        response.setToken(jwtToken);
+        response.setSessionToken(sessionId);
         return response;
     }
 
