@@ -1,7 +1,9 @@
 package com.alexistdev.geolicense.controllers;
 
+import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.UserDTO;
+import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
@@ -61,6 +63,10 @@ class AuthControllerTest {
     private RegisterRequest validRequest;
     private AuthRegisterDTO authRegisterDTO;
 
+    private LoginRequest validLoginRequest;
+    private AuthLoginResponse authLoginResponse;
+
+
     @BeforeEach
     void setUp() {
         validRequest = RegisterRequest.builder()
@@ -80,6 +86,16 @@ class AuthControllerTest {
         authRegisterDTO = AuthRegisterDTO.builder()
                 .user(userDTO)
                 .token("jwt-token")
+                .build();
+
+        validLoginRequest = LoginRequest.builder()
+                .email("john@example.com")
+                .password("securePassword123")
+                .build();
+
+        authLoginResponse = AuthLoginResponse.builder()
+                .id("some-uuid")
+                .token("login-jwt-token")
                 .build();
     }
 
@@ -253,5 +269,99 @@ class AuthControllerTest {
                 .andExpect(status().isConflict());
 
         verify(messagesUtils, never()).getMessage(eq("authcontroller.register.success"));
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("12. Login - success returns 200 OK")
+    @WithMockUser
+    void login_shouldReturn200OnSuccess() throws Exception{
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andDo(print()).andExpect(status().isOk());
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Login - success response has status true")
+    @WithMockUser
+    void login_shouldHaveStatusTrueOnSuccess() throws Exception{
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andExpect(jsonPath("$.status").value(true));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Login - success response contains success message")
+    @WithMockUser
+    void login_shouldContainSuccessMessage() throws Exception {
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andExpect(jsonPath("$.messages[0]").value("Login successful"));
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Login - success response payload contains JWT token")
+    @WithMockUser
+    void login_shouldContainJwtTokenInPayload() throws Exception {
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andExpect(jsonPath("$.payload.token").value("login-jwt-token"));
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Login - calls authService.authenticate once")
+    @WithMockUser
+    void login_shouldCallAuthServiceOnce() throws Exception {
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andDo(print()).andExpect(status().isOk());
+
+        verify(authService, times(1)).authenticate(any(LoginRequest.class));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Login - calls messagesUtils for login success key")
+    @WithMockUser
+    void login_shouldCallMessagesUtilsWithLoginSuccessKey() throws Exception {
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andDo(print()).andExpect(status().isOk());
+
+        verify(messagesUtils, times(1)).getMessage(eq("authcontroller.login.success"));
     }
 }

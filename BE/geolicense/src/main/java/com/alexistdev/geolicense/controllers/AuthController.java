@@ -1,7 +1,9 @@
 package com.alexistdev.geolicense.controllers;
 
+import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.ResponseData;
+import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.services.AuthService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -81,12 +83,19 @@ public class AuthController {
         }
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<AuthResponseDTO> authenticate(
-//            @RequestBody AuthRequestDTO request
-//    ) {
-//        return ResponseEntity.ok(service.authenticate(request));
-//    }
+    @PostMapping("/login")
+    public ResponseEntity<ResponseData<AuthLoginResponse>> authenticate(
+            @Valid @RequestBody LoginRequest request, Errors errors
+    ) {
+        ResponseData<AuthLoginResponse> responseData = new ResponseData<>();
+        handleErrors(errors, responseData);
+        String msgSuccess = messagesUtils.getMessage("authcontroller.login.success");
+        AuthLoginResponse authLoginResponse = authService.authenticate(request);
+        responseData.setPayload(authLoginResponse);
+        responseData.setStatus(true);
+        responseData.getMessages().add(msgSuccess);
+        return ResponseEntity.ok(responseData);
+    }
 
     private void handleErrors(Errors errors, ResponseData<?> responseData) {
         if (errors.hasErrors()) {
