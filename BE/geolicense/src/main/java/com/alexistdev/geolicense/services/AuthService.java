@@ -18,9 +18,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 @Slf4j
@@ -33,6 +36,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final MessagesUtils messagesUtils;
+    private final StringRedisTemplate redisTemplate;
     private static final Logger logger = Logger.getLogger(AuthService.class.getName());
 
     public AuthRegisterDTO register(RegisterRequest request) {
@@ -83,8 +87,11 @@ public class AuthService {
                         request.getPassword()
                 )
         );
-        var user = (User) authentication.getPrincipal();
-        var jwtToken = jwtService.generateToken(user);
+        User user = (User) authentication.getPrincipal();
+        String jwtToken = jwtService.generateToken(user);
+        String sessionId = UUID.randomUUID().toString();
+
+        redisTemplate.opsForValue().set(sessionId, jwtToken, Duration.ofHours(1));
 
         AuthLoginResponse response = new AuthLoginResponse();
         assert user != null;

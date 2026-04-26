@@ -26,10 +26,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,6 +59,9 @@ class AuthServiceTest {
 
     @Mock
     private AuthenticationManager authenticationManager;
+
+    @Mock
+    private StringRedisTemplate mockRedisTemplate;
 
     @InjectMocks
     private AuthService authService;
@@ -263,5 +270,49 @@ class AuthServiceTest {
 
         Assertions.assertThrows(AssertionError.class, () ->
             authService.convertToUserDTO(user));
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Test authenticate stores JWT in Redis")
+    void authenticate_shouldStoreJwtInRedisWhenPresent() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("test@gmail.com");
+        loginRequest.setPassword("password");
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFullName("Test User");
+        user.setEmail(loginRequest.getEmail());
+        user.setPassword("encodedPassword");
+        user.setRole(Role.USER);
+
+        org.springframework.security.core.Authentication mockAuthentication =
+                mock(org.springframework.security.core.Authentication.class);
+        when(mockAuthentication.getPrincipal()).thenReturn(user);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
+
+        String generatedJwt = "redis-jwt-token";
+        when(jwtService.generateToken(user)).thenReturn(generatedJwt);
+
+        ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
+        when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
+
+        ArgumentCaptor<String> sessionIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> jwtTokenCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Duration> durationCaptor = ArgumentCaptor.forClass(Duration.class);
+
+        doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
+
+        AuthLoginResponse response = authService.authenticate(loginRequest);
+
+        verify(mockValueOperations).set(sessionIdCaptor.capture(), jwtTokenCaptor.capture(), durationCaptor.capture());
+
+        Assertions.assertNotNull(sessionIdCaptor.getValue(), "Session ID should have been generated");
+        Assertions.assertEquals(generatedJwt, jwtTokenCaptor.getValue());
+        Assertions.assertEquals(Duration.ofHours(1), durationCaptor.getValue());
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(generatedJwt, response.getToken());
+        Assertions.assertEquals(user.getId().toString(), response.getId());
     }
 }
