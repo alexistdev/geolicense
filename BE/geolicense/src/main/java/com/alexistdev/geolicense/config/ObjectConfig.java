@@ -29,7 +29,7 @@ public class ObjectConfig {
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/api/v1/**")
                         .allowedOrigins(allowedOrigins)
-                        .allowedHeaders("Authorization", "Content-Type")
+                        .allowedHeaders("Authorization", "Content-Type", "Cookie")
                         .allowedMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
                         .allowCredentials(true);
             }
