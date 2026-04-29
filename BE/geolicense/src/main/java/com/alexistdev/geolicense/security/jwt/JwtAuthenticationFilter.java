@@ -71,7 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * Priority: 1) SID cookie → Redis lookup, 2) Authorization Bearer header
      */
     private String resolveToken(HttpServletRequest request) {
-        // 1. Try to resolve from SID cookie via Redis
+        
         String sessionId = extractSessionIdFromCookie(request);
         if (sessionId != null) {
             String jwtFromRedis = redisTemplate.opsForValue().get(sessionId);
@@ -82,7 +82,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             logger.warning("Session ID not found in Redis: " + sessionId);
         }
 
-        // 2. Fallback to Authorization Bearer header
         final String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);
