@@ -41,7 +41,7 @@ public class License extends BaseEntity<String> implements Serializable {
     private LicenseType licenseType;
 
     @NotBlank
-    @Column(name = "license_key")
+    @Column(name = "license_key" , nullable = false, unique = true)
     private String licenseKey;
 
     @NotNull
