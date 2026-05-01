@@ -11,6 +11,7 @@ package com.alexistdev.geolicense.models.services;
 import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.services.LicenseTypeService;
@@ -129,9 +130,56 @@ public class LicenseTypeServiceTest {
         Assertions.assertNotNull(response);
         Assertions.assertEquals(licenseTypeId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
+        Assertions.assertEquals(request.getDescription(), response.getDescription());
+        Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
+        Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
+        Assertions.assertEquals(request.isTrial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(licenseTypeRepo, times(1)).save(any(LicenseType.class));
         verifyNoInteractions(messagesUtils);
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("4. Test findLicenseTypeById when found")
+    void findLicenseTypeById_WhenFound_ShouldReturnResponse() {
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.of(entity));
+
+        LicenseTypeResponse response = licenseTypeService.findLicenseTypeById(licenseTypeId.toString());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(licenseTypeId.toString(), response.getId());
+        Assertions.assertEquals(entity.getName(), response.getName());
+        Assertions.assertEquals(entity.getDescription(), response.getDescription());
+        Assertions.assertEquals(entity.getDuration_days(), response.getDurationDays());
+        Assertions.assertEquals(entity.getMax_seats(), response.getMaxSeats());
+        Assertions.assertEquals(entity.is_trial(), response.isTrial());
+
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("5. Test findLicenseTypeById when not found")
+    void findLicenseTypeById_WhenNotFound_ShouldThrowNotFoundException() {
+        String idStr = licenseTypeId.toString();
+        String expectedMessage = "License type " + idStr + " not found";
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("licensetype.not.found", idStr)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseTypeService.findLicenseTypeById(idStr));
+
+        Assertions.assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Test findLicenseTypeById with invalid UUID")
+    void findLicenseTypeById_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> licenseTypeService.findLicenseTypeById("not-a-valid-uuid"));
     }
 }

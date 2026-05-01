@@ -11,6 +11,7 @@ package com.alexistdev.geolicense.services;
 import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -62,6 +63,21 @@ public class LicenseTypeService {
                 .durationDays(savedLicenseType.getDuration_days())
                 .maxSeats(savedLicenseType.getMax_seats())
                 .isTrial(savedLicenseType.is_trial())
+                .build();
+    }
+
+    public LicenseTypeResponse findLicenseTypeById(String id){
+        UUID licenseTypeId = UUID.fromString(id);
+        LicenseType licenseType = licenseTypeRepo.findById(licenseTypeId)
+                .orElseThrow(() -> new NotFoundException(
+                messagesUtils.getMessage("licensetype.not.found", id)));
+        return LicenseTypeResponse.builder()
+                .id(licenseType.getId().toString())
+                .name(licenseType.getName())
+                .description(licenseType.getDescription())
+                .durationDays(licenseType.getDuration_days())
+                .maxSeats(licenseType.getMax_seats())
+                .isTrial(licenseType.is_trial())
                 .build();
     }
 
