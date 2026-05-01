@@ -35,7 +35,7 @@ public class LicenseService {
     private final ProductService productService;
     private final LicenseTypeService licenseTypeService;
     private final MessagesUtils messagesUtils;
-    private static final Logger logger = Logger.getLogger(LicenseTypeService.class.getName());
+    private static final Logger logger = Logger.getLogger(LicenseService.class.getName());
     private static final String SYSTEM_USER = "System";
 
     public LicenseService(LicenseRepo licenseRepo,
@@ -53,12 +53,16 @@ public class LicenseService {
     public LicenseResponse addLicense(LicenseRequest request) {
         UserResponse foundUser = userService.findUserById(request.getUserId());
         if (foundUser.isSuspended()) {
-            throw new NotFoundException(messagesUtils.getMessage("userservice.user.suspended", request.getUserId()));
+            String msgSuspended = messagesUtils.getMessage("userservice.user.suspended", request.getUserId());
+            logger.warning(msgSuspended);
+            throw new NotFoundException(msgSuspended);
         }
         LicenseTypeResponse foundLicenseType = licenseTypeService.findLicenseTypeById(request.getLicenseTypeId());
         ProductResponse foundProduct = productService.findProductById(request.getProductId());
         if (!foundProduct.isActive()) {
-            throw new NotFoundException(messagesUtils.getMessage("product.not.active", foundProduct.getName()));
+            String msgProductInactive = messagesUtils.getMessage("product.not.active", foundProduct.getName());
+            logger.warning(msgProductInactive);
+            throw new NotFoundException(msgProductInactive);
         }
 
         User user = new User();

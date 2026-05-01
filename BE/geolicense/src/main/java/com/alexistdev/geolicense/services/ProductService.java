@@ -72,6 +72,7 @@ public class ProductService {
                 .sku(product.getSku())
                 .version(product.getVersion())
                 .description(product.getDescription())
+                .isActive(product.isActive())
                 .build();
     }
 
