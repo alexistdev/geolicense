@@ -8,12 +8,17 @@
 
 package com.alexistdev.geolicense.config;
 
+import com.alexistdev.geolicense.dto.request.LicenseRequest;
 import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
-import com.alexistdev.geolicense.services.AuthService;
-import com.alexistdev.geolicense.services.LicenseTypeService;
-import com.alexistdev.geolicense.services.ProductService;
+import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
+import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
+import com.alexistdev.geolicense.models.repository.ProductRepo;
+import com.alexistdev.geolicense.models.repository.UserRepo;
+import com.alexistdev.geolicense.services.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -30,6 +35,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final AuthService authService;
     private final LicenseTypeService licenseTypeService;
     private final ProductService productService;
+    private final UserRepo userRepo;
+    private final LicenseTypeRepo licenseTypeRepo;
+    private final ProductRepo productRepo;
+    private final LicenseService licenseService;
 
 
     @Override
@@ -38,6 +47,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedUsers();
         seedLicenseTypes();
         seedProducts();
+        seedLicenses();
         log.info("END: Database seeded");
     }
 
@@ -86,5 +96,21 @@ public class DatabaseSeeder implements CommandLineRunner {
         request.setActive(true);
         productService.addProduct(request);
         log.info("END: Seeding products");
+    }
+
+    private void seedLicenses(){
+        log.info("START: Seeding license");
+        User foundUser = userRepo.findByEmail("alexistdev@gmail.com").orElse(null);
+        if(foundUser == null) return;
+        LicenseType foundLicenseType = licenseTypeRepo.findByNameIncludingDeleted("Premium License").orElse(null);
+        if(foundLicenseType == null) return;
+        Product foundProduct = productRepo.findByNameIncludingDeleted("Hosting Premium").orElse(null);
+        if(foundProduct == null) return;
+        LicenseRequest request = new LicenseRequest();
+        request.setUserId(foundUser.getId().toString());
+        request.setLicenseTypeId(foundLicenseType.getId().toString());
+        request.setProductId(foundProduct.getId().toString());
+        licenseService.addLicense(request);
+        log.info("END: Seeding license");
     }
 }
