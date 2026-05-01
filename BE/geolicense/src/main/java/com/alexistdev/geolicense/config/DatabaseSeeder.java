@@ -8,10 +8,13 @@
 
 package com.alexistdev.geolicense.config;
 
+import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.services.AuthService;
+import com.alexistdev.geolicense.services.LicenseTypeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -23,31 +26,49 @@ import java.util.List;
 public class DatabaseSeeder implements CommandLineRunner {
 
     private final AuthService authService;
+    private final LicenseTypeService licenseTypeService;
 
 
     @Override
-    public void run(String... args) throws Exception {
-        log.info("Database seeded");
+    public void run(String @NonNull ... args) {
+        log.info("START: Database seeded");
         seedUsers();
+        seedLicenseTypes();
+        log.info("END: Database seeded");
     }
 
     private List<RegisterRequest> usersList(){
         return List.of(
-                user("alexistdev@gmail.com", "1234", "Alexsander Hendra Wijaya"),
-                user("user@gmail.com", "1234", "user")
+                user("alexistdev@gmail.com", "Alexsander Hendra Wijaya"),
+                user("user@gmail.com", "user")
         );
     }
 
-    private RegisterRequest user(String email, String password, String fullName){
+    private RegisterRequest user(String email, String fullName){
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setEmail(email);
-        registerRequest.setPassword(password);
+        registerRequest.setPassword("1234");
         registerRequest.setFullName(fullName);
         return registerRequest;
     }
 
     private void seedUsers(){
-        log.info("Seeding users");
+        log.info("START: Seeding users");
         usersList().forEach(authService::register);
+        log.info("END: Seeding users");
+    }
+
+    private void seedLicenseTypes(){
+        log.info("START: Seeding license types");
+        LicenseTypeRequest request = new LicenseTypeRequest();
+        request.setName("Premium License");
+        request.setTrial(false);
+        request.setDescription("Premium Version Description");
+        request.setMaxSeats(1000);
+        request.setDurationDays(30);
+
+        licenseTypeService.addLicenseType(request);
+
+        log.info("END: Seeding license types");
     }
 }
