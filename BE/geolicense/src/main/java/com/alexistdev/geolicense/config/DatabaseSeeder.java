@@ -9,9 +9,11 @@
 package com.alexistdev.geolicense.config;
 
 import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
+import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.services.AuthService;
 import com.alexistdev.geolicense.services.LicenseTypeService;
+import com.alexistdev.geolicense.services.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -27,6 +29,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private final AuthService authService;
     private final LicenseTypeService licenseTypeService;
+    private final ProductService productService;
 
 
     @Override
@@ -34,6 +37,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Database seeded");
         seedUsers();
         seedLicenseTypes();
+        seedProducts();
         log.info("END: Database seeded");
     }
 
@@ -70,5 +74,17 @@ public class DatabaseSeeder implements CommandLineRunner {
         licenseTypeService.addLicenseType(request);
 
         log.info("END: Seeding license types");
+    }
+
+    private void seedProducts(){
+        log.info("START: Seeding products");
+        ProductRequest request = new ProductRequest();
+        request.setName("Hosting Premium");
+        request.setSku("SKU-1");
+        request.setVersion("1.0");
+        request.setDescription("Premium Hosting Description");
+        request.setActive(true);
+        productService.addProduct(request);
+        log.info("END: Seeding products");
     }
 }
