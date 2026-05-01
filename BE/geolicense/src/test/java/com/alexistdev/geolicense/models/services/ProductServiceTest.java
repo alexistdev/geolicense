@@ -11,6 +11,7 @@ package com.alexistdev.geolicense.models.services;
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.services.ProductService;
@@ -129,5 +130,48 @@ public class ProductServiceTest {
 
         verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(productRepo, never()).save(any(Product.class));
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("4. Test find ProductById when found")
+    void findProductById_WhenFound_ShouldReturnResponse() {
+        when(productRepo.findById(productId)).thenReturn(Optional.of(entity));
+
+        ProductResponse response = productService.findProductById(productId.toString());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(productId.toString(), response.getId());
+        Assertions.assertEquals(request.getName(), response.getName());
+        Assertions.assertEquals(request.getVersion(), response.getVersion());
+        Assertions.assertEquals(request.getSku(), response.getSku());
+        Assertions.assertEquals(request.getDescription(), response.getDescription());
+
+        verify(productRepo, times(1)).findById(productId);
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("5. Test find ProductById when not found")
+    void findProductById_WhenNotFound_ShouldThrowNotFoundException() {
+        String idStr = productId.toString();
+        String expectedMessage = "Product " + idStr + " not found";
+        when(productRepo.findById(productId)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("product.not.found", idStr)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> productService.findProductById(idStr));
+
+        Assertions.assertEquals(expectedMessage, exception.getMessage());
+        verify(productRepo, times(1)).findById(productId);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Test find ProductById with invalid UUID")
+    void findProductById_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        String invalidId = "invalid-uuid";
+        assertThrows(IllegalArgumentException.class,
+                () -> productService.findProductById(invalidId));
     }
 }

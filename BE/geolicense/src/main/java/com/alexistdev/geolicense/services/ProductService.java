@@ -11,6 +11,7 @@ package com.alexistdev.geolicense.services;
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -57,6 +58,20 @@ public class ProductService {
                 .sku(savedProduct.getSku())
                 .version(savedProduct.getVersion())
                 .description(savedProduct.getDescription())
+                .build();
+    }
+
+    public ProductResponse findProductById(String id) {
+        UUID productId = UUID.fromString(id);
+        Product product = productRepo.findById(productId)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("product.not.found", id)));
+        return ProductResponse.builder()
+                .id(product.getId().toString())
+                .name(product.getName())
+                .sku(product.getSku())
+                .version(product.getVersion())
+                .description(product.getDescription())
                 .build();
     }
 
