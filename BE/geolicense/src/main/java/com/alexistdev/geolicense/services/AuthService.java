@@ -1,0 +1,106 @@
+package com.alexistdev.geolicense.services;
+
+import com.alexistdev.geolicense.dto.*;
+import com.alexistdev.geolicense.dto.request.LoginRequest;
+import com.alexistdev.geolicense.dto.request.RegisterRequest;
+import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
+import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
+import com.alexistdev.geolicense.exceptions.ExistingException;
+import com.alexistdev.geolicense.models.entity.Role;
+import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.repository.UserRepo;
+import com.alexistdev.geolicense.security.jwt.JwtService;
+import com.alexistdev.geolicense.utils.MessagesUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.logging.Logger;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepo userRepo;
+    private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final MessagesUtils messagesUtils;
+    private final StringRedisTemplate redisTemplate;
+    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
+
+    public AuthRegisterDTO register(RegisterRequest request) {
+        boolean userExist = userRepo.findByEmail(request.getEmail()).isPresent();
+
+        if (userExist) {
+            String message = messagesUtils.getMessage("userservice.user.exist", request.getEmail());
+            logger.warning(message);
+            throw new ExistingException(message);
+        }
+
+        Date now = new Date();
+        User savedUser = new User();
+        savedUser.setFullName(request.getFullName());
+        savedUser.setEmail(request.getEmail());
+        savedUser.setPassword(Objects.requireNonNull(passwordEncoder.encode(request.getPassword())));
+        savedUser.setCreatedDate(now);
+        savedUser.setModifiedDate(now);
+        savedUser.setRole(Role.USER);
+        savedUser.setCreatedBy("System");
+        savedUser.setModifiedBy("System");
+
+        User userResult = userRepo.save(savedUser);
+
+        AuthRegisterDTO result = new AuthRegisterDTO();
+        result.setUser(convertToUserDTO(userResult));
+        result.setToken(jwtService.generateToken(userResult));
+
+        logger.info("User registered successfully: " + userResult.getEmail());
+
+        return result;
+    }
+
+    public UserDTO convertToUserDTO(User user) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId().toString());
+        assert user.getRole() != null;
+        userDTO.setRole(user.getRole().toString());
+        userDTO.setFullName(user.getFullName());
+        userDTO.setEmail(user.getEmail());
+        return userDTO;
+    }
+
+    public AuthLoginResponse authenticate(LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
+        );
+        User user = (User) authentication.getPrincipal();
+        String jwtToken = jwtService.generateToken(user);
+        String sessionId = UUID.randomUUID().toString();
+
+        redisTemplate.opsForValue().set(sessionId, jwtToken, Duration.ofHours(1));
+
+        AuthLoginResponse response = new AuthLoginResponse();
+        assert user != null;
+        response.setId(user.getId().toString());
+        assert user.getRole() != null;
+        response.setRole(user.getRole().toString());
+        response.setSessionToken(sessionId);
+        return response;
+    }
+
+
+}
