@@ -8,11 +8,21 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard'
+      redirect: '/login'
     },
     {
       path: '/dashboard',
       name: 'dashboard',
+      component: DashboardView,
+    },
+    {
+      path: '/staff/dashboard',
+      name: 'staff-dashboard',
+      component: DashboardView,
+    },
+    {
+      path: '/user/dashboard',
+      name: 'user-dashboard',
       component: DashboardView,
     },
     {

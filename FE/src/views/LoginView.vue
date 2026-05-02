@@ -1,16 +1,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AuthService from '@/modules/auth/services/auth.service'
 
 const router = useRouter()
-const email = ref('')
-const password = ref('')
+const email = ref('alexistdev@gmail.com')
+const password = ref('325339')
 const showPassword = ref(false)
+const loginError = ref('')
 
-const handleLogin = () => {
-  // Mock login logic
-  console.log('Logging in with:', email.value, password.value)
-  router.push('/dashboard')
+const handleLogin = async () => {
+  loginError.value = ''
+  try {
+    const response = await AuthService.login({ email: email.value, password: password.value })
+    if (response.payload && response.payload.role) {
+      if (response.payload.role === 'ADMIN') {
+        router.push('/staff/dashboard')
+      } else if (response.payload.role === 'USER') {
+        router.push('/user/dashboard')
+      } else {
+        loginError.value = 'Unknown user role.'
+      }
+    } else {
+      loginError.value = 'Login failed: Invalid response from server.'
+    }
+  } catch (error: any) {
+    loginError.value = error.message || 'An unexpected error occurred during login.'
+    console.error('Login error:', error)
+  }
 }
 </script>
 
@@ -42,17 +59,21 @@ const handleLogin = () => {
             <p class="text-on-surface-variant text-sm mt-1">Authorized personnel only. Encrypted session.</p>
           </div>
 
+          <div v-if="loginError" class="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+            {{ loginError }}
+          </div>
+
           <form @submit.prevent="handleLogin" class="space-y-6">
             <!-- Email Field -->
             <div class="space-y-2">
               <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" for="email">Identity Identifier</label>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">alternate_email</span>
-                <input 
+                <input
                   v-model="email"
-                  type="email" 
-                  id="email" 
-                  placeholder="name@organization.gov" 
+                  type="email"
+                  id="email"
+                  placeholder="name@organization.gov"
                   required
                   class="w-full bg-surface-container-highest/50 border-none rounded-lg py-3.5 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 transition-all duration-200 outline-none"
                 />
@@ -64,15 +85,15 @@ const handleLogin = () => {
               <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" for="password">Security Protocol</label>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">lock</span>
-                <input 
+                <input
                   v-model="password"
-                  :type="showPassword ? 'text' : 'password'" 
-                  id="password" 
-                  placeholder="••••••••••••" 
+                  :type="showPassword ? 'text' : 'password'"
+                  id="password"
+                  placeholder="••••••••••••"
                   required
                   class="w-full bg-surface-container-highest/50 border-none rounded-lg py-3.5 pl-12 pr-12 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 transition-all duration-200 outline-none"
                 />
-                <button 
+                <button
                   type="button"
                   @click="showPassword = !showPassword"
                   class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
@@ -95,29 +116,21 @@ const handleLogin = () => {
             </div>
 
             <!-- Sign In Button -->
-            <button 
+            <button
               type="submit"
               class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
             >
-              Establish Connection
+              LOGIN
               <span class="material-symbols-outlined text-lg">login</span>
             </button>
           </form>
-
-          <div class="mt-8 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
-            <p class="text-xs text-on-surface-variant">Require enterprise integration?</p>
-            <button class="px-6 py-2 bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-full transition-all flex items-center gap-2 border border-outline-variant/20">
-              <span class="material-symbols-outlined text-sm">hub</span>
-              SSO Authentication
-            </button>
-          </div>
         </div>
       </div>
 
       <!-- System Message -->
       <div class="mt-8 flex items-center gap-2 px-4 py-2 bg-surface-container-low/80 rounded-full border border-white/5">
-        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Global Core Systems: Operational</span>
+        <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Status: ONLINE</span>
       </div>
     </main>
 
@@ -130,16 +143,16 @@ const handleLogin = () => {
         <a href="#" class="text-xs uppercase tracking-widest text-slate-500 hover:text-blue-400 transition-all opacity-80 hover:opacity-100">Security Architecture</a>
       </div>
       <div class="text-slate-100 text-xs uppercase tracking-widest">
-        © 2024 GeoLicense. Sovereign Grade Infrastructure.
+        © 2026 GeoLicense. Created By AlexistDev
       </div>
     </footer>
 
     <!-- Imagery Decoration -->
     <div class="hidden lg:block fixed right-0 top-0 bottom-0 w-1/3 z-0 pointer-events-none overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-r from-surface-container-lowest via-transparent to-transparent z-10"></div>
-      <img 
-        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCREepqt05Wd6lSmmDITYTrobI8SXhb_fOgi40eqmnxKuN5PN-r34iHd7t7oSIs5yEg0W6AdcTVLjGw00z-tUNubI5ZuyR2xQjlhsCBApARS7Yebu-NCv3h16Z5NXSChM4FEaAFFHSqWpFbYJMFRpjPEMVOQVqCGPGpPVRkSvI8cO5-G2SzCgqCt6IQP5gUKNbXhNNzEGQmsQUBT-vgOsQg2JcD9LT8h36Y40bKvYs-jjHPMbMZ3-PMMSG-W8bvNlTQ7t9YKHE3B6M" 
-        alt="Tech Infrastructure Background" 
+      <img
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCREepqt05Wd6lSmmDITYTrobI8SXhb_fOgi40eqmnxKuN5PN-r34iHd7t7oSIs5yEg0W6AdcTVLjGw00z-tUNubI5ZuyR2xQjlhsCBApARS7Yebu-NCv3h16Z5NXSChM4FEaAFFHSqWpFbYJMFRpjPEMVOQVqCGPGpPVRkSvI8cO5-G2SzCgqCt6IQP5gUKNbXhNNzEGQmsQUBT-vgOsQg2JcD9LT8h36Y40bKvYs-jjHPMbMZ3-PMMSG-W8bvNlTQ7t9YKHE3B6M"
+        alt="Tech Infrastructure Background"
         class="h-full object-cover opacity-20 grayscale"
       />
     </div>
