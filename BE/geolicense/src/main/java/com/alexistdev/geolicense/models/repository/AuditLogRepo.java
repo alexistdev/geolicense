@@ -8,24 +8,17 @@
 
 package com.alexistdev.geolicense.models.repository;
 
+import com.alexistdev.geolicense.models.entity.AuditLog;
 import com.alexistdev.geolicense.models.entity.License;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface LicenseRepo extends JpaRepository<License, UUID> {
-
-    @Query("SELECT l FROM License l WHERE l.isDeleted = false")
-    Page<License> findByIsDeletedFalse(Pageable pageable);
-
-    @Query(value = "SELECT * FROM glo_licenses p WHERE p.license_key = :licenseKey", nativeQuery = true)
-    Optional<License> findByNameIncludingDeleted(String licenseKey);
+public interface AuditLogRepo extends JpaRepository<AuditLog, UUID> {
 
     @Query("SELECT l FROM License l WHERE l.licenseKey = :licenseKey AND l.isDeleted = false")
-    Optional<License> findByLicenseKeyAndIsDeletedFalse(String licenseKey);
-
+    Optional<License> findByLicenseKeyAndIsDeletedFalse(@Param("licenseKey") String licenseKey);
 }

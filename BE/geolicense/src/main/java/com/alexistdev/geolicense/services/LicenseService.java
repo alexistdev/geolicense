@@ -8,7 +8,11 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.dto.request.ActivateLicenseRequest;
 import com.alexistdev.geolicense.dto.request.LicenseRequest;
+import com.alexistdev.geolicense.dto.request.VerifyLicenseRequest;
+import com.alexistdev.geolicense.dto.response.ActiveLicenseResponse;
+import com.alexistdev.geolicense.dto.response.VerifyLicenseResponse;
 import com.alexistdev.geolicense.dto.response.LicenseResponse;
 import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
@@ -34,6 +38,7 @@ public class LicenseService {
     private final UserService userService;
     private final ProductService productService;
     private final LicenseTypeService licenseTypeService;
+    private final LicenseTokenService licenseTokenService;
     private final MessagesUtils messagesUtils;
     private static final Logger logger = Logger.getLogger(LicenseService.class.getName());
     private static final String SYSTEM_USER = "System";
@@ -42,12 +47,22 @@ public class LicenseService {
                           MessagesUtils messagesUtils,
                           UserService userService,
                           ProductService productService,
-                          LicenseTypeService licenseTypeService) {
+                          LicenseTypeService licenseTypeService,
+                          LicenseTokenService licenseTokenService) {
         this.licenseRepo = licenseRepo;
         this.messagesUtils = messagesUtils;
         this.userService = userService;
         this.productService = productService;
         this.licenseTypeService = licenseTypeService;
+        this.licenseTokenService = licenseTokenService;
+    }
+
+    public ActiveLicenseResponse activateLicense(ActivateLicenseRequest request) {
+        return licenseTokenService.activate(request);
+    }
+
+    public VerifyLicenseResponse verifyLicense(VerifyLicenseRequest request) {
+        return licenseTokenService.verify(request);
     }
 
     public LicenseResponse addLicense(LicenseRequest request) {

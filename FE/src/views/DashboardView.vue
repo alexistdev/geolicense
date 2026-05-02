@@ -55,7 +55,7 @@ const securityPulse = [
 
         <div class="bg-surface-container p-6 rounded-xl flex flex-col justify-between transition-all hover:bg-surface-container-high group cursor-default">
           <div>
-            <span class="text-[0.6875rem] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Security Score</span>
+            <span class="text-[0.6875rem] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Security ScoreL</span>
             <h2 class="text-4xl font-extrabold mt-2 text-primary tracking-tight">98%</h2>
           </div>
           <div class="mt-4 flex items-center gap-2 text-primary">
@@ -79,7 +79,7 @@ const securityPulse = [
               <span class="px-3 py-1 text-on-surface-variant text-[0.6875rem] font-bold rounded-full hover:bg-surface-container-high cursor-pointer transition-colors">ALL TIME</span>
             </div>
           </div>
-          
+
           <!-- Mock Chart Area -->
           <div class="h-64 flex items-end gap-3 px-2">
             <div class="flex-1 bg-surface-container-high rounded-t-sm h-[40%] group relative transition-all duration-500 hover:h-[45%]">
@@ -107,7 +107,7 @@ const securityPulse = [
               <div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
           </div>
-          
+
           <div class="mt-6 flex justify-between text-[0.625rem] text-on-surface-variant font-bold tracking-widest uppercase opacity-50">
             <span>AUG 01</span>
             <span>AUG 08</span>
@@ -122,10 +122,10 @@ const securityPulse = [
           <h3 class="text-lg font-bold text-white mb-6">Security Pulse</h3>
           <div class="space-y-6">
             <div v-for="(item, index) in securityPulse" :key="index" class="flex gap-4">
-              <div 
+              <div
                 class="w-2 h-2 mt-1.5 rounded-full flex-shrink-0"
                 :class="[
-                  item.type === 'primary' ? 'bg-primary shadow-[0_0_10px_rgba(173,198,255,0.8)]' : 
+                  item.type === 'primary' ? 'bg-primary shadow-[0_0_10px_rgba(173,198,255,0.8)]' :
                   item.type === 'tertiary' ? 'bg-tertiary' : 'bg-primary opacity-40'
                 ]"
               ></div>
@@ -147,7 +147,7 @@ const securityPulse = [
           <h3 class="text-xl font-bold text-white">Active Clearances Ledger</h3>
           <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-white transition-colors">more_horiz</span>
         </div>
-        
+
         <div class="overflow-x-auto no-scrollbar">
           <table class="w-full text-left">
             <thead>
@@ -173,7 +173,7 @@ const securityPulse = [
                   </div>
                 </td>
                 <td class="py-5">
-                  <span 
+                  <span
                     class="px-2.5 py-1 rounded-full text-[0.625rem] font-black uppercase tracking-widest"
                     :class="[
                       item.status === 'Active' ? 'bg-primary-container/20 text-primary' : 'bg-tertiary-container/20 text-tertiary'

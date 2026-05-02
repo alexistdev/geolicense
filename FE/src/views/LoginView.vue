@@ -5,7 +5,7 @@ import AuthService from '@/modules/auth/services/auth.service'
 
 const router = useRouter()
 const email = ref('alexistdev@gmail.com')
-const password = ref('325339')
+const password = ref('1234')
 const showPassword = ref(false)
 const loginError = ref('')
 
@@ -73,7 +73,7 @@ const handleLogin = async () => {
                   v-model="email"
                   type="email"
                   id="email"
-                  placeholder="name@organization.gov"
+                  placeholder="email@mail.com"
                   required
                   class="w-full bg-surface-container-highest/50 border-none rounded-lg py-3.5 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 transition-all duration-200 outline-none"
                 />
