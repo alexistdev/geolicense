@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 const router = useRouter()
-const isMobileMenuOpen = ref(false)
 
 const logout = () => {
   // Simple logout logic
@@ -27,36 +25,36 @@ const logout = () => {
             </div>
           </div>
         </div>
-        
+
         <nav class="flex-1 space-y-1">
-          <RouterLink 
-            to="/dashboard" 
+          <RouterLink
+            to="/dashboard"
             class="py-3 px-6 flex items-center gap-3 transition-all duration-200"
             :class="[
-              $route.path === '/dashboard' 
-                ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400 border-l-4 border-blue-500' 
+              $route.path === '/dashboard'
+                ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400 border-l-4 border-blue-500'
                 : 'text-[#c2c6d6] hover:bg-[#171f33] hover:text-white'
             ]"
           >
             <span class="material-symbols-outlined">dashboard</span>
             <span class="font-manrope text-[0.875rem] font-medium">Dashboard</span>
           </RouterLink>
-          
-          <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
+
+          <RouterLink to="/user/license" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
             <span class="material-symbols-outlined">vpn_key</span>
             <span class="font-manrope text-[0.875rem] font-medium">Licenses</span>
           </RouterLink>
-          
+
           <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
             <span class="material-symbols-outlined">group</span>
             <span class="font-manrope text-[0.875rem] font-medium">Users</span>
           </RouterLink>
-          
+
           <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
             <span class="material-symbols-outlined">inventory_2</span>
             <span class="font-manrope text-[0.875rem] font-medium">Inventory</span>
           </RouterLink>
-          
+
           <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
             <span class="material-symbols-outlined">verified_user</span>
             <span class="font-manrope text-[0.875rem] font-medium">Security</span>
@@ -79,29 +77,29 @@ const logout = () => {
           <span class="text-lg font-extrabold tracking-tighter text-[#adc6ff]">GeoLicense</span>
           <div class="relative hidden lg:block">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input 
-              type="text" 
-              placeholder="Quick search ledger..." 
+            <input
+              type="text"
+              placeholder="Quick search ledger..."
               class="bg-surface-container-high border-none rounded-full py-1.5 pl-10 pr-4 text-sm w-64 focus:ring-1 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/50"
             />
           </div>
         </div>
-        
+
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-4 text-[#c2c6d6]">
             <button class="hover:text-white transition-colors"><span class="material-symbols-outlined">notifications</span></button>
             <button class="hover:text-white transition-colors"><span class="material-symbols-outlined">help</span></button>
             <button class="hover:text-white transition-colors"><span class="material-symbols-outlined">settings</span></button>
           </div>
-          
+
           <div class="flex items-center gap-3 pl-6 border-l border-white/10">
             <div class="text-right">
               <p class="text-sm font-bold text-white">Admin Unit 01</p>
               <p class="text-[0.6875rem] text-primary uppercase tracking-widest">Super Administrator</p>
             </div>
-            <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxwsVf3ZSwq4oh0BsGy1KmLIRywLnlKLQ-je4ICjYKy59IHecnS2W6QJOgz8ziZBrenVG7l-HgNUp1xxvWy9d4QVGk_PrnVRSvcuSscR_mksvM9Jp4PF0upjiqWcA2ptGLqPOxpkMisPUs2fOkD28UCXlFuPOtdxZhNXrywGEEiojAmI-tfWfY9LXqRLDOgQATeTSZjI04F2G9gtE25H7EPt-ozLpJ_c2xu6TVKr4TIEp5TCop7-VwsZAHktWgOsVHOHQmCdA3RNQ" 
-              alt="Profile" 
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxwsVf3ZSwq4oh0BsGy1KmLIRywLnlKLQ-je4ICjYKy59IHecnS2W6QJOgz8ziZBrenVG7l-HgNUp1xxvWy9d4QVGk_PrnVRSvcuSscR_mksvM9Jp4PF0upjiqWcA2ptGLqPOxpkMisPUs2fOkD28UCXlFuPOtdxZhNXrywGEEiojAmI-tfWfY9LXqRLDOgQATeTSZjI04F2G9gtE25H7EPt-ozLpJ_c2xu6TVKr4TIEp5TCop7-VwsZAHktWgOsVHOHQmCdA3RNQ"
+              alt="Profile"
               class="w-10 h-10 rounded-full border-2 border-primary/20 object-cover"
             />
             <button @click="logout" class="ml-2 hover:text-error transition-colors">
