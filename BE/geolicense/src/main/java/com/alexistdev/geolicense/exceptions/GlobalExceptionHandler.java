@@ -74,4 +74,31 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
+    @ExceptionHandler(LicenseExpiredException.class)
+    public ResponseEntity<ResponseData<Void>> handleExpired(LicenseExpiredException ex) {
+        log.warn("Your license has expired: {}", ex.getMessage());
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("License is expired.");
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(response);
+    }
+
+    @ExceptionHandler(LicenseForbiddenException.class)
+    public ResponseEntity<ResponseData<Void>> handleForbidden(LicenseForbiddenException ex) {
+        log.warn("Unauthorized Licensed", ex);
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("Unauthorized Licensed.");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    @ExceptionHandler(SeatLimitReachedException.class)
+    public ResponseEntity<ResponseData<Void>> handleSeatLimit(SeatLimitReachedException ex) {
+        log.warn("License has reach limit", ex);
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("License has reach limit.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    }
+
 }
