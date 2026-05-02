@@ -25,4 +25,7 @@ public interface LicenseRepo extends JpaRepository<License, UUID> {
     @Query(value = "SELECT * FROM glo_licenses p WHERE p.license_key = :licenseKey", nativeQuery = true)
     Optional<License> findByNameIncludingDeleted(String licenseKey);
 
+    @Query("SELECT l FROM License l WHERE l.licenseKey = :licenseKey AND l.isDeleted = false")
+    Optional<License> findByLicenseKeyAndIsDeletedFalse(String licenseKey);
+
 }
