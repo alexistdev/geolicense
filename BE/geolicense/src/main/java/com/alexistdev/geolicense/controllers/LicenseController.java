@@ -42,9 +42,14 @@ public class LicenseController {
             @Valid @RequestBody ActivateLicenseRequest request) {
         ResponseData<ActiveLicenseResponse> responseData = new ResponseData<>();
         ActiveLicenseResponse activeLicense = licenseService.activateLicense(request);
-        responseData.setStatus(true);
-        responseData.getMessages().add(messagesUtils.getMessage("license.activation.success"));
-        responseData.setPayload(activeLicense);
+        if (activeLicense != null) {
+            responseData.setStatus(true);
+            responseData.getMessages().add(messagesUtils.getMessage("license.activation.success"));
+            responseData.setPayload(activeLicense);
+        } else {
+            responseData.setStatus(false);
+            responseData.getMessages().add(messagesUtils.getMessage("license.activation.failed"));
+        }
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
@@ -53,9 +58,14 @@ public class LicenseController {
             @Valid @RequestBody VerifyLicenseRequest request) {
         ResponseData<VerifyLicenseResponse> responseData = new ResponseData<>();
         VerifyLicenseResponse verifyResult = licenseService.verifyLicense(request);
-        responseData.setStatus(true);
-        responseData.getMessages().add(messagesUtils.getMessage("license.verification.success"));
-        responseData.setPayload(verifyResult);
+        if (verifyResult != null) {
+            responseData.setStatus(true);
+            responseData.getMessages().add(messagesUtils.getMessage("license.verification.success"));
+            responseData.setPayload(verifyResult);
+        } else {
+            responseData.setStatus(false);
+            responseData.getMessages().add(messagesUtils.getMessage("license.verification.failed"));
+        }
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 }
