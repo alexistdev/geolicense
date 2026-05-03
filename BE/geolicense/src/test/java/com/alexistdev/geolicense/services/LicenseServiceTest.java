@@ -6,7 +6,7 @@
  * Email: alexistdev@gmail.com
  */
 
-package com.alexistdev.geolicense.models.services;
+package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.request.LicenseRequest;
 import com.alexistdev.geolicense.dto.response.LicenseResponse;
