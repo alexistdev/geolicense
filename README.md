@@ -62,7 +62,11 @@ Geolicense is a Java Springboot and Vue Js based software, which is used to mana
    ```bash
    mvn spring-boot:run
    ```
-8. Set up Basic Authentication in Postman or Insomnia using the email and password provided during registration.
+8. Set up Authentication using Cookie
+   ```Headers
+   Key: Cookie
+   Value: SID=[SessionToken-From-Login]
+   ```
 
 With these steps, you'll have the Geolicense application up and running, ready for customization and use.
 
