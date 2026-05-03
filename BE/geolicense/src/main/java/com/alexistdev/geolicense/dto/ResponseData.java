@@ -1,8 +1,10 @@
 package com.alexistdev.geolicense.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseData<T> {
     private boolean status;
 

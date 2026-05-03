@@ -7,5 +7,6 @@ public class DatabaseTableNames {
     public static final String TB_LICENSE = "glo_licenses";
     public static final String TB_LICENSE_ACTIVATION = "glo_license_activations";
     public static final String TB_AUDIT_LOG = "glo_audit_logs";
+    public static final String TB_MENU = "glo_menus";
 
 }
