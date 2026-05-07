@@ -14,7 +14,6 @@ import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
-import com.alexistdev.geolicense.services.ProductService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
