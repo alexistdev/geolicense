@@ -51,16 +51,30 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedProducts();
         seedLicenses();
         seedMenuAdmin();
+        seedMenuUser();
         log.info("END: Database seeded");
     }
 
     private void seedMenuAdmin(){
-        log.info("START: Seeding Menu");
+        log.info("START: Seeding Menu Admin");
         MenuRequest menuAdmin1 = createMenu("Dashboard", "/admin/dashboard", "menu-title d-flex align-items-center", 1, null,1, "ad1","bx bx-home-alt");
         MenuRequest menuAdmin2 = createMenu("Master Data", "#", "menu-title d-flex align-items-center", 2, null,1,"ad2","bx bx-book-alt");
         menuService.addMenu(menuAdmin1);
         menuService.addMenu(menuAdmin2);
-        log.info("END: Seeding Menu");
+        log.info("END: Seeding Menu Admin");
+    }
+
+    private void seedMenuUser(){
+        log.info("START: Seeding Menu User");
+        MenuRequest menuUser1 = createMenu("Dashboard", "/users/dashboard", "menu-title d-flex align-items-center", 1, null,2,"us1","bx bx-home-alt");
+        MenuRequest menuUser2 = createMenu("Services", "#", "menu-title d-flex align-items-center", 2, null,2,"us2","bx bx-collection");
+        MenuRequest menuUser3 = createMenu("Billing", "#", "menu-title d-flex align-items-center", 2, null,2,"us3","bx bx-money");
+        MenuRequest menuUser4 = createMenu("Support", "#", "menu-title d-flex align-items-center", 2, null,2,"us4","bx bx-headphone");
+        menuService.addMenu(menuUser1);
+        menuService.addMenu(menuUser2);
+        menuService.addMenu(menuUser3);
+        menuService.addMenu(menuUser4);
+        log.info("END: Seeding Menu User");
     }
 
     private MenuRequest createMenu(
