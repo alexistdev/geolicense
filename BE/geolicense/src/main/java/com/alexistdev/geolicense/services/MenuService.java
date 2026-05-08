@@ -25,8 +25,8 @@ import java.util.logging.Logger;
 @Service
 public class MenuService {
 
-    private MenuRepo menuRepo;
-    private static final Logger logger = Logger.getLogger(LicenseService.class.getName());
+    private final MenuRepo menuRepo;
+    private static final Logger logger = Logger.getLogger(MenuService.class.getName());
     private static final String SYSTEM_USER = "System";
     private final MessagesUtils messagesUtils;
 
