@@ -8,10 +8,7 @@
 
 package com.alexistdev.geolicense.config;
 
-import com.alexistdev.geolicense.dto.request.LicenseRequest;
-import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
-import com.alexistdev.geolicense.dto.request.ProductRequest;
-import com.alexistdev.geolicense.dto.request.RegisterRequest;
+import com.alexistdev.geolicense.dto.request.*;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
@@ -26,6 +23,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
@@ -42,6 +40,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final LicenseTypeRepo licenseTypeRepo;
     private final ProductRepo productRepo;
     private final LicenseService licenseService;
+    private final MenuService menuService;
 
 
     @Override
@@ -51,7 +50,32 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedLicenseTypes();
         seedProducts();
         seedLicenses();
+        seedMenuAdmin();
         log.info("END: Database seeded");
+    }
+
+    private void seedMenuAdmin(){
+        log.info("START: Seeding Menu");
+        MenuRequest menuAdmin1 = createMenu("Dashboard", "/admin/dashboard", "menu-title d-flex align-items-center", 1, null,1, "ad1","bx bx-home-alt");
+        MenuRequest menuAdmin2 = createMenu("Master Data", "#", "menu-title d-flex align-items-center", 2, null,1,"ad2","bx bx-book-alt");
+        menuService.addMenu(menuAdmin1);
+        menuService.addMenu(menuAdmin2);
+        log.info("END: Seeding Menu");
+    }
+
+    private MenuRequest createMenu(
+            String name, String urlLink, String classLink, int sortOrder, UUID parentId, int typeMenu, String code, String icon
+    ){
+        MenuRequest request = new MenuRequest();
+        request.setName(name);
+        request.setUrlink(urlLink);
+        request.setIcon(icon);
+        request.setClasslink(classLink);
+        request.setCode(code);
+        if(parentId != null) request.setParentId(parentId.toString());
+        request.setTypeMenu(typeMenu);
+        request.setSortOrder(String.valueOf(sortOrder));
+        return request;
     }
 
     private List<RegisterRequest> usersList(){

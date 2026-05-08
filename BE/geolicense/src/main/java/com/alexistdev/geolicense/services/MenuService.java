@@ -51,7 +51,6 @@ public class MenuService {
             menuToSave.setDeleted(false);
         }
         Menu savedMenu = menuRepo.save(menuToSave);
-        assert savedMenu.getParentId() != null;
         return MenuResponse.builder()
                 .id(savedMenu.getId().toString())
                 .name(savedMenu.getName())
@@ -59,7 +58,7 @@ public class MenuService {
                 .classlink(savedMenu.getClasslink())
                 .icon(savedMenu.getIcon())
                 .sortOrder(String.valueOf(savedMenu.getSortOrder()))
-                .parentId(savedMenu.getParentId().toString())
+                .parentId(savedMenu.getParentId() != null ? savedMenu.getParentId().toString() : null)
                 .typeMenu(savedMenu.getTypeMenu())
                 .code(savedMenu.getCode())
                 .build();
@@ -76,7 +75,7 @@ public class MenuService {
         menu.setIcon(request.getIcon());
         menu.setTypeMenu(request.getTypeMenu());
         menu.setCode(request.getCode());
-        menu.setParentId(UUID.fromString(request.getParentId()));
+        if (request.getParentId() != null) menu.setParentId(UUID.fromString(request.getParentId()));
         menu.setCreatedBy(SYSTEM_USER);
         menu.setModifiedBy(SYSTEM_USER);
         menu.setCreatedDate(new java.util.Date());
