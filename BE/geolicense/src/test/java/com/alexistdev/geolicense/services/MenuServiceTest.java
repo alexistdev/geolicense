@@ -20,8 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -80,16 +78,16 @@ public class MenuServiceTest {
 
         MenuResponse response = menuService.addMenu(menuRequest);
 
-        assertNotNull(response);
-        assertEquals(menuId.toString(), response.getId());
-        assertEquals(menuRequest.getName(), response.getName());
-        assertEquals(menuRequest.getUrlink(), response.getUrlink());
-        assertEquals(menuRequest.getClasslink(), response.getClasslink());
-        assertEquals(menuRequest.getIcon(), response.getIcon());
-        assertEquals(menuRequest.getSortOrder(), response.getSortOrder());
-        assertEquals(parentId.toString(), response.getParentId());
-        assertEquals(menuRequest.getTypeMenu(), response.getTypeMenu());
-        assertEquals(menuRequest.getCode(), response.getCode());
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(menuId.toString(), response.getId());
+        Assertions.assertEquals(menuRequest.getName(), response.getName());
+        Assertions.assertEquals(menuRequest.getUrlink(), response.getUrlink());
+        Assertions.assertEquals(menuRequest.getClasslink(), response.getClasslink());
+        Assertions.assertEquals(menuRequest.getIcon(), response.getIcon());
+        Assertions.assertEquals(menuRequest.getSortOrder(), response.getSortOrder());
+        Assertions.assertEquals(parentId.toString(), response.getParentId());
+        Assertions.assertEquals(menuRequest.getTypeMenu(), response.getTypeMenu());
+        Assertions.assertEquals(menuRequest.getCode(), response.getCode());
         verify(menuRepo, times(1)).save(any(Menu.class));
     }
 
@@ -104,8 +102,8 @@ public class MenuServiceTest {
 
         MenuResponse response = menuService.addMenu(menuRequest);
 
-        assertNotNull(response);
-        assertNull(response.getParentId());
+        Assertions.assertNotNull(response);
+        Assertions.assertNull(response.getParentId());
         verify(menuRepo, times(1)).save(any(Menu.class));
     }
 
@@ -115,7 +113,7 @@ public class MenuServiceTest {
     void addMenu_WhenParentIdIsInvalid_ShouldThrowIllegalArgumentException() {
         menuRequest.setParentId("invalid-uuid");
 
-        assertThrows(IllegalArgumentException.class,
+        Assertions.assertThrows(IllegalArgumentException.class,
                 () -> menuService.addMenu(menuRequest));
 
         verify(menuRepo, never()).save(any(Menu.class));
@@ -127,7 +125,7 @@ public class MenuServiceTest {
     void addMenu_WhenSortOrderIsInvalid_ShouldThrowNumberFormatException() {
         menuRequest.setSortOrder("not-a-number");
 
-        assertThrows(NumberFormatException.class,
+        Assertions.assertThrows(NumberFormatException.class,
                 () -> menuService.addMenu(menuRequest));
 
         verify(menuRepo, never()).save(any(Menu.class));
