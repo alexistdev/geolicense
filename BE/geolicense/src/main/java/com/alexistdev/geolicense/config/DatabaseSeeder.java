@@ -9,14 +9,13 @@
 package com.alexistdev.geolicense.config;
 
 import com.alexistdev.geolicense.dto.request.*;
-import com.alexistdev.geolicense.models.entity.LicenseType;
-import com.alexistdev.geolicense.models.entity.Menu;
-import com.alexistdev.geolicense.models.entity.Product;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
+import com.alexistdev.geolicense.models.repository.RoleMenuRepo;
 import com.alexistdev.geolicense.models.repository.UserRepo;
 import com.alexistdev.geolicense.services.*;
+import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -24,6 +23,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -42,6 +43,9 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final ProductRepo productRepo;
     private final LicenseService licenseService;
     private final MenuService menuService;
+    private final RoleMenuRepo roleMenuRepo;
+    private final MessagesUtils messagesUtils;
+    private static final String SYSTEM_USER = "System";
 
 
 
@@ -59,11 +63,43 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("END: Database seeded");
     }
 
+    private void seedRoleMenus(){
+        log.info("START: Seeding Role Menu");
+        Map<Role, List<String>> roleMenuCode = Map.of(
+          Role.ADMIN, List.of("ad1","ad2","ad3"),
+          Role.USER, List.of("us1", "us2","us3","uc1")
+        );
+
+        List<RoleMenu> roleMenus = roleMenuCode.entrySet().stream().flatMap(
+                entry -> entry.getValue().stream().map(
+                        code -> createRoleMenu(entry.getKey(), getMenuOrThrow(code)))).toList();
+
+        roleMenuRepo.saveAll(roleMenus);
+        log.info("END: Seeding Role Menu");
+    }
+
+    private Menu getMenuOrThrow(String code) {
+        return Optional.ofNullable(menuService.findByCode(code))
+                .orElseThrow(() -> new RuntimeException(messagesUtils.getMessage("seeder.menucode.notexist", code)));
+    }
+
+    private RoleMenu createRoleMenu(Role role, Menu menu) {
+        RoleMenu roleMenu = new RoleMenu();
+        roleMenu.setRole(role);
+        roleMenu.setMenu(menu);
+        roleMenu.setCreatedBy(SYSTEM_USER);
+        roleMenu.setModifiedBy(SYSTEM_USER);
+        roleMenu.setCreatedDate(new java.util.Date());
+        roleMenu.setModifiedDate(new java.util.Date());
+        roleMenu.setIsDeleted(false);
+        return roleMenu;
+    }
+
     private void seedChildAdmin(){
         log.info("START: Seeding Child Menu Admin");
         Menu menuParentAdmin = menuService.findByCode("ad2");
         if(menuParentAdmin != null){
-            MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad5","bx bx-server");
+            MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad3","bx bx-server");
             menuService.addMenu(menuChildAdmin1);
         }
         log.info("END: Seeding Child Menu Admin");
@@ -73,7 +109,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Child Menu User");
         Menu menuParentUser = menuService.findByCode("us3");
         if(menuParentUser != null) {
-            MenuRequest menuChildUser1 = createMenu("My Invoices", "/users/billings", 1, menuParentUser.getId(), 2, "uc3", "bx bx-barcode");
+            MenuRequest menuChildUser1 = createMenu("My Invoices", "/users/billings", 1, menuParentUser.getId(), 2, "uc1", "bx bx-barcode");
             menuService.addMenu(menuChildUser1);
         }
         log.info("END: Seeding Child Menu User");
