@@ -60,6 +60,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedMenuUser();
         seedChildAdmin();
         seedChildUser();
+        seedRoleMenus();
         log.info("END: Database seeded");
     }
 
