@@ -5,7 +5,10 @@ import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.ResponseData;
 import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
+import com.alexistdev.geolicense.dto.response.MenuResponse;
+import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.services.AuthService;
+import com.alexistdev.geolicense.services.MenuService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -91,6 +95,9 @@ public class AuthController {
         handleErrors(errors, responseData);
         String msgSuccess = messagesUtils.getMessage("authcontroller.login.success");
         AuthLoginResponse authLoginResponse = authService.authenticate(request);
+
+
+
         responseData.setPayload(authLoginResponse);
         responseData.setStatus(true);
         responseData.getMessages().add(msgSuccess);

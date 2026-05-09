@@ -5,6 +5,7 @@ import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
+import com.alexistdev.geolicense.dto.response.MenuResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.models.entity.User;
@@ -22,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -37,6 +39,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final MessagesUtils messagesUtils;
     private final StringRedisTemplate redisTemplate;
+    private final MenuService menuService;
     private static final Logger logger = Logger.getLogger(AuthService.class.getName());
 
     public AuthRegisterDTO register(RegisterRequest request) {
@@ -99,8 +102,14 @@ public class AuthService {
         assert user.getRole() != null;
         response.setRole(user.getRole().toString());
         response.setSessionToken(sessionId);
+        List<MenuResponse> menus = menuService.getMenusByRole(user.getRole());
+        response.setMenus(menus);
+        response.setHomeURL(this.getDefaultHomeURL(user.getRole()));
         return response;
     }
 
+    private String getDefaultHomeURL(Role role){
+        return String.format("/%s/dashboard", role.name().toLowerCase());
+    }
 
 }

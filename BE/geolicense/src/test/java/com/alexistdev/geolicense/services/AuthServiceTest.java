@@ -13,12 +13,12 @@ import com.alexistdev.geolicense.dto.request.LoginRequest;
 import com.alexistdev.geolicense.dto.request.RegisterRequest;
 import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
+import com.alexistdev.geolicense.dto.response.MenuResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.UserRepo;
 import com.alexistdev.geolicense.security.jwt.JwtService;
-import com.alexistdev.geolicense.services.AuthService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +34,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,6 +63,9 @@ class AuthServiceTest {
 
     @Mock
     private StringRedisTemplate mockRedisTemplate;
+
+    @Mock
+    private MenuService menuService;
 
     @InjectMocks
     private AuthService authService;
@@ -208,6 +212,11 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
         when(jwtService.generateToken(user)).thenReturn("valid-jwt-token");
 
+        List<MenuResponse> expectedMenus = List.of(
+                MenuResponse.builder().id("1").name("Dashboard").build()
+        );
+        when(menuService.getMenusByRole(Role.USER)).thenReturn(expectedMenus);
+
         ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
         doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
@@ -218,10 +227,13 @@ class AuthServiceTest {
         );
 
         verify(jwtService).generateToken(user);
+        verify(menuService).getMenusByRole(Role.USER);
 
         Assertions.assertNotNull(response);
         Assertions.assertNotNull(response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
+        Assertions.assertEquals(expectedMenus, response.getMenus());
+        Assertions.assertEquals("/user/dashboard", response.getHomeURL());
     }
 
     @Test
@@ -299,6 +311,11 @@ class AuthServiceTest {
         String generatedJwt = "redis-jwt-token";
         when(jwtService.generateToken(user)).thenReturn(generatedJwt);
 
+        List<MenuResponse> expectedMenus = List.of(
+                MenuResponse.builder().id("1").name("Dashboard").build()
+        );
+        when(menuService.getMenusByRole(Role.USER)).thenReturn(expectedMenus);
+
         ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
 
@@ -311,6 +328,7 @@ class AuthServiceTest {
         AuthLoginResponse response = authService.authenticate(loginRequest);
 
         verify(mockValueOperations).set(sessionIdCaptor.capture(), jwtTokenCaptor.capture(), durationCaptor.capture());
+        verify(menuService).getMenusByRole(Role.USER);
 
         Assertions.assertNotNull(sessionIdCaptor.getValue(), "Session ID should have been generated");
         Assertions.assertEquals(generatedJwt, jwtTokenCaptor.getValue());
@@ -318,5 +336,36 @@ class AuthServiceTest {
         Assertions.assertNotNull(response);
         Assertions.assertEquals(sessionIdCaptor.getValue(), response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
+        Assertions.assertEquals(expectedMenus, response.getMenus());
+        Assertions.assertEquals("/user/dashboard", response.getHomeURL());
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("11. Test authenticate sets homeURL based on role")
+    void authenticate_shouldSetHomeURLBasedOnRole() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("admin@example.com");
+        loginRequest.setPassword("password");
+
+        User adminUser = new User();
+        adminUser.setId(UUID.randomUUID());
+        adminUser.setEmail(loginRequest.getEmail());
+        adminUser.setRole(Role.ADMIN);
+
+        org.springframework.security.core.Authentication mockAuthentication =
+                mock(org.springframework.security.core.Authentication.class);
+        when(mockAuthentication.getPrincipal()).thenReturn(adminUser);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuthentication);
+        when(jwtService.generateToken(adminUser)).thenReturn("admin-jwt-token");
+        when(menuService.getMenusByRole(Role.ADMIN)).thenReturn(List.of());
+
+        ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
+        when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
+        doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
+
+        AuthLoginResponse response = authService.authenticate(loginRequest);
+
+        Assertions.assertEquals("/admin/dashboard", response.getHomeURL());
     }
 }
