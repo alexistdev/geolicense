@@ -19,7 +19,6 @@ class AuthService {
         Cookies.set('SID', payload.sessionToken);
         localStorage.setItem('menus', JSON.stringify(payload.menus));
         localStorage.setItem('userId', JSON.stringify(payload.id));
-        console.log(payload.sessionToken);
       }
 
       return response.data;
@@ -37,11 +36,6 @@ class AuthService {
     localStorage.removeItem('menus');
     localStorage.removeItem('userId')
   }
-
-  // getCurrentUser(): LoginResponse | null {
-  //   const userStr = localStorage.getItem('user');
-  //   return userStr ? JSON.parse(userStr) : null;
-  // }
 }
 
 export default new AuthService();
