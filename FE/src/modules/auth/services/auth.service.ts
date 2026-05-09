@@ -1,7 +1,7 @@
 import axios, { type AxiosError } from 'axios'
 import Cookies from 'js-cookie';
 import type { LoginRequest } from '../models/login.request';
-import type { LoginResponse } from '../models/login.response';
+import type { LoginResponse, Menu } from '../models/login.response';
 import type { BaseResponse } from '../../shared/models/base.response';
 import { AuthException } from '@/modules/auth/exception/auth.exception.ts'
 
@@ -35,6 +35,11 @@ class AuthService {
     Cookies.remove('SID');
     localStorage.removeItem('menus');
     localStorage.removeItem('userId')
+  }
+
+  getMenus(): Menu[] | null {
+    const menus = localStorage.getItem('menus');
+    return menus ? JSON.parse(menus) : null
   }
 }
 
