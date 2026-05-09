@@ -15,6 +15,8 @@ import com.alexistdev.geolicense.models.repository.MenuRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -65,5 +67,10 @@ public class MenuService {
         menu.setCreatedDate(new java.util.Date());
         menu.setModifiedDate(new java.util.Date());
         return menu;
+    }
+
+    public Menu findByCode(String code){
+        Optional<Menu> foundMenu = menuRepo.findByCodeIncludingDeleted(code);
+        return foundMenu.orElse(null);
     }
 }

@@ -10,6 +10,7 @@ package com.alexistdev.geolicense.config;
 
 import com.alexistdev.geolicense.dto.request.*;
 import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Menu;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
@@ -43,6 +44,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final MenuService menuService;
 
 
+
     @Override
     public void run(String @NonNull ... args) {
         log.info("START: Database seeded");
@@ -52,13 +54,35 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedLicenses();
         seedMenuAdmin();
         seedMenuUser();
+        seedChildAdmin();
+        seedChildUser();
         log.info("END: Database seeded");
+    }
+
+    private void seedChildAdmin(){
+        log.info("START: Seeding Child Menu Admin");
+        Menu menuParentAdmin = menuService.findByCode("ad2");
+        if(menuParentAdmin != null){
+            MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad5","bx bx-server");
+            menuService.addMenu(menuChildAdmin1);
+        }
+        log.info("END: Seeding Child Menu Admin");
+    }
+
+    private void seedChildUser(){
+        log.info("START: Seeding Child Menu User");
+        Menu menuParentUser = menuService.findByCode("us3");
+        if(menuParentUser != null) {
+            MenuRequest menuChildUser1 = createMenu("My Invoices", "/users/billings", 1, menuParentUser.getId(), 2, "uc3", "bx bx-barcode");
+            menuService.addMenu(menuChildUser1);
+        }
+        log.info("END: Seeding Child Menu User");
     }
 
     private void seedMenuAdmin(){
         log.info("START: Seeding Menu Admin");
-        MenuRequest menuAdmin1 = createMenu("Dashboard", "/admin/dashboard", "menu-title d-flex align-items-center", 1, null,1, "ad1","bx bx-home-alt");
-        MenuRequest menuAdmin2 = createMenu("Master Data", "#", "menu-title d-flex align-items-center", 2, null,1,"ad2","bx bx-book-alt");
+        MenuRequest menuAdmin1 = createMenu("Dashboard", "/admin/dashboard", 1, null,1, "ad1","bx bx-home-alt");
+        MenuRequest menuAdmin2 = createMenu("Master Data", "#", 2, null,1,"ad2","bx bx-book-alt");
         menuService.addMenu(menuAdmin1);
         menuService.addMenu(menuAdmin2);
         log.info("END: Seeding Menu Admin");
@@ -66,10 +90,10 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void seedMenuUser(){
         log.info("START: Seeding Menu User");
-        MenuRequest menuUser1 = createMenu("Dashboard", "/users/dashboard", "menu-title d-flex align-items-center", 1, null,2,"us1","bx bx-home-alt");
-        MenuRequest menuUser2 = createMenu("Services", "#", "menu-title d-flex align-items-center", 2, null,2,"us2","bx bx-collection");
-        MenuRequest menuUser3 = createMenu("Billing", "#", "menu-title d-flex align-items-center", 2, null,2,"us3","bx bx-money");
-        MenuRequest menuUser4 = createMenu("Support", "#", "menu-title d-flex align-items-center", 2, null,2,"us4","bx bx-headphone");
+        MenuRequest menuUser1 = createMenu("Dashboard", "/users/dashboard", 1, null,2,"us1","bx bx-home-alt");
+        MenuRequest menuUser2 = createMenu("License", "#", 2, null,2,"us2","bx bx-collection");
+        MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
+        MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
         menuService.addMenu(menuUser1);
         menuService.addMenu(menuUser2);
         menuService.addMenu(menuUser3);
@@ -78,13 +102,13 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private MenuRequest createMenu(
-            String name, String urlLink, String classLink, int sortOrder, UUID parentId, int typeMenu, String code, String icon
+            String name, String urlLink, int sortOrder, UUID parentId, int typeMenu, String code, String icon
     ){
         MenuRequest request = new MenuRequest();
         request.setName(name);
         request.setUrlink(urlLink);
         request.setIcon(icon);
-        request.setClasslink(classLink);
+        request.setClasslink("menu-title d-flex align-items-center");
         request.setCode(code);
         if(parentId != null) request.setParentId(parentId.toString());
         request.setTypeMenu(typeMenu);
