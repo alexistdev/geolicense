@@ -104,8 +104,12 @@ public class AuthService {
         response.setSessionToken(sessionId);
         List<MenuResponse> menus = menuService.getMenusByRole(user.getRole());
         response.setMenus(menus);
+        response.setHomeURL(this.getDefaultHomeURL(user.getRole()));
         return response;
     }
 
+    private String getDefaultHomeURL(Role role){
+        return String.format("/%s/dashboard", role.name().toLowerCase());
+    }
 
 }

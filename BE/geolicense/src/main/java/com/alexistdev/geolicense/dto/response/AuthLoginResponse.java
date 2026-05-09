@@ -19,4 +19,5 @@ public class AuthLoginResponse {
     private String sessionToken;
     private String role;
     private List<MenuResponse> menus;
+    private String homeURL;
 }
