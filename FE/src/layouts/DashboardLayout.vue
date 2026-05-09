@@ -1,10 +1,62 @@
 <script setup lang="ts">
-import { RouterLink, useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
+import AuthService from '@/modules/auth/services/auth.service'
+import type { Menu } from '@/modules/auth/models/login.response'
 
 const router = useRouter()
+const route = useRoute()
+
+const menus = ref<Menu[]>([])
+const expandedMenus = ref<Record<string, boolean>>({})
+
+onMounted(() => {
+  const user = AuthService.getCurrentUser()
+  if (user && user.menus) {
+    menus.value = user.menus
+    menus.value.forEach(m => {
+      if (m.parentId && route.path.startsWith(m.urlink) && m.urlink !== '#') {
+        expandedMenus.value[m.parentId] = true
+      }
+    })
+  }
+})
+
+const mapIcon = (bxIcon: string) => {
+  if (!bxIcon) return 'circle'
+  if (bxIcon.includes('bx-home')) return 'dashboard'
+  if (bxIcon.includes('bx-barcode')) return 'receipt_long'
+  if (bxIcon.includes('bx-collection')) return 'vpn_key'
+  if (bxIcon.includes('bx-money')) return 'payments'
+  if (bxIcon.includes('bx-group') || bxIcon.includes('bx-user')) return 'group'
+  if (bxIcon.includes('bx-cog')) return 'settings'
+  if (bxIcon.includes('bx-box') || bxIcon.includes('bx-archive')) return 'inventory_2'
+  if (bxIcon.includes('bx-shield')) return 'verified_user'
+  return 'circle'
+}
+
+const parentMenus = computed(() => {
+  return menus.value
+    .filter(m => !m.parentId)
+    .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+})
+
+const getChildren = (parentId: string) => {
+  return menus.value
+    .filter(m => m.parentId === parentId)
+    .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+}
+
+const toggleMenu = (id: string, hasChildren: boolean, urlink: string) => {
+  if (hasChildren) {
+    expandedMenus.value[id] = !expandedMenus.value[id]
+  } else if (urlink && urlink !== '#') {
+    router.push(urlink)
+  }
+}
 
 const logout = () => {
-  // Simple logout logic
+  AuthService.logout()
   router.push('/login')
 }
 </script>
@@ -27,38 +79,43 @@ const logout = () => {
         </div>
 
         <nav class="flex-1 space-y-1">
-          <RouterLink
-            to="/dashboard"
-            class="py-3 px-6 flex items-center gap-3 transition-all duration-200"
-            :class="[
-              $route.path === '/dashboard'
-                ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400 border-l-4 border-blue-500'
-                : 'text-[#c2c6d6] hover:bg-[#171f33] hover:text-white'
-            ]"
-          >
-            <span class="material-symbols-outlined">dashboard</span>
-            <span class="font-manrope text-[0.875rem] font-medium">Dashboard</span>
-          </RouterLink>
+          <template v-for="menu in parentMenus" :key="menu.id">
+            <div
+              @click="toggleMenu(menu.id, getChildren(menu.id).length > 0, menu.urlink)"
+              class="py-3 px-6 flex items-center justify-between transition-all duration-200 cursor-pointer"
+              :class="[
+                $route.path === menu.urlink || ($route.path.startsWith(menu.urlink) && menu.urlink !== '#')
+                  ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400 border-l-4 border-blue-500'
+                  : 'text-[#c2c6d6] hover:bg-[#171f33] hover:text-white border-l-4 border-transparent'
+              ]"
+            >
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined">{{ mapIcon(menu.icon) }}</span>
+                <span class="font-manrope text-[0.875rem] font-medium">{{ menu.name }}</span>
+              </div>
+              <span v-if="getChildren(menu.id).length > 0" class="material-symbols-outlined text-sm transition-transform duration-200" :class="{ 'rotate-180': expandedMenus[menu.id] }">
+                expand_more
+              </span>
+            </div>
 
-          <RouterLink to="/user/license" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
-            <span class="material-symbols-outlined">vpn_key</span>
-            <span class="font-manrope text-[0.875rem] font-medium">Licenses</span>
-          </RouterLink>
-
-          <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
-            <span class="material-symbols-outlined">group</span>
-            <span class="font-manrope text-[0.875rem] font-medium">Users</span>
-          </RouterLink>
-
-          <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
-            <span class="material-symbols-outlined">inventory_2</span>
-            <span class="font-manrope text-[0.875rem] font-medium">Inventory</span>
-          </RouterLink>
-
-          <RouterLink to="#" class="text-[#c2c6d6] py-3 px-6 flex items-center gap-3 hover:bg-[#171f33] hover:text-white transition-colors duration-200">
-            <span class="material-symbols-outlined">verified_user</span>
-            <span class="font-manrope text-[0.875rem] font-medium">Security</span>
-          </RouterLink>
+            <!-- Children -->
+            <div v-if="getChildren(menu.id).length > 0" v-show="expandedMenus[menu.id]" class="bg-[#0b1326]/50 py-2 space-y-1">
+              <RouterLink
+                v-for="child in getChildren(menu.id)"
+                :key="child.id"
+                :to="child.urlink"
+                class="py-2 pl-14 pr-6 flex items-center gap-3 transition-all duration-200"
+                :class="[
+                  $route.path === child.urlink
+                    ? 'text-blue-400 font-bold'
+                    : 'text-[#9ca3af] hover:text-white hover:bg-[#171f33]'
+                ]"
+              >
+                <span class="material-symbols-outlined text-[1.1rem]">{{ mapIcon(child.icon) }}</span>
+                <span class="font-manrope text-[0.8125rem]">{{ child.name }}</span>
+              </RouterLink>
+            </div>
+          </template>
         </nav>
 
         <div class="px-6 mt-auto">
