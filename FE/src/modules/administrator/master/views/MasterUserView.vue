@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import MasterUserService from '@/modules/administrator/master/services/masteruser.service'
 import type { UserResponse } from '../models/user.response'
+import type { RegisterRequest } from '../models/register.request'
 
 const PAGE_SIZE = 10
 
@@ -80,6 +81,70 @@ function getInitials(fullName: string) {
     .toUpperCase()
     .slice(0, 2) ?? '?'
 }
+
+// --- Toast ---
+interface Toast {
+  id: number
+  message: string
+  type: 'success' | 'error'
+}
+const toasts = ref<Toast[]>([])
+let toastSeq = 0
+
+function showToast(message: string, type: Toast['type'] = 'success') {
+  const id = ++toastSeq
+  toasts.value.push({ id, message, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
+  }, 4000)
+}
+
+// --- Add User Modal ---
+const showModal = ref(false)
+const modalLoading = ref(false)
+const modalError = ref<string | null>(null)
+const showPassword = ref(false)
+
+const form = ref<RegisterRequest>({
+  fullName: '',
+  email: '',
+  password: '',
+})
+
+function openModal() {
+  form.value = { fullName: '', email: '', password: '' }
+  modalError.value = null
+  showPassword.value = false
+  showModal.value = true
+}
+
+function closeModal() {
+  showModal.value = false
+}
+
+async function submitRegister() {
+  modalError.value = null
+  if (!form.value.fullName.trim() || !form.value.email.trim() || !form.value.password.trim()) {
+    modalError.value = 'All fields are required.'
+    return
+  }
+  modalLoading.value = true
+  try {
+    const res = await MasterUserService.register(form.value)
+    closeModal()
+    showToast(res.messages[0] ?? 'User successfully registered.')
+    await fetchUsers()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    closeModal()
+    showToast(
+      err.response?.data?.messages?.[0] ?? 'Failed to register user. Please try again.',
+      'error',
+    )
+  } finally {
+    modalLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -104,6 +169,7 @@ function getInitials(fullName: string) {
           </button>
           <button
             class="px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2"
+            @click="openModal"
           >
             <span class="material-symbols-outlined text-xl">person_add</span>
             Add New User
@@ -443,5 +509,179 @@ function getInitials(fullName: string) {
         </div>
       </div>
     </main>
+
+    <!-- Toast Stack -->
+    <Teleport to="body">
+      <div class="fixed bottom-6 right-6 z-[60] flex flex-col gap-3 items-end">
+        <TransitionGroup name="toast">
+          <div
+            v-for="toast in toasts"
+            :key="toast.id"
+            class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold min-w-64 max-w-sm"
+            :class="
+              toast.type === 'success'
+                ? 'bg-primary-fixed text-on-primary-fixed-variant'
+                : 'bg-error-container text-on-error-container'
+            "
+          >
+            <span class="material-symbols-outlined text-base shrink-0">
+              {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+            </span>
+            <span class="flex-1">{{ toast.message }}</span>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Teleport>
+
+    <!-- Add User Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeModal"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+          <!-- Dialog -->
+          <div class="relative w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-surface-container">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center">
+                  <span class="material-symbols-outlined text-on-primary-fixed-variant text-lg">person_add</span>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Add New User</h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors"
+                aria-label="Close modal"
+                @click="closeModal"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <form class="px-6 py-6 space-y-5" @submit.prevent="submitRegister">
+              <!-- Full Name -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Full Name</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">badge</span>
+                  <input
+                    v-model="form.fullName"
+                    type="text"
+                    placeholder="e.g. John Doe"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="modalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Email</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">mail</span>
+                  <input
+                    v-model="form.email"
+                    type="email"
+                    placeholder="e.g. john@example.com"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="modalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Password -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Password</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">lock</span>
+                  <input
+                    v-model="form.password"
+                    :type="showPassword ? 'text' : 'password'"
+                    placeholder="Min. 6 characters"
+                    class="w-full pl-10 pr-12 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="modalLoading"
+                  />
+                  <button
+                    type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                    @click="showPassword = !showPassword"
+                  >
+                    <span class="material-symbols-outlined text-lg">
+                      {{ showPassword ? 'visibility_off' : 'visibility' }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Validation error -->
+              <p v-if="modalError" class="text-sm text-error font-medium">{{ modalError }}</p>
+
+              <!-- Actions -->
+              <div class="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors"
+                  :disabled="modalLoading"
+                  @click="closeModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="flex-1 py-3 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+                  :disabled="modalLoading"
+                >
+                  <span v-if="modalLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-base">person_add</span>
+                  {{ modalLoading ? 'Registering...' : 'Register User' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </DashboardLayout>
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-active .relative,
+.modal-leave-active .relative {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .relative {
+  transform: scale(0.95) translateY(8px);
+  opacity: 0;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.toast-move {
+  transition: transform 0.3s ease;
+}
+</style>
