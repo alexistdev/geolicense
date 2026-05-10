@@ -57,8 +57,15 @@ const handleLogin = async () => {
       loginError.value = error.message
     } else if (error instanceof Error) {
       loginError.value = error.message
-    } else if (typeof error === 'object' && error !== null && 'message' in error) {
-      loginError.value = String((error as { message: unknown }).message)
+    } else if (typeof error === 'object' && error !== null) {
+      const errObj = error as Record<string, unknown>
+      if (Array.isArray(errObj.messages) && errObj.messages.length > 0) {
+        loginError.value = String(errObj.messages[0])
+      } else if ('message' in errObj && errObj.message) {
+        loginError.value = String(errObj.message)
+      } else {
+        loginError.value = 'An unexpected error occurred during login.'
+      }
     } else {
       loginError.value = 'An unexpected error occurred during login.'
     }

@@ -23,9 +23,13 @@ class AuthService {
 
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<{ code?: string; message?: string }>;
+      const axiosError = error as AxiosError<{ code?: string; message?: string; messages?: string[] }>;
       if (axiosError.response?.status === 401 || axiosError.response?.data?.code === 'AUTH_ERROR') {
-        throw new AuthException(axiosError.response?.data?.message || 'Authentication failed')
+        const data = axiosError.response?.data;
+        const errorMessage = ((data?.messages && data.messages.length > 0)
+          ? data.messages[0]
+          : data?.message) || 'Authentication failed';
+        throw new AuthException(errorMessage);
       }
       throw axiosError.response?.data || axiosError.message;
     }
