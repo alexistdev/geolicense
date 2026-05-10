@@ -15,15 +15,11 @@ import org.junit.jupiter.api.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class LicenseControllerTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(LicenseControllerTest.class);
 
     @Mock
     private LicenseService licenseService;

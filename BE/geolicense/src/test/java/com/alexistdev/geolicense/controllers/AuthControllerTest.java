@@ -6,7 +6,6 @@ import com.alexistdev.geolicense.dto.UserDTO;
 import com.alexistdev.geolicense.dto.response.AuthLoginResponse;
 import com.alexistdev.geolicense.dto.response.AuthRegisterDTO;
 import com.alexistdev.geolicense.exceptions.ExistingException;
-import com.alexistdev.geolicense.models.entity.Role;
 import com.alexistdev.geolicense.security.jwt.JwtAuthenticationFilter;
 import com.alexistdev.geolicense.security.jwt.JwtService;
 import com.alexistdev.geolicense.services.AuthService;
@@ -31,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "seeder.enabled=false")
+@SpringBootTest()
 @AutoConfigureMockMvc(addFilters = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AuthControllerTest {
@@ -73,7 +72,6 @@ class AuthControllerTest {
                 .fullName("John Doe")
                 .email("john@example.com")
                 .password("securePassword123")
-                .role(Role.USER)
                 .build();
 
         UserDTO userDTO = UserDTO.builder()
