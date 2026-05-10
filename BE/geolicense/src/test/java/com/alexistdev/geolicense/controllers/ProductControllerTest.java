@@ -9,6 +9,7 @@
 package com.alexistdev.geolicense.controllers;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -16,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
+import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.services.ProductService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
@@ -23,9 +25,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -36,6 +47,9 @@ public class ProductControllerTest {
 
     @Mock
     private MessagesUtils messagesUtils;
+
+    @Mock
+    private ModelMapper modelMapper;
 
     @InjectMocks
     private ProductController productController;
@@ -306,5 +320,94 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.status").value(false));
 
         verify(productService, never()).addProduct(any());
+    }
+
+    private Product buildProductEntity() {
+        Product product = new Product();
+        product.setId(UUID.randomUUID());
+        product.setName("Test Product");
+        product.setVersion("1.0.0");
+        product.setSku("TEST-SKU-001");
+        product.setDescription("Test description");
+        return product;
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("12. GET /products with products present returns 200 with status true")
+    public void testGetAllProductData_withProducts_returns200WithStatusTrue() throws Exception {
+        Product product = buildProductEntity();
+        Page<Product> productsPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProducts(any(Pageable.class))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.payload.content").isArray())
+                .andExpect(jsonPath("$.payload.content[0].name").value("Test Product"));
+
+        verify(productService, times(1)).getAllProducts(any(Pageable.class));
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. GET /products with empty page returns 200 with status false")
+    public void testGetAllProductData_emptyPage_returns200WithStatusFalse() throws Exception {
+        Page<Product> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+
+        when(productService.getAllProducts(any(Pageable.class))).thenReturn(emptyPage);
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("No products found"));
+
+        verify(productService, times(1)).getAllProducts(any(Pageable.class));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. GET /products supports pagination params")
+    public void testGetAllProductData_withPaginationParams_passesPageableToService() throws Exception {
+        Product product = buildProductEntity();
+        Page<Product> productsPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProducts(any(Pageable.class))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products")
+                        .param("page", "0")
+                        .param("size", "5")
+                        .param("sortBy", "name")
+                        .param("direction", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(1)).getAllProducts(any(Pageable.class));
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. GET /products falls back to id sort when invalid sortBy triggers RuntimeException")
+    public void testGetAllProductData_invalidSortBy_fallsBackToIdSort() throws Exception {
+        Product product = buildProductEntity();
+        Page<Product> productsPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProducts(any(Pageable.class)))
+                .thenThrow(new RuntimeException("Invalid sort field"))
+                .thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products").param("sortBy", "invalidField"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(2)).getAllProducts(any(Pageable.class));
     }
 }

@@ -21,6 +21,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -172,5 +179,40 @@ public class ProductServiceTest {
         String invalidId = "invalid-uuid";
         assertThrows(IllegalArgumentException.class,
                 () -> productService.findProductById(invalidId));
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. getAllProducts should return a page of products")
+    void getAllProducts_WhenProductsExist_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> expectedPage = new PageImpl<>(List.of(entity), pageable, 1);
+
+        when(productRepo.findByIsDeletedFalse(pageable)).thenReturn(expectedPage);
+
+        Page<Product> result = productService.getAllProducts(pageable);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
+
+        verify(productRepo, times(1)).findByIsDeletedFalse(pageable);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. getAllProducts should return an empty page when no products exist")
+    void getAllProducts_WhenNoProductsExist_ShouldReturnEmptyPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+
+        when(productRepo.findByIsDeletedFalse(pageable)).thenReturn(emptyPage);
+
+        Page<Product> result = productService.getAllProducts(pageable);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.isEmpty());
+
+        verify(productRepo, times(1)).findByIsDeletedFalse(pageable);
     }
 }
