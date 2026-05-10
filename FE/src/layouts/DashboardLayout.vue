@@ -12,7 +12,6 @@ const expandedMenus = ref<Record<string, boolean>>({})
 
 onMounted(() => {
   const fetchedMenus = AuthService.getMenus()
-  console.log(fetchedMenus)
   if (fetchedMenus !== null) {
     menus.value = fetchedMenus
     fetchedMenus.forEach((m) => {

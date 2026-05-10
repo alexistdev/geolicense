@@ -12,13 +12,8 @@ const router = createRouter({
       redirect: '/login',
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: DashboardView,
-    },
-    {
-      path: '/staff/dashboard',
-      name: 'staff-dashboard',
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
       component: DashboardView,
     },
     {
@@ -27,7 +22,7 @@ const router = createRouter({
       component: DashboardView,
     },
     {
-      path: '/user/license',
+      path: '/users/license',
       name: 'user-license',
       component: LicenseView,
     },
