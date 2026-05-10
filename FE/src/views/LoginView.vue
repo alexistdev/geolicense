@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter, type LocationQueryValue } from 'vue-router'
 import AuthService from '@/modules/auth/services/auth.service'
 import { AuthException } from '@/modules/auth/exception/auth.exception'
@@ -8,11 +8,12 @@ import type { LoginResponse } from '@/modules/auth/models/login.response'
 const router = useRouter()
 const route = useRoute()
 
-const email = ref('alexistdev@gmail.com')
-const password = ref('1234')
+const email = ref('')
+const password = ref('')
 const showPassword = ref(false)
 const loginError = ref('')
 const isSubmitting = ref(false)
+const rememberMe = ref(false)
 
 const FALLBACK_HOME_BY_ROLE: Record<LoginResponse['role'], string> = {
   ADMIN: '/admin/dashboard',
@@ -51,6 +52,8 @@ const handleLogin = async () => {
       return
     }
 
+    saveCredentials()
+
     await router.push(resolveRedirectTarget(payload))
   } catch (error: unknown) {
     if (error instanceof AuthException) {
@@ -73,6 +76,26 @@ const handleLogin = async () => {
     isSubmitting.value = false
   }
 }
+
+const saveCredentials = () => {
+  if (rememberMe.value) {
+    localStorage.setItem('email', email.value)
+  } else {
+    localStorage.removeItem('email')
+  }
+}
+
+const loadCredentials = () => {
+  const saveEmail = localStorage.getItem('email')
+  if (saveEmail) {
+    email.value = saveEmail
+    rememberMe.value = true
+  }
+}
+
+onMounted(async () => {
+  loadCredentials()
+})
 </script>
 
 <template>
@@ -106,7 +129,7 @@ const handleLogin = async () => {
           GeoLicense
         </h1>
         <p class="text-on-surface-variant text-sm tracking-widest font-medium uppercase opacity-70">
-          Sovereign Management Portal
+          Management License
         </p>
       </div>
 
@@ -119,9 +142,9 @@ const handleLogin = async () => {
         ></div>
         <div class="relative z-10">
           <div class="mb-8">
-            <h2 class="text-2xl font-bold text-on-surface tracking-tight">Access Control</h2>
+            <h2 class="text-2xl font-bold text-on-surface tracking-tight">LOGIN</h2>
             <p class="text-on-surface-variant text-sm mt-1">
-              Authorized personnel only. Encrypted session.
+              Enter your email and password to authenticate
             </p>
           </div>
 
@@ -138,7 +161,7 @@ const handleLogin = async () => {
               <label
                 class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant"
                 for="email"
-                >Identity Identifier</label
+                >Email</label
               >
               <div class="relative">
                 <span
@@ -161,7 +184,7 @@ const handleLogin = async () => {
               <label
                 class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant"
                 for="password"
-                >Security Protocol</label
+                >Password</label
               >
               <div class="relative">
                 <span
@@ -193,6 +216,7 @@ const handleLogin = async () => {
               <label class="flex items-center gap-3 cursor-pointer group">
                 <div class="relative flex items-center justify-center">
                   <input
+                    v-model="rememberMe"
                     type="checkbox"
                     class="peer appearance-none w-5 h-5 rounded border border-outline-variant/30 bg-surface-container-highest checked:bg-primary transition-all duration-200 cursor-pointer"
                   />
@@ -204,13 +228,13 @@ const handleLogin = async () => {
                 </div>
                 <span
                   class="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors"
-                  >Maintain Persistence</span
+                  >Remember</span
                 >
               </label>
               <a
                 href="#"
                 class="text-sm font-semibold text-primary hover:text-primary-container transition-all"
-                >Recovery Protocol?</a
+                >Recovery Password?</a
               >
             </div>
 
@@ -222,9 +246,7 @@ const handleLogin = async () => {
               class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <template v-if="isSubmitting">
-                <span
-                  class="material-symbols-outlined text-lg animate-spin"
-                  aria-hidden="true"
+                <span class="material-symbols-outlined text-lg animate-spin" aria-hidden="true"
                   >progress_activity</span
                 >
                 AUTHENTICATING
