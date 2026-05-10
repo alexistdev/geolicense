@@ -67,7 +67,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedRoleMenus(){
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
-          Role.ADMIN, List.of("ad1","ad2","ad3"),
+          Role.ADMIN, List.of("ad1","ad2","ad3","ad4"),
           Role.USER, List.of("us1", "us2","us3","uc1")
         );
 
@@ -101,7 +101,9 @@ public class DatabaseSeeder implements CommandLineRunner {
         Menu menuParentAdmin = menuService.findByCode("ad2");
         if(menuParentAdmin != null){
             MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad3","bx bx-server");
+            MenuRequest menuChildAdmin2 = createMenu("Licenses", "/admin/licenses", 2, menuParentAdmin.getId(),2,"ad4","bx bx-server");
             menuService.addMenu(menuChildAdmin1);
+            menuService.addMenu(menuChildAdmin2);
         }
         log.info("END: Seeding Child Menu Admin");
     }
@@ -110,7 +112,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Child Menu User");
         Menu menuParentUser = menuService.findByCode("us3");
         if(menuParentUser != null) {
-            MenuRequest menuChildUser1 = createMenu("My Invoices", "/users/billings", 1, menuParentUser.getId(), 2, "uc1", "bx bx-barcode");
+            MenuRequest menuChildUser1 = createMenu("My Invoices", "/user/billings", 1, menuParentUser.getId(), 2, "uc1", "bx bx-barcode");
             menuService.addMenu(menuChildUser1);
         }
         log.info("END: Seeding Child Menu User");
@@ -127,7 +129,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void seedMenuUser(){
         log.info("START: Seeding Menu User");
-        MenuRequest menuUser1 = createMenu("Dashboard", "/users/dashboard", 1, null,2,"us1","bx bx-home-alt");
+        MenuRequest menuUser1 = createMenu("Dashboard", "/user/dashboard", 1, null,2,"us1","bx bx-home-alt");
         MenuRequest menuUser2 = createMenu("License", "#", 2, null,2,"us2","bx bx-collection");
         MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
         MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
@@ -156,7 +158,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private List<RegisterRequest> usersList(){
         return List.of(
                 user("alexistdev@gmail.com", "Alexsander Hendra Wijaya"),
-                user("user@gmail.com", "user")
+                user("admin@gmail.com", "admin")
         );
     }
 

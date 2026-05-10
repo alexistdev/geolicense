@@ -3,6 +3,7 @@ import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import LicenseView from '@/modules/user/license/views/LicenseView.vue'
+import MasterUserView from '@/modules/administrator/master/views/MasterUserView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,14 +13,14 @@ const router = createRouter({
       redirect: '/login',
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
       component: DashboardView,
     },
     {
-      path: '/staff/dashboard',
-      name: 'staff-dashboard',
-      component: DashboardView,
+      path: '/admin/users',
+      name: 'admin-user',
+      component: MasterUserView,
     },
     {
       path: '/user/dashboard',
@@ -27,7 +28,7 @@ const router = createRouter({
       component: DashboardView,
     },
     {
-      path: '/user/license',
+      path: '/users/license',
       name: 'user-license',
       component: LicenseView,
     },
