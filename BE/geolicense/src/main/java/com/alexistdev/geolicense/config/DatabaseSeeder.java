@@ -110,7 +110,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Child Menu User");
         Menu menuParentUser = menuService.findByCode("us3");
         if(menuParentUser != null) {
-            MenuRequest menuChildUser1 = createMenu("My Invoices", "/users/billings", 1, menuParentUser.getId(), 2, "uc1", "bx bx-barcode");
+            MenuRequest menuChildUser1 = createMenu("My Invoices", "/user/billings", 1, menuParentUser.getId(), 2, "uc1", "bx bx-barcode");
             menuService.addMenu(menuChildUser1);
         }
         log.info("END: Seeding Child Menu User");
@@ -127,7 +127,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void seedMenuUser(){
         log.info("START: Seeding Menu User");
-        MenuRequest menuUser1 = createMenu("Dashboard", "/users/dashboard", 1, null,2,"us1","bx bx-home-alt");
+        MenuRequest menuUser1 = createMenu("Dashboard", "/user/dashboard", 1, null,2,"us1","bx bx-home-alt");
         MenuRequest menuUser2 = createMenu("License", "#", 2, null,2,"us2","bx bx-collection");
         MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
         MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
