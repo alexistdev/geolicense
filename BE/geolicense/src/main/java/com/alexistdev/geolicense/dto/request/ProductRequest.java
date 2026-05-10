@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,9 +19,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductRequest {
+    @NotBlank(message = "Product name is required")
     private String name;
     private String version;
     private String description;
     private String sku;
-    private boolean isActive;
+    private Boolean isActive;
 }

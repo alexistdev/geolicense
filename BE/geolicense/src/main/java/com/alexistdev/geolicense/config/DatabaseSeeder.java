@@ -197,7 +197,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         request.setSku("SKU-1");
         request.setVersion("1.0");
         request.setDescription("Premium Hosting Description");
-        request.setActive(true);
+        request.setIsActive(true);
         productService.addProduct(request);
         log.info("END: Seeding products");
     }

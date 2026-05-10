@@ -21,6 +21,7 @@ import org.junit.jupiter.api.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -53,12 +54,19 @@ public class ProductControllerTest {
         when(productService.addProduct(any(ProductRequest.class))).thenReturn(response);
         when(messagesUtils.getMessage("product.add.success")).thenReturn("Product added successfully");
 
+        String json = """
+                {
+                    "name": "Test Product",
+                    "version": "1.0.0",
+                    "description": "Test description",
+                    "sku": "TEST-SKU-001",
+                    "isActive": true
+                }
+                """;
+
         mockMvc.perform(post("/api/v1/products")
-                        .param("name", "Test Product")
-                        .param("version", "1.0.0")
-                        .param("description", "Test description")
-                        .param("sku", "TEST-SKU-001")
-                        .param("isActive", "true"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value(true))
                 .andExpect(jsonPath("$.messages[0]").value("Product added successfully"))
@@ -67,18 +75,22 @@ public class ProductControllerTest {
 
     @Test
     @Order(2)
-    @DisplayName("2. Testing addProduct failure")
+    @DisplayName("2. Testing addProduct failure - missing required fields")
     public void testAddProduct_failure() throws Exception {
-        when(productService.addProduct(any(ProductRequest.class))).thenReturn(null);
-        when(messagesUtils.getMessage("product.add.success")).thenReturn("Product added successfully");
+        String json = """
+                {
+                    "version": "1.0.0",
+                    "description": "Test description",
+                    "sku": "TEST-SKU-001",
+                    "isActive": true
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/products")
-                        .param("name", "Test Product")
-                        .param("version", "1.0.0")
-                        .param("description", "Test description")
-                        .param("sku", "TEST-SKU-001")
-                        .param("isActive", "true"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.payload").doesNotExist());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product name is required"));
     }
 }

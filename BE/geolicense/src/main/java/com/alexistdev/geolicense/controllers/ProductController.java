@@ -13,12 +13,14 @@ import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.services.ProductService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,9 +41,13 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ResponseData<ProductResponse>> addProduct(ProductRequest request, Errors errors) {
+    public ResponseEntity<ResponseData<ProductResponse>> addProduct(@Valid @RequestBody ProductRequest request, Errors errors) {
         ResponseData<ProductResponse> responseData = new ResponseData<>();
         handleErrors(errors, responseData);
+
+        if (errors.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
+        }
 
         responseData.setPayload(productService.addProduct(request));
         String msgSuccess = messagesUtils.getMessage("product.add.success");
