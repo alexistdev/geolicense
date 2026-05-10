@@ -9,10 +9,3 @@ export interface UserResponse {
   createdDate: string
 }
 
-export interface PageResponse<T> {
-  content: T[]
-  totalElements: number
-  totalPages: number
-  size: number
-  number: number
-}

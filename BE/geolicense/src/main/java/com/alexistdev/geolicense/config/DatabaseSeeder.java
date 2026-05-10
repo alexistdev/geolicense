@@ -67,7 +67,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedRoleMenus(){
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
-          Role.ADMIN, List.of("ad1","ad2","ad3","ad4"),
+          Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5"),
           Role.USER, List.of("us1", "us2","us3","uc1")
         );
 
@@ -102,8 +102,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         if(menuParentAdmin != null){
             MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad3","bx bx-server");
             MenuRequest menuChildAdmin2 = createMenu("Licenses", "/admin/licenses", 2, menuParentAdmin.getId(),2,"ad4","bx bx-server");
+            MenuRequest menuChildAdmin3 = createMenu("Products", "/admin/products", 2, menuParentAdmin.getId(),2,"ad5","bx bx-server");
             menuService.addMenu(menuChildAdmin1);
             menuService.addMenu(menuChildAdmin2);
+            menuService.addMenu(menuChildAdmin3);
         }
         log.info("END: Seeding Child Menu Admin");
     }
@@ -197,7 +199,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         request.setSku("SKU-1");
         request.setVersion("1.0");
         request.setDescription("Premium Hosting Description");
-        request.setActive(true);
+        request.setIsActive(true);
         productService.addProduct(request);
         log.info("END: Seeding products");
     }

@@ -12,6 +12,7 @@ import com.alexistdev.geolicense.dto.ResponseData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -44,6 +45,15 @@ public class GlobalExceptionHandler {
         response.setStatus(false);
         ex.getBindingResult().getAllErrors()
                 .forEach(err -> response.getMessages().add(err.getDefaultMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ResponseData<Void>> handleUnreadable(HttpMessageNotReadableException ex) {
+        log.warn("Malformed or incomplete JSON payload: {}", ex.getMessage());
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add("Invalid request payload: " + ex.getMostSpecificCause().getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 

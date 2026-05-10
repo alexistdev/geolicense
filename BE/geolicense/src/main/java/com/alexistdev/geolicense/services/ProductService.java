@@ -16,6 +16,8 @@ import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -34,6 +36,10 @@ public class ProductService {
     public ProductService(ProductRepo productRepo, MessagesUtils messagesUtils) {
         this.productRepo = productRepo;
         this.messagesUtils = messagesUtils;
+    }
+
+    public Page<Product> getAllProducts(Pageable pageable) {
+        return productRepo.findByIsDeletedFalse(pageable);
     }
 
     public ProductResponse addProduct(ProductRequest request) {
