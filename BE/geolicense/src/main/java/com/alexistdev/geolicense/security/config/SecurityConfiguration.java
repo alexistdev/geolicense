@@ -36,6 +36,8 @@ public class SecurityConfiguration {
                                 "/api/v1/licenses/verify").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/users").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
