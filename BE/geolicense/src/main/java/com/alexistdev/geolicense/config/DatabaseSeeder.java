@@ -67,7 +67,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedRoleMenus(){
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
-          Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5"),
+          Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5","ad6"),
           Role.USER, List.of("us1", "us2","us3","uc1")
         );
 
@@ -103,9 +103,11 @@ public class DatabaseSeeder implements CommandLineRunner {
             MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad3","bx bx-server");
             MenuRequest menuChildAdmin2 = createMenu("Licenses", "/admin/licenses", 2, menuParentAdmin.getId(),2,"ad4","bx bx-server");
             MenuRequest menuChildAdmin3 = createMenu("Products", "/admin/products", 2, menuParentAdmin.getId(),2,"ad5","bx bx-server");
+            MenuRequest menuChildAdmin4 = createMenu("Licenses Type", "/admin/license_types", 2, menuParentAdmin.getId(),2,"ad6","bx bx-server");
             menuService.addMenu(menuChildAdmin1);
             menuService.addMenu(menuChildAdmin2);
             menuService.addMenu(menuChildAdmin3);
+            menuService.addMenu(menuChildAdmin4);
         }
         log.info("END: Seeding Child Menu Admin");
     }
@@ -182,7 +184,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding license types");
         LicenseTypeRequest request = new LicenseTypeRequest();
         request.setName("Premium License");
-        request.setTrial(false);
+        request.setIsTrial(false);
         request.setDescription("Premium Version Description");
         request.setMaxSeats(1000);
         request.setDurationDays(30);

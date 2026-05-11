@@ -131,7 +131,7 @@ public class LicenseTypeService {
         if(id != null) licenseType.setId(id);
         licenseType.setName(request.getName());
         licenseType.setDescription(request.getDescription());
-        licenseType.set_trial(request.isTrial());
+        licenseType.set_trial(request.getIsTrial());
         licenseType.setDuration_days(request.getDurationDays());
         licenseType.setMax_seats(request.getMaxSeats());
         licenseType.setCreatedBy(SYSTEM_USER);
