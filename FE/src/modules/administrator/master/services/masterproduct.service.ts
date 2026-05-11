@@ -49,6 +49,10 @@ class MasterProductService {
     const response = await apiClient.patch<ProductResponse>(BASE_PATH, request)
     return response.data
   }
+
+  async deleteProduct(id: string): Promise<void> {
+    await apiClient.delete(`${BASE_PATH}/${id}`)
+  }
 }
 
 export default new MasterProductService()

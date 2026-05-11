@@ -163,6 +163,41 @@ async function submitProduct() {
   }
 }
 
+// --- Delete Product Modal ---
+const showDeleteModal = ref(false)
+const deleteLoading = ref(false)
+const deleteTarget = ref<ProductPayload | null>(null)
+
+function openDeleteModal(product: ProductPayload) {
+  deleteTarget.value = product
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  deleteTarget.value = null
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  deleteLoading.value = true
+  try {
+    await MasterProductService.deleteProduct(deleteTarget.value.id)
+    closeDeleteModal()
+    showToast('Product successfully deleted.')
+    await fetchProducts()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    closeDeleteModal()
+    showToast(
+      err.response?.data?.messages?.[0] ?? 'Failed to delete product. Please try again.',
+      'error',
+    )
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
 // --- Edit Product Modal ---
 const showEditModal = ref(false)
 const editModalLoading = ref(false)
@@ -517,6 +552,7 @@ async function submitEditProduct() {
                   <button
                     class="p-2 text-outline hover:text-error hover:bg-error-container transition-all rounded-lg"
                     aria-label="Delete product"
+                    @click="openDeleteModal(product)"
                   >
                     <span class="material-symbols-outlined">delete</span>
                   </button>
@@ -605,6 +641,68 @@ async function submitEditProduct() {
           </div>
         </TransitionGroup>
       </div>
+    </Teleport>
+
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showDeleteModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeDeleteModal"
+        >
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+          <div class="relative w-full max-w-sm bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-surface-container">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-error-container flex items-center justify-center">
+                  <span class="material-symbols-outlined text-on-error-container text-lg">delete_forever</span>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Delete Product</h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors"
+                aria-label="Close modal"
+                @click="closeDeleteModal"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 py-6 space-y-5">
+              <p class="text-sm text-on-surface-variant">
+                Are you sure you want to delete
+                <span class="font-bold text-on-surface">{{ deleteTarget?.name }}</span>?
+                This action cannot be undone.
+              </p>
+
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors"
+                  :disabled="deleteLoading"
+                  @click="closeDeleteModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-error text-on-error font-bold text-sm shadow-lg shadow-error/20 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+                  :disabled="deleteLoading"
+                  @click="confirmDelete"
+                >
+                  <span v-if="deleteLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-base">delete_forever</span>
+                  {{ deleteLoading ? 'Deleting...' : 'Delete' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
 
     <!-- Edit Product Modal -->
