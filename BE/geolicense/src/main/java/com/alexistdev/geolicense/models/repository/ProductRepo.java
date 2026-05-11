@@ -31,4 +31,7 @@ public interface ProductRepo extends JpaRepository<Product, UUID> {
 
     @Query(value = "SELECT * FROM glo_products p WHERE p.name = :name", nativeQuery = true)
     Optional<Product> findByNameIncludingDeleted(String name);
+
+    @Query("SELECT p FROM Product p WHERE p.id = :productId AND p.isDeleted = false")
+    Optional<Product> findByProductIdAndIsDeletedFalse(@Param("productId") UUID productId);
 }

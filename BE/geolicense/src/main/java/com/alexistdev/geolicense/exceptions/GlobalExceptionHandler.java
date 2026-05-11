@@ -16,6 +16,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 @Slf4j
 @RestControllerAdvice
@@ -53,7 +54,14 @@ public class GlobalExceptionHandler {
         log.warn("Malformed or incomplete JSON payload: {}", ex.getMessage());
         ResponseData<Void> response = new ResponseData<>();
         response.setStatus(false);
-        response.getMessages().add("Invalid request payload: " + ex.getMostSpecificCause().getMessage());
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof InvalidFormatException ife && !ife.getPath().isEmpty()) {
+            String fieldName = ife.getPath().get(ife.getPath().size() - 1).getPropertyName();
+            String targetType = ife.getTargetType().getSimpleName();
+            response.getMessages().add("Field '" + fieldName + "' must be a valid " + targetType + " (e.g. true or false)");
+        } else {
+            response.getMessages().add("Invalid request payload: " + cause.getMessage());
+        }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 

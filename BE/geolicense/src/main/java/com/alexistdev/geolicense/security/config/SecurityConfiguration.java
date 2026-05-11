@@ -34,12 +34,17 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/api/v1/auth/**","/api/v1/licenses/activate",
                                 "/api/v1/licenses/verify").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/users").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/v1/products").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/products/search").hasAuthority(Role.ADMIN.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

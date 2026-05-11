@@ -2,27 +2,40 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import MasterProductService from '@/modules/administrator/master/services/masterproduct.service'
-import type { ProductResponse } from '../models/product.response'
+import type { ProductPayload } from '../models/product.response'
 
 const PAGE_SIZE = 10
 
-const products = ref<ProductResponse[]>([])
+const products = ref<ProductPayload[]>([])
 const totalElements = ref(0)
 const totalPages = ref(0)
 const currentPage = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const filterName = ref('')
+
+let filterTimer: ReturnType<typeof setTimeout> | null = null
+function onFilterInput() {
+  if (filterTimer) clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    currentPage.value = 0
+    fetchProducts()
+  }, 300)
+}
 
 async function fetchProducts() {
   loading.value = true
   error.value = null
   try {
-    const res = await MasterProductService.getAll({
+    const params = {
       page: currentPage.value,
       size: PAGE_SIZE,
       sortBy: 'createdDate',
-      direction: 'desc',
-    })
+      direction: 'desc' as const,
+    }
+    const res = filterName.value.trim()
+      ? await MasterProductService.getAllByFilter({ filter: filterName.value.trim(), ...params })
+      : await MasterProductService.getAll(params)
     const page = res.payload
     products.value = page.content
     totalElements.value = page.totalElements
@@ -99,6 +112,7 @@ interface ProductForm {
   version: string
   description: string
   sku: string
+  isActive: boolean
 }
 
 const form = ref<ProductForm>({
@@ -106,10 +120,11 @@ const form = ref<ProductForm>({
   version: '',
   description: '',
   sku: '',
+  isActive: true,
 })
 
 function openModal() {
-  form.value = { name: '', version: '', description: '', sku: '' }
+  form.value = { name: '', version: '', description: '', sku: '', isActive: true }
   modalError.value = null
   showModal.value = true
 }
@@ -126,7 +141,13 @@ async function submitProduct() {
   }
   modalLoading.value = true
   try {
-    // Placeholder — wire up to a create endpoint when available
+    await MasterProductService.addProduct({
+      name: form.value.name.trim(),
+      version: form.value.version.trim(),
+      description: form.value.description.trim(),
+      sku: form.value.sku.trim(),
+      isActive: form.value.isActive,
+    })
     closeModal()
     showToast('Product successfully added.')
     await fetchProducts()
@@ -139,6 +160,112 @@ async function submitProduct() {
     )
   } finally {
     modalLoading.value = false
+  }
+}
+
+// --- Delete Product Modal ---
+const showDeleteModal = ref(false)
+const deleteLoading = ref(false)
+const deleteTarget = ref<ProductPayload | null>(null)
+
+function openDeleteModal(product: ProductPayload) {
+  deleteTarget.value = product
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  deleteTarget.value = null
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  deleteLoading.value = true
+  try {
+    await MasterProductService.deleteProduct(deleteTarget.value.id)
+    closeDeleteModal()
+    showToast('Product successfully deleted.')
+    await fetchProducts()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    closeDeleteModal()
+    showToast(
+      err.response?.data?.messages?.[0] ?? 'Failed to delete product. Please try again.',
+      'error',
+    )
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+// --- Edit Product Modal ---
+const showEditModal = ref(false)
+const editModalLoading = ref(false)
+const editModalError = ref<string | null>(null)
+
+interface EditProductForm {
+  id: string
+  name: string
+  version: string
+  description: string
+  sku: string
+  isActive: boolean
+}
+
+const editForm = ref<EditProductForm>({
+  id: '',
+  name: '',
+  version: '',
+  description: '',
+  sku: '',
+  isActive: true,
+})
+
+function openEditModal(product: ProductPayload) {
+  editForm.value = {
+    id: product.id,
+    name: product.name,
+    version: product.version,
+    description: product.description,
+    sku: product.sku,
+    isActive: product.active,
+  }
+  editModalError.value = null
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+}
+
+async function submitEditProduct() {
+  editModalError.value = null
+  if (!editForm.value.name.trim() || !editForm.value.version.trim() || !editForm.value.sku.trim()) {
+    editModalError.value = 'Name, version, and SKU are required.'
+    return
+  }
+  editModalLoading.value = true
+  try {
+    await MasterProductService.updateProduct({
+      id: editForm.value.id,
+      name: editForm.value.name.trim(),
+      version: editForm.value.version.trim(),
+      description: editForm.value.description.trim(),
+      sku: editForm.value.sku.trim(),
+      isActive: editForm.value.isActive,
+    })
+    closeEditModal()
+    showToast('Product successfully updated.')
+    await fetchProducts()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    closeEditModal()
+    showToast(
+      err.response?.data?.messages?.[0] ?? 'Failed to update product. Please try again.',
+      'error',
+    )
+  } finally {
+    editModalLoading.value = false
   }
 }
 </script>
@@ -247,15 +374,15 @@ async function submitProduct() {
             <div class="relative">
               <span
                 class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline"
-                >filter_list</span
+                >search</span
               >
-              <select
-                class="pl-10 pr-8 py-2.5 bg-surface-container-lowest border-none rounded-lg text-sm font-medium text-on-surface-variant appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20"
-              >
-                <option>Filter by Status</option>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
+              <input
+                v-model="filterName"
+                type="text"
+                placeholder="Search by name..."
+                class="pl-10 pr-4 py-2.5 bg-surface-container-lowest border-none rounded-lg text-sm text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 w-64"
+                @input="onFilterInput"
+              />
             </div>
           </div>
           <div class="flex items-center gap-3">
@@ -418,12 +545,14 @@ async function submitProduct() {
                   <button
                     class="p-2 text-outline hover:text-primary hover:bg-primary-fixed transition-all rounded-lg"
                     aria-label="Edit product"
+                    @click="openEditModal(product)"
                   >
                     <span class="material-symbols-outlined">edit</span>
                   </button>
                   <button
                     class="p-2 text-outline hover:text-error hover:bg-error-container transition-all rounded-lg"
                     aria-label="Delete product"
+                    @click="openDeleteModal(product)"
                   >
                     <span class="material-symbols-outlined">delete</span>
                   </button>
@@ -514,6 +643,203 @@ async function submitProduct() {
       </div>
     </Teleport>
 
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showDeleteModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeDeleteModal"
+        >
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+          <div class="relative w-full max-w-sm bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-surface-container">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-error-container flex items-center justify-center">
+                  <span class="material-symbols-outlined text-on-error-container text-lg">delete_forever</span>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Delete Product</h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors"
+                aria-label="Close modal"
+                @click="closeDeleteModal"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 py-6 space-y-5">
+              <p class="text-sm text-on-surface-variant">
+                Are you sure you want to delete
+                <span class="font-bold text-on-surface">{{ deleteTarget?.name }}</span>?
+                This action cannot be undone.
+              </p>
+
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors"
+                  :disabled="deleteLoading"
+                  @click="closeDeleteModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-error text-on-error font-bold text-sm shadow-lg shadow-error/20 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+                  :disabled="deleteLoading"
+                  @click="confirmDelete"
+                >
+                  <span v-if="deleteLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-base">delete_forever</span>
+                  {{ deleteLoading ? 'Deleting...' : 'Delete' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Edit Product Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showEditModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeEditModal"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+          <!-- Dialog -->
+          <div class="relative w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-surface-container">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center">
+                  <span class="material-symbols-outlined text-on-primary-fixed-variant text-lg">edit</span>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Edit Product</h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors"
+                aria-label="Close modal"
+                @click="closeEditModal"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <form class="px-6 py-6 space-y-5" @submit.prevent="submitEditProduct">
+              <!-- Name -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Product Name</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">deployed_code</span>
+                  <input
+                    v-model="editForm.name"
+                    type="text"
+                    placeholder="e.g. GeoLicense Pro"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- SKU -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">SKU</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">qr_code</span>
+                  <input
+                    v-model="editForm.sku"
+                    type="text"
+                    placeholder="e.g. GLP-001"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm font-mono"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Version -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Version</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">tag</span>
+                  <input
+                    v-model="editForm.version"
+                    type="text"
+                    placeholder="e.g. 1.0.0"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Description</label>
+                <textarea
+                  v-model="editForm.description"
+                  rows="3"
+                  placeholder="Short product description..."
+                  class="w-full px-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
+                  :disabled="editModalLoading"
+                ></textarea>
+              </div>
+
+              <!-- Active toggle -->
+              <div class="flex items-center justify-between py-1">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Active</label>
+                <button
+                  type="button"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  :class="editForm.isActive ? 'bg-primary' : 'bg-surface-container-high'"
+                  :disabled="editModalLoading"
+                  @click="editForm.isActive = !editForm.isActive"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="editForm.isActive ? 'translate-x-6' : 'translate-x-1'"
+                  ></span>
+                </button>
+              </div>
+
+              <!-- Validation error -->
+              <p v-if="editModalError" class="text-sm text-error font-medium">{{ editModalError }}</p>
+
+              <!-- Actions -->
+              <div class="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors"
+                  :disabled="editModalLoading"
+                  @click="closeEditModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="flex-1 py-3 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+                  :disabled="editModalLoading"
+                >
+                  <span v-if="editModalLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-base">save</span>
+                  {{ editModalLoading ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Add Product Modal -->
     <Teleport to="body">
       <Transition name="modal">
@@ -601,6 +927,23 @@ async function submitProduct() {
                   class="w-full px-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
                   :disabled="modalLoading"
                 ></textarea>
+              </div>
+
+              <!-- Active toggle -->
+              <div class="flex items-center justify-between py-1">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Active</label>
+                <button
+                  type="button"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  :class="form.isActive ? 'bg-primary' : 'bg-surface-container-high'"
+                  :disabled="modalLoading"
+                  @click="form.isActive = !form.isActive"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="form.isActive ? 'translate-x-6' : 'translate-x-1'"
+                  ></span>
+                </button>
               </div>
 
               <!-- Validation error -->

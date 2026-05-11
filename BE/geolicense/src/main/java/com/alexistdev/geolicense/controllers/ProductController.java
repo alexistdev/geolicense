@@ -26,13 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 import java.util.logging.Logger;
 
 @Slf4j
@@ -82,6 +78,39 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<ResponseData<Page<ProductResponse>>> searchProduct(
+            @RequestParam(defaultValue = "") String filter,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "10") @PositiveOrZero int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        ResponseData<Page<ProductResponse>> responseData = new ResponseData<>();
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+
+        Page<Product> productsPage;
+
+        try {
+            productsPage = productService.getAllProductsByFilter(pageable, filter);
+        } catch (RuntimeException e) {
+            Pageable fallbackPageable = PageRequest.of(page, size, Sort.by(sortDirection, "id"));
+            productsPage = productService.getAllProductsByFilter(fallbackPageable, filter);
+        }
+
+        responseData.getMessages().add(this.messagesUtils.getMessage("product.controller.noproduct"));
+        responseData.setStatus(false);
+
+        handleNonEmptyPage(responseData, productsPage, page + 1);
+
+        Page<ProductResponse> productResponses = productsPage
+                .map(product -> modelMapper.map(product, ProductResponse.class));
+        responseData.setPayload(productResponses);
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
     @PostMapping
     public ResponseEntity<ResponseData<ProductResponse>> addProduct(@Valid @RequestBody ProductRequest request, Errors errors) {
         ResponseData<ProductResponse> responseData = new ResponseData<>();
@@ -96,6 +125,38 @@ public class ProductController {
         responseData.getMessages().add(msgSuccess);
         responseData.setStatus(true);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+    }
+
+    @PatchMapping
+    public ResponseEntity<ResponseData<ProductResponse>> updateProduct(@Valid @RequestBody ProductRequest request, Errors errors) {
+        ResponseData<ProductResponse> responseData = new ResponseData<>();
+        handleErrors(errors, responseData);
+
+        if (errors.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
+        }
+
+        if(request.getId() == null){
+            String msgError = messagesUtils.getMessage("product.id.required");
+            responseData.getMessages().add(msgError);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
+        }
+
+        responseData.setPayload(productService.updateProduct(request, request.getId()));
+        String msgSuccess = messagesUtils.getMessage("product.edit.success");
+        responseData.getMessages().add(msgSuccess);
+        responseData.setStatus(true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseData<Void>> deleteProduct(@PathVariable("id") UUID id) {
+        ResponseData<Void> responseData = new ResponseData<>();
+        productService.deleteProduct(id.toString());
+        responseData.setStatus(true);
+        String msgSuccess = messagesUtils.getMessage("product.delete.success");
+        responseData.getMessages().add(msgSuccess);
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
     private <T> void handleNonEmptyPage(ResponseData<Page<T>> responseData, Page<?> pageResult, int pageNumber) {

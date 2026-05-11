@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.services.ProductService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -67,6 +68,28 @@ public class ProductControllerTest {
                 "isActive": true
             }
             """;
+    private static final String UPDATE_SUCCESS_MESSAGE = "Product successfully edited";
+
+    private static final String VALID_UPDATE_JSON = """
+            {
+                "id": "test-uuid",
+                "name": "Updated Product",
+                "version": "2.0.0",
+                "description": "Updated description",
+                "sku": "TEST-SKU-002",
+                "isActive": true
+            }
+            """;
+
+    private ProductResponse buildUpdatedResponse() {
+        return ProductResponse.builder()
+                .id("test-uuid")
+                .name("Updated Product")
+                .version("2.0.0")
+                .description("Updated description")
+                .sku("TEST-SKU-002")
+                .build();
+    }
 
     @BeforeEach
     public void setUp() {
@@ -409,5 +432,298 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.status").value(true));
 
         verify(productService, times(2)).getAllProducts(any(Pageable.class));
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. GET /products/search with matching products returns 200 with status true")
+    public void testSearchProduct_withMatchingProducts_returns200WithStatusTrue() throws Exception {
+        Product product = buildProductEntity();
+        Page<Product> productsPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test"))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search").param("filter", "Test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.payload.content").isArray())
+                .andExpect(jsonPath("$.payload.content[0].name").value("Test Product"));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. GET /products/search with no matches returns 200 with status false")
+    public void testSearchProduct_withNoMatches_returns200WithStatusFalse() throws Exception {
+        Page<Product> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("nonexistent"))).thenReturn(emptyPage);
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search").param("filter", "nonexistent"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("No products found"));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("nonexistent"));
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. GET /products/search with empty filter uses default empty string")
+    public void testSearchProduct_withEmptyFilter_usesDefaultEmptyString() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq(""))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq(""));
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. GET /products/search supports pagination and sort params")
+    public void testSearchProduct_withPaginationParams_passesPageableToService() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(1, 5), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test"))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search")
+                        .param("filter", "Test")
+                        .param("page", "1")
+                        .param("size", "5")
+                        .param("sortBy", "name")
+                        .param("direction", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. GET /products/search falls back to id sort when invalid sortBy triggers RuntimeException")
+    public void testSearchProduct_invalidSortBy_fallsBackToIdSort() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test")))
+                .thenThrow(new RuntimeException("Invalid sort field"))
+                .thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search")
+                        .param("filter", "Test")
+                        .param("sortBy", "invalidField"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(2)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. PATCH /products with valid payload and id returns 201 CREATED")
+    public void testUpdateProduct_validPayload_returns201() throws Exception {
+        when(productService.updateProduct(any(ProductRequest.class), eq("test-uuid"))).thenReturn(buildUpdatedResponse());
+        when(messagesUtils.getMessage("product.edit.success")).thenReturn(UPDATE_SUCCESS_MESSAGE);
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(UPDATE_SUCCESS_MESSAGE))
+                .andExpect(jsonPath("$.payload.name").value("Updated Product"))
+                .andExpect(jsonPath("$.payload.version").value("2.0.0"))
+                .andExpect(jsonPath("$.payload.sku").value("TEST-SKU-002"));
+
+        verify(productService, times(1)).updateProduct(any(ProductRequest.class), eq("test-uuid"));
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. PATCH /products without id returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingId_returns400() throws Exception {
+        when(messagesUtils.getMessage("product.id.required")).thenReturn("Product id is required");
+
+        String json = """
+                {
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]").value("Product id is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("23. PATCH /products with missing name returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingName_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product name is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. PATCH /products with missing version returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingVersion_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product version is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("25. PATCH /products with missing SKU returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingSku_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product SKU is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("26. PATCH /products with missing isActive returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingIsActive_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002"
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product active status is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. PATCH /products with empty body returns 400 BAD_REQUEST with multiple validation messages")
+    public void testUpdateProduct_emptyBody_returns400() throws Exception {
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages").isArray());
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    private static final String DELETE_SUCCESS_MESSAGE = "Product successfully deleted";
+
+    @Test
+    @Order(28)
+    @DisplayName("28. DELETE /products/{id} with valid UUID returns 200 OK with status true")
+    public void testDeleteProduct_validId_returns200() throws Exception {
+        UUID validId = UUID.randomUUID();
+        when(messagesUtils.getMessage("product.delete.success")).thenReturn(DELETE_SUCCESS_MESSAGE);
+
+        doNothing().when(productService).deleteProduct(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/products/{id}", validId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(DELETE_SUCCESS_MESSAGE));
+
+        verify(productService, times(1)).deleteProduct(validId.toString());
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. DELETE /products/{id} when product not found returns 404 NOT_FOUND")
+    public void testDeleteProduct_productNotFound_returns404() throws Exception {
+        UUID validId = UUID.randomUUID();
+        String notFoundMessage = "Product " + validId + " not found";
+
+        doThrow(new NotFoundException(notFoundMessage)).when(productService).deleteProduct(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/products/{id}", validId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(productService, times(1)).deleteProduct(validId.toString());
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. DELETE /products/{id} with invalid UUID format returns 500")
+    public void testDeleteProduct_invalidUuidFormat_returns500() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/{id}", "not-a-uuid"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(productService, never()).deleteProduct(any());
     }
 }

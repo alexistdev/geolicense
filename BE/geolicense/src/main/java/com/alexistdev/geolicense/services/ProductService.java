@@ -42,6 +42,10 @@ public class ProductService {
         return productRepo.findByIsDeletedFalse(pageable);
     }
 
+    public Page<Product> getAllProductsByFilter(Pageable pageable, String keyword){
+        return productRepo.findByFilter(keyword, pageable);
+    }
+
     public ProductResponse addProduct(ProductRequest request) {
         Optional<Product> foundProduct = productRepo.findByNameIncludingDeleted(request.getName());
 
@@ -67,6 +71,40 @@ public class ProductService {
                 .build();
     }
 
+    public ProductResponse updateProduct(ProductRequest request, String id) {
+        UUID productId = UUID.fromString(id);
+        Product existingProduct = productRepo.findByProductIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("product.not.found", id)));
+
+        Optional<Product> foundProduct = productRepo.findByNameIncludingDeleted(request.getName());
+
+        if(foundProduct.isPresent()){
+            if(!foundProduct.get().getId().equals(productId)){
+                Product existingProduct2 = foundProduct.get();
+                if(!existingProduct2.getDeleted()){
+                    String message = messagesUtils.getMessage("product.already.exist", request.getName());
+                    logger.warning(message);
+                    throw new ExistingException(message);
+                }
+            }
+        }
+
+        if(existingProduct.getDeleted()){
+            existingProduct.setDeleted(false);
+        }
+
+        Product productToUpdate = convertToProduct(request, productId);
+        Product updatedProduct = productRepo.save(productToUpdate);
+        return ProductResponse.builder()
+                .id(updatedProduct.getId().toString())
+                .name(updatedProduct.getName())
+                .sku(updatedProduct.getSku())
+                .version(updatedProduct.getVersion())
+                .description(updatedProduct.getDescription())
+                .build();
+    }
+
     public ProductResponse findProductById(String id) {
         UUID productId = UUID.fromString(id);
         Product product = productRepo.findById(productId)
@@ -80,6 +118,15 @@ public class ProductService {
                 .description(product.getDescription())
                 .isActive(product.isActive())
                 .build();
+    }
+
+    public void deleteProduct(String id) {
+        UUID productId = UUID.fromString(id);
+        Product product = productRepo.findById(productId)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("product.not.found", id)));
+        product.setDeleted(true);
+        productRepo.save(product);
     }
 
     private Product convertToProduct(ProductRequest request, UUID id) {
