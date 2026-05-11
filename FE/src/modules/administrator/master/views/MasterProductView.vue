@@ -2,11 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import MasterProductService from '@/modules/administrator/master/services/masterproduct.service'
-import type { ProductResponse } from '../models/product.response'
+import type { ProductPayload } from '../models/product.response'
 
 const PAGE_SIZE = 10
 
-const products = ref<ProductResponse[]>([])
+const products = ref<ProductPayload[]>([])
 const totalElements = ref(0)
 const totalPages = ref(0)
 const currentPage = ref(0)
@@ -99,6 +99,7 @@ interface ProductForm {
   version: string
   description: string
   sku: string
+  isActive: boolean
 }
 
 const form = ref<ProductForm>({
@@ -106,10 +107,11 @@ const form = ref<ProductForm>({
   version: '',
   description: '',
   sku: '',
+  isActive: true,
 })
 
 function openModal() {
-  form.value = { name: '', version: '', description: '', sku: '' }
+  form.value = { name: '', version: '', description: '', sku: '', isActive: true }
   modalError.value = null
   showModal.value = true
 }
@@ -126,7 +128,13 @@ async function submitProduct() {
   }
   modalLoading.value = true
   try {
-    // Placeholder — wire up to a create endpoint when available
+    await MasterProductService.addProduct({
+      name: form.value.name.trim(),
+      version: form.value.version.trim(),
+      description: form.value.description.trim(),
+      sku: form.value.sku.trim(),
+      isActive: form.value.isActive,
+    })
     closeModal()
     showToast('Product successfully added.')
     await fetchProducts()
@@ -601,6 +609,23 @@ async function submitProduct() {
                   class="w-full px-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
                   :disabled="modalLoading"
                 ></textarea>
+              </div>
+
+              <!-- Active toggle -->
+              <div class="flex items-center justify-between py-1">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Active</label>
+                <button
+                  type="button"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  :class="form.isActive ? 'bg-primary' : 'bg-surface-container-high'"
+                  :disabled="modalLoading"
+                  @click="form.isActive = !form.isActive"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="form.isActive ? 'translate-x-6' : 'translate-x-1'"
+                  ></span>
+                </button>
               </div>
 
               <!-- Validation error -->
