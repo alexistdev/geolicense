@@ -16,6 +16,8 @@ import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -34,6 +36,14 @@ public class LicenseTypeService {
     public LicenseTypeService(LicenseTypeRepo licenseTypeRepo, MessagesUtils messagesUtils) {
         this.licenseTypeRepo = licenseTypeRepo;
         this.messagesUtils = messagesUtils;
+    }
+
+    public Page<LicenseType> getAllLicenseTypes(Pageable pageable){
+        return licenseTypeRepo.findByIsDeletedFalse(pageable);
+    }
+
+    public Page<LicenseType> getAllLicenseTypesByFilter(Pageable pageable, String keyword){
+        return licenseTypeRepo.findByFilter(keyword, pageable);
     }
 
     public LicenseTypeResponse addLicenseType(LicenseTypeRequest request) {
@@ -63,6 +73,41 @@ public class LicenseTypeService {
                 .durationDays(savedLicenseType.getDuration_days())
                 .maxSeats(savedLicenseType.getMax_seats())
                 .isTrial(savedLicenseType.is_trial())
+                .build();
+    }
+
+    public LicenseTypeResponse updateLicenseType(LicenseTypeRequest request, String id) {
+        UUID licenseTypeId = UUID.fromString(id);
+        LicenseType existingLicenseType = licenseTypeRepo.findById(licenseTypeId)
+                .orElseThrow(() -> new NotFoundException(
+                messagesUtils.getMessage("licensetype.not.found", id)));
+
+        Optional<LicenseType> foundLicenseType = licenseTypeRepo.findByNameIncludingDeleted(request.getName());
+
+        if(foundLicenseType.isPresent()){
+            if(!foundLicenseType.get().getId().equals(licenseTypeId)){
+                LicenseType existingLicenseType2 = foundLicenseType.get();
+                if(!existingLicenseType2.getDeleted()){
+                    String message = messagesUtils.getMessage("licensetype.already.exist", request.getName());
+                    logger.warning(message);
+                    throw new ExistingException(message);
+                }
+            }
+        }
+
+        if(existingLicenseType.getDeleted()){
+            existingLicenseType.setDeleted(false);
+        }
+
+        LicenseType licenseTypeToUpdate = convertToLicenseType(request, licenseTypeId);
+        LicenseType updatedLicenseType = licenseTypeRepo.save(licenseTypeToUpdate);
+        return LicenseTypeResponse.builder()
+                .id(updatedLicenseType.getId().toString())
+                .name(updatedLicenseType.getName())
+                .description(updatedLicenseType.getDescription())
+                .durationDays(updatedLicenseType.getDuration_days())
+                .maxSeats(updatedLicenseType.getMax_seats())
+                .isTrial(updatedLicenseType.is_trial())
                 .build();
     }
 
