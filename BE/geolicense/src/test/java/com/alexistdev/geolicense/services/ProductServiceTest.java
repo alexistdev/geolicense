@@ -215,4 +215,42 @@ public class ProductServiceTest {
 
         verify(productRepo, times(1)).findByIsDeletedFalse(pageable);
     }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. getAllProductsByFilter should return matching products for a given keyword")
+    void getAllProductsByFilter_WhenMatchingProductsExist_ShouldReturnPage() {
+        String keyword = "Product";
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> expectedPage = new PageImpl<>(List.of(entity), pageable, 1);
+
+        when(productRepo.findByFilter(keyword, pageable)).thenReturn(expectedPage);
+
+        Page<Product> result = productService.getAllProductsByFilter(pageable, keyword);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
+        Assertions.assertEquals(entity.getName(), result.getContent().get(0).getName());
+
+        verify(productRepo, times(1)).findByFilter(keyword, pageable);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. getAllProductsByFilter should return an empty page when no products match the keyword")
+    void getAllProductsByFilter_WhenNoMatchingProducts_ShouldReturnEmptyPage() {
+        String keyword = "nonexistent";
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+
+        when(productRepo.findByFilter(keyword, pageable)).thenReturn(emptyPage);
+
+        Page<Product> result = productService.getAllProductsByFilter(pageable, keyword);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.isEmpty());
+
+        verify(productRepo, times(1)).findByFilter(keyword, pageable);
+    }
 }

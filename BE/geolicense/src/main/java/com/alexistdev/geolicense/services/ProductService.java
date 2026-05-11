@@ -42,6 +42,10 @@ public class ProductService {
         return productRepo.findByIsDeletedFalse(pageable);
     }
 
+    public Page<Product> getAllProductsByFilter(Pageable pageable, String keyword){
+        return productRepo.findByFilter(keyword, pageable);
+    }
+
     public ProductResponse addProduct(ProductRequest request) {
         Optional<Product> foundProduct = productRepo.findByNameIncludingDeleted(request.getName());
 
