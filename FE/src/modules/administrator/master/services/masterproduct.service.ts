@@ -5,8 +5,17 @@ import type { ProductPayload, ProductResponse } from '@/modules/administrator/ma
 import type { ProductRequest } from '@/modules/administrator/master/models/product.request.ts'
 
 const BASE_PATH = '/products'
+const SEARCH_PATH = '/products/search'
 
 export interface ProductPageParams {
+  page: number
+  size: number
+  sortBy: string
+  direction: 'asc' | 'desc'
+}
+
+export interface ProductPageParamsWithFilters {
+  filter: string
   page: number
   size: number
   sortBy: string
@@ -21,9 +30,18 @@ class MasterProductService {
     return response.data
   }
 
-  async addProduct(request: ProductRequest): Promise<ProductResponse>{
-    const response = await apiClient.post<ProductResponse>(BASE_PATH, request);
-    return response.data;
+  async getAllByFilter(
+    params: ProductPageParamsWithFilters,
+  ): Promise<BaseResponse<PageResponse<ProductPayload>>> {
+    const response = await apiClient.get<BaseResponse<PageResponse<ProductPayload>>>(SEARCH_PATH, {
+      params,
+    })
+    return response.data
+  }
+
+  async addProduct(request: ProductRequest): Promise<ProductResponse> {
+    const response = await apiClient.post<ProductResponse>(BASE_PATH, request)
+    return response.data
   }
 }
 
