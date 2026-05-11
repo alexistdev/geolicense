@@ -11,11 +11,14 @@ package com.alexistdev.geolicense.controllers;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
+import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.services.LicenseTypeService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -29,6 +32,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -55,6 +59,30 @@ public class LicenseTypeControllerTest {
     private MockMvc mockMvc;
 
     private static final String NO_LICENSE_TYPE_MESSAGE = "No license type found";
+    private static final String ADD_SUCCESS_MESSAGE = "License type successfully added";
+    private static final String UPDATE_SUCCESS_MESSAGE = "License type successfully edited";
+    private static final String DELETE_SUCCESS_MESSAGE = "License type successfully deleted";
+
+    private static final String VALID_JSON = """
+            {
+                "name": "Standard License",
+                "description": "Standard license type",
+                "durationDays": 365,
+                "maxSeats": 5,
+                "isTrial": false
+            }
+            """;
+
+    private static final String VALID_UPDATE_JSON = """
+            {
+                "id": "test-uuid",
+                "name": "Standard License",
+                "description": "Standard license type",
+                "durationDays": 365,
+                "maxSeats": 5,
+                "isTrial": false
+            }
+            """;
 
     @BeforeEach
     public void setUp() {
@@ -384,5 +412,512 @@ public class LicenseTypeControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].trial").value(false));
 
         verify(modelMapper, times(1)).map(any(LicenseType.class), eq(LicenseTypeResponse.class));
+    }
+
+    // ─── POST /api/v1/licenses_type ──────────────────────────────────────────
+
+    @Test
+    @Order(16)
+    @DisplayName("16. POST /licenses_type with complete payload returns 201 CREATED")
+    public void testAddLicenseType_completePayload_returns201() throws Exception {
+        when(licenseTypeService.addLicenseType(any(LicenseTypeRequest.class))).thenReturn(buildLicenseTypeResponse());
+        when(messagesUtils.getMessage("license_type.add.success")).thenReturn(ADD_SUCCESS_MESSAGE);
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(ADD_SUCCESS_MESSAGE))
+                .andExpect(jsonPath("$.payload.name").value("Standard License"))
+                .andExpect(jsonPath("$.payload.durationDays").value(365))
+                .andExpect(jsonPath("$.payload.maxSeats").value(5));
+
+        verify(licenseTypeService, times(1)).addLicenseType(any(LicenseTypeRequest.class));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. POST /licenses_type without optional description returns 201 CREATED")
+    public void testAddLicenseType_withoutDescription_returns201() throws Exception {
+        when(licenseTypeService.addLicenseType(any(LicenseTypeRequest.class))).thenReturn(buildLicenseTypeResponse());
+        when(messagesUtils.getMessage("license_type.add.success")).thenReturn(ADD_SUCCESS_MESSAGE);
+
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(licenseTypeService, times(1)).addLicenseType(any(LicenseTypeRequest.class));
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. POST /licenses_type missing name returns 400 BAD_REQUEST")
+    public void testAddLicenseType_missingName_returns400() throws Exception {
+        String json = """
+                {
+                    "durationDays": 365,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("License Type name is required"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. POST /licenses_type blank name returns 400 BAD_REQUEST")
+    public void testAddLicenseType_blankName_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "",
+                    "durationDays": 365,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("License Type name is required"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. POST /licenses_type missing durationDays returns 400 BAD_REQUEST")
+    public void testAddLicenseType_missingDurationDays_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Duration days is required"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. POST /licenses_type durationDays = 0 returns 400 BAD_REQUEST")
+    public void testAddLicenseType_zeroDurationDays_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 0,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Duration days must be greater than 0"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. POST /licenses_type negative durationDays returns 400 BAD_REQUEST")
+    public void testAddLicenseType_negativeDurationDays_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": -1,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Duration days must be greater than 0"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("23. POST /licenses_type missing maxSeats returns 400 BAD_REQUEST")
+    public void testAddLicenseType_missingMaxSeats_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Max seats is required"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. POST /licenses_type maxSeats = 0 returns 400 BAD_REQUEST")
+    public void testAddLicenseType_zeroMaxSeats_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "maxSeats": 0,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Max seats must be greater than 0"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("25. POST /licenses_type missing isTrial returns 400 BAD_REQUEST")
+    public void testAddLicenseType_missingIsTrial_returns400() throws Exception {
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "maxSeats": 5
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Is Trial status is required"));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("26. POST /licenses_type empty body returns 400 BAD_REQUEST with multiple validation messages")
+    public void testAddLicenseType_emptyBody_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages").isArray());
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. POST /licenses_type malformed JSON returns 400 BAD_REQUEST")
+    public void testAddLicenseType_malformedJson_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ invalid json }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, never()).addLicenseType(any());
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("28. POST /licenses_type when name already exists returns 409 CONFLICT")
+    public void testAddLicenseType_duplicateName_returns409() throws Exception {
+        when(licenseTypeService.addLicenseType(any(LicenseTypeRequest.class)))
+                .thenThrow(new ExistingException("License type Standard License already exists"));
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, times(1)).addLicenseType(any(LicenseTypeRequest.class));
+    }
+
+    // ─── PATCH /api/v1/licenses_type ─────────────────────────────────────────
+
+    @Test
+    @Order(29)
+    @DisplayName("29. PATCH /licenses_type with valid payload and id returns 201 CREATED")
+    public void testUpdateLicenseType_validPayload_returns201() throws Exception {
+        LicenseTypeResponse updatedResponse = LicenseTypeResponse.builder()
+                .id("test-uuid")
+                .name("Standard License")
+                .description("Standard license type")
+                .durationDays(365)
+                .maxSeats(5)
+                .isTrial(false)
+                .build();
+
+        when(licenseTypeService.updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid"))).thenReturn(updatedResponse);
+        when(messagesUtils.getMessage("license_type.edit.success")).thenReturn(UPDATE_SUCCESS_MESSAGE);
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(UPDATE_SUCCESS_MESSAGE))
+                .andExpect(jsonPath("$.payload.name").value("Standard License"))
+                .andExpect(jsonPath("$.payload.durationDays").value(365))
+                .andExpect(jsonPath("$.payload.maxSeats").value(5));
+
+        verify(licenseTypeService, times(1)).updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid"));
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. PATCH /licenses_type without id returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_missingId_returns400() throws Exception {
+        when(messagesUtils.getMessage("license_type.id.required")).thenReturn("License type id is required");
+
+        String json = """
+                {
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]").value("License type id is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("31. PATCH /licenses_type missing name returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_missingName_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "durationDays": 365,
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("License Type name is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("32. PATCH /licenses_type missing durationDays returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_missingDurationDays_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Standard License",
+                    "maxSeats": 5,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Duration days is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("33. PATCH /licenses_type missing maxSeats returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_missingMaxSeats_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Max seats is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("34. PATCH /licenses_type missing isTrial returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_missingIsTrial_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Standard License",
+                    "durationDays": 365,
+                    "maxSeats": 5
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Is Trial status is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("35. PATCH /licenses_type empty body returns 400 BAD_REQUEST with multiple validation messages")
+    public void testUpdateLicenseType_emptyBody_returns400() throws Exception {
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages").isArray());
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(36)
+    @DisplayName("36. PATCH /licenses_type when license type not found returns 404 NOT_FOUND")
+    public void testUpdateLicenseType_notFound_returns404() throws Exception {
+        when(licenseTypeService.updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid")))
+                .thenThrow(new NotFoundException("License type test-uuid not found"));
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, times(1)).updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid"));
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("37. PATCH /licenses_type when name already taken returns 409 CONFLICT")
+    public void testUpdateLicenseType_duplicateName_returns409() throws Exception {
+        when(licenseTypeService.updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid")))
+                .thenThrow(new ExistingException("License type Standard License already exists"));
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, times(1)).updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid"));
+    }
+
+    // ─── DELETE /api/v1/licenses_type/{id} ───────────────────────────────────
+
+    @Test
+    @Order(38)
+    @DisplayName("38. DELETE /licenses_type/{id} with valid UUID returns 200 OK")
+    public void testDeleteLicenseType_validId_returns200() throws Exception {
+        UUID validId = UUID.randomUUID();
+        when(messagesUtils.getMessage("license_type.delete.success")).thenReturn(DELETE_SUCCESS_MESSAGE);
+        doNothing().when(licenseTypeService).deleteLicenseType(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/licenses_type/{id}", validId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(DELETE_SUCCESS_MESSAGE));
+
+        verify(licenseTypeService, times(1)).deleteLicenseType(validId.toString());
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("39. DELETE /licenses_type/{id} when type not found returns 404 NOT_FOUND")
+    public void testDeleteLicenseType_notFound_returns404() throws Exception {
+        UUID validId = UUID.randomUUID();
+        doThrow(new NotFoundException("License type " + validId + " not found"))
+                .when(licenseTypeService).deleteLicenseType(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/licenses_type/{id}", validId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, times(1)).deleteLicenseType(validId.toString());
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("40. DELETE /licenses_type/{id} with invalid UUID format returns 500")
+    public void testDeleteLicenseType_invalidUuidFormat_returns500() throws Exception {
+        mockMvc.perform(delete("/api/v1/licenses_type/{id}", "not-a-uuid"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, never()).deleteLicenseType(any());
     }
 }
