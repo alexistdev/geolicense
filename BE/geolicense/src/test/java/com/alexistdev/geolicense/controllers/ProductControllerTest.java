@@ -410,4 +410,101 @@ public class ProductControllerTest {
 
         verify(productService, times(2)).getAllProducts(any(Pageable.class));
     }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. GET /products/search with matching products returns 200 with status true")
+    public void testSearchProduct_withMatchingProducts_returns200WithStatusTrue() throws Exception {
+        Product product = buildProductEntity();
+        Page<Product> productsPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test"))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search").param("filter", "Test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.payload.content").isArray())
+                .andExpect(jsonPath("$.payload.content[0].name").value("Test Product"));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. GET /products/search with no matches returns 200 with status false")
+    public void testSearchProduct_withNoMatches_returns200WithStatusFalse() throws Exception {
+        Page<Product> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("nonexistent"))).thenReturn(emptyPage);
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search").param("filter", "nonexistent"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("No products found"));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("nonexistent"));
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. GET /products/search with empty filter uses default empty string")
+    public void testSearchProduct_withEmptyFilter_usesDefaultEmptyString() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq(""))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq(""));
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. GET /products/search supports pagination and sort params")
+    public void testSearchProduct_withPaginationParams_passesPageableToService() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(1, 5), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test"))).thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search")
+                        .param("filter", "Test")
+                        .param("page", "1")
+                        .param("size", "5")
+                        .param("sortBy", "name")
+                        .param("direction", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(1)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. GET /products/search falls back to id sort when invalid sortBy triggers RuntimeException")
+    public void testSearchProduct_invalidSortBy_fallsBackToIdSort() throws Exception {
+        Page<Product> productsPage = new PageImpl<>(List.of(buildProductEntity()), PageRequest.of(0, 10), 1);
+
+        when(productService.getAllProductsByFilter(any(Pageable.class), eq("Test")))
+                .thenThrow(new RuntimeException("Invalid sort field"))
+                .thenReturn(productsPage);
+        when(modelMapper.map(any(Product.class), eq(ProductResponse.class))).thenReturn(buildResponse());
+        when(messagesUtils.getMessage("product.controller.noproduct")).thenReturn("No products found");
+
+        mockMvc.perform(get("/api/v1/products/search")
+                        .param("filter", "Test")
+                        .param("sortBy", "invalidField"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true));
+
+        verify(productService, times(2)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
 }

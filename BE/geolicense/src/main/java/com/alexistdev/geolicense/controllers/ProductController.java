@@ -82,6 +82,41 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<ResponseData<Page<ProductResponse>>> searchProduct(
+            @RequestParam(defaultValue = "") String filter,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "10") @PositiveOrZero int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        ResponseData<Page<ProductResponse>> responseData = new ResponseData<>();
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+
+        Page<Product> productsPage;
+
+        try {
+            productsPage = productService.getAllProductsByFilter(pageable, filter);
+        } catch (RuntimeException e) {
+            Pageable fallbackPageable = PageRequest.of(page, size, Sort.by(sortDirection, "id"));
+            productsPage = productService.getAllProductsByFilter(fallbackPageable, filter);
+        }
+
+        responseData.getMessages().add(this.messagesUtils.getMessage("product.controller.noproduct"));
+        responseData.setStatus(false);
+
+        handleNonEmptyPage(responseData, productsPage, page + 1);
+
+        Page<ProductResponse> productResponses = productsPage
+                .map(product -> modelMapper.map(product, ProductResponse.class));
+        responseData.setPayload(productResponses);
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+
+
     @PostMapping
     public ResponseEntity<ResponseData<ProductResponse>> addProduct(@Valid @RequestBody ProductRequest request, Errors errors) {
         ResponseData<ProductResponse> responseData = new ResponseData<>();

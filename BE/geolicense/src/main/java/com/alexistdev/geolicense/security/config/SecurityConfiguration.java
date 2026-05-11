@@ -41,6 +41,8 @@ public class SecurityConfiguration {
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/products/search").hasAuthority(Role.ADMIN.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
