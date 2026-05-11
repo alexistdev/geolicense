@@ -67,6 +67,28 @@ public class ProductControllerTest {
                 "isActive": true
             }
             """;
+    private static final String UPDATE_SUCCESS_MESSAGE = "Product successfully edited";
+
+    private static final String VALID_UPDATE_JSON = """
+            {
+                "id": "test-uuid",
+                "name": "Updated Product",
+                "version": "2.0.0",
+                "description": "Updated description",
+                "sku": "TEST-SKU-002",
+                "isActive": true
+            }
+            """;
+
+    private ProductResponse buildUpdatedResponse() {
+        return ProductResponse.builder()
+                .id("test-uuid")
+                .name("Updated Product")
+                .version("2.0.0")
+                .description("Updated description")
+                .sku("TEST-SKU-002")
+                .build();
+    }
 
     @BeforeEach
     public void setUp() {
@@ -506,5 +528,155 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.status").value(true));
 
         verify(productService, times(2)).getAllProductsByFilter(any(Pageable.class), eq("Test"));
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. PATCH /products with valid payload and id returns 201 CREATED")
+    public void testUpdateProduct_validPayload_returns201() throws Exception {
+        when(productService.updateProduct(any(ProductRequest.class), eq("test-uuid"))).thenReturn(buildUpdatedResponse());
+        when(messagesUtils.getMessage("product.edit.success")).thenReturn(UPDATE_SUCCESS_MESSAGE);
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(UPDATE_SUCCESS_MESSAGE))
+                .andExpect(jsonPath("$.payload.name").value("Updated Product"))
+                .andExpect(jsonPath("$.payload.version").value("2.0.0"))
+                .andExpect(jsonPath("$.payload.sku").value("TEST-SKU-002"));
+
+        verify(productService, times(1)).updateProduct(any(ProductRequest.class), eq("test-uuid"));
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. PATCH /products without id returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingId_returns400() throws Exception {
+        when(messagesUtils.getMessage("product.id.required")).thenReturn("Product id is required");
+
+        String json = """
+                {
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]").value("Product id is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("23. PATCH /products with missing name returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingName_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product name is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. PATCH /products with missing version returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingVersion_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "sku": "TEST-SKU-002",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product version is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("25. PATCH /products with missing SKU returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingSku_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "isActive": true
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product SKU is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("26. PATCH /products with missing isActive returns 400 BAD_REQUEST")
+    public void testUpdateProduct_missingIsActive_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "Updated Product",
+                    "version": "2.0.0",
+                    "sku": "TEST-SKU-002"
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("Product active status is required"));
+
+        verify(productService, never()).updateProduct(any(), any());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. PATCH /products with empty body returns 400 BAD_REQUEST with multiple validation messages")
+    public void testUpdateProduct_emptyBody_returns400() throws Exception {
+        mockMvc.perform(patch("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages").isArray());
+
+        verify(productService, never()).updateProduct(any(), any());
     }
 }

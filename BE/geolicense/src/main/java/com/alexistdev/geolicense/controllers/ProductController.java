@@ -26,12 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.logging.Logger;
 
@@ -126,6 +121,28 @@ public class ProductController {
 
         responseData.setPayload(productService.addProduct(request));
         String msgSuccess = messagesUtils.getMessage("product.add.success");
+        responseData.getMessages().add(msgSuccess);
+        responseData.setStatus(true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+    }
+
+    @PatchMapping
+    public ResponseEntity<ResponseData<ProductResponse>> updateProduct(@Valid @RequestBody ProductRequest request, Errors errors) {
+        ResponseData<ProductResponse> responseData = new ResponseData<>();
+        handleErrors(errors, responseData);
+
+        if (errors.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
+        }
+
+        if(request.getId() == null){
+            String msgError = messagesUtils.getMessage("product.id.required");
+            responseData.getMessages().add(msgError);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
+        }
+
+        responseData.setPayload(productService.updateProduct(request, request.getId()));
+        String msgSuccess = messagesUtils.getMessage("product.edit.success");
         responseData.getMessages().add(msgSuccess);
         responseData.setStatus(true);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
