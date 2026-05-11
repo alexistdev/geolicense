@@ -351,4 +351,62 @@ public class ProductServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> productService.updateProduct(request, "invalid-uuid"));
     }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. updateProduct should succeed when the name conflict belongs to the same product being updated")
+    void updateProduct_WhenNameConflictIsSameProduct_ShouldUpdateAndReturnResponse() {
+        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.of(entity));
+        when(productRepo.save(any(Product.class))).thenReturn(entity);
+
+        ProductResponse response = productService.updateProduct(request, productId.toString());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(productId.toString(), response.getId());
+        Assertions.assertEquals(request.getName(), response.getName());
+
+        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
+        verify(productRepo, times(1)).save(any(Product.class));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. deleteProduct should set deleted to true and save when product exists")
+    void deleteProduct_WhenProductExists_ShouldSoftDelete() {
+        when(productRepo.findById(productId)).thenReturn(Optional.of(entity));
+
+        productService.deleteProduct(productId.toString());
+
+        Assertions.assertTrue(entity.getDeleted());
+        verify(productRepo, times(1)).findById(productId);
+        verify(productRepo, times(1)).save(entity);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. deleteProduct should throw NotFoundException when product does not exist")
+    void deleteProduct_WhenProductNotFound_ShouldThrowNotFoundException() {
+        String idStr = productId.toString();
+        String expectedMessage = "Product " + idStr + " not found";
+
+        when(productRepo.findById(productId)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("product.not.found", idStr)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> productService.deleteProduct(idStr));
+
+        Assertions.assertEquals(expectedMessage, exception.getMessage());
+        verify(productRepo, times(1)).findById(productId);
+        verify(productRepo, never()).save(any(Product.class));
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. deleteProduct should throw IllegalArgumentException for an invalid UUID")
+    void deleteProduct_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> productService.deleteProduct("invalid-uuid"));
+    }
 }

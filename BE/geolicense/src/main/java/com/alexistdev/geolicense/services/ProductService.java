@@ -120,6 +120,15 @@ public class ProductService {
                 .build();
     }
 
+    public void deleteProduct(String id) {
+        UUID productId = UUID.fromString(id);
+        Product product = productRepo.findById(productId)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("product.not.found", id)));
+        product.setDeleted(true);
+        productRepo.save(product);
+    }
+
     private Product convertToProduct(ProductRequest request, UUID id) {
         Product product = new Product();
         if(id != null) product.setId(id);

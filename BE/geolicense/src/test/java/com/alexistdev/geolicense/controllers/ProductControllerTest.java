@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.services.ProductService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -678,5 +679,51 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.messages").isArray());
 
         verify(productService, never()).updateProduct(any(), any());
+    }
+
+    private static final String DELETE_SUCCESS_MESSAGE = "Product successfully deleted";
+
+    @Test
+    @Order(28)
+    @DisplayName("28. DELETE /products/{id} with valid UUID returns 200 OK with status true")
+    public void testDeleteProduct_validId_returns200() throws Exception {
+        UUID validId = UUID.randomUUID();
+        when(messagesUtils.getMessage("product.delete.success")).thenReturn(DELETE_SUCCESS_MESSAGE);
+
+        doNothing().when(productService).deleteProduct(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/products/{id}", validId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(DELETE_SUCCESS_MESSAGE));
+
+        verify(productService, times(1)).deleteProduct(validId.toString());
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. DELETE /products/{id} when product not found returns 404 NOT_FOUND")
+    public void testDeleteProduct_productNotFound_returns404() throws Exception {
+        UUID validId = UUID.randomUUID();
+        String notFoundMessage = "Product " + validId + " not found";
+
+        doThrow(new NotFoundException(notFoundMessage)).when(productService).deleteProduct(validId.toString());
+
+        mockMvc.perform(delete("/api/v1/products/{id}", validId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(productService, times(1)).deleteProduct(validId.toString());
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. DELETE /products/{id} with invalid UUID format returns 500")
+    public void testDeleteProduct_invalidUuidFormat_returns500() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/{id}", "not-a-uuid"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(productService, never()).deleteProduct(any());
     }
 }

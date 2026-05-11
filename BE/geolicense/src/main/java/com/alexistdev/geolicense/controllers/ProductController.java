@@ -28,6 +28,7 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 import java.util.logging.Logger;
 
 @Slf4j
@@ -146,6 +147,16 @@ public class ProductController {
         responseData.getMessages().add(msgSuccess);
         responseData.setStatus(true);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseData<Void>> deleteProduct(@PathVariable("id") UUID id) {
+        ResponseData<Void> responseData = new ResponseData<>();
+        productService.deleteProduct(id.toString());
+        responseData.setStatus(true);
+        String msgSuccess = messagesUtils.getMessage("product.delete.success");
+        responseData.getMessages().add(msgSuccess);
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
     private <T> void handleNonEmptyPage(ResponseData<Page<T>> responseData, Page<?> pageResult, int pageNumber) {
