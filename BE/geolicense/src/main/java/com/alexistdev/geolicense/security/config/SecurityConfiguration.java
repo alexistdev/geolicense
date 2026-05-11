@@ -34,6 +34,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/api/v1/auth/**","/api/v1/licenses/activate",
                                 "/api/v1/licenses/verify").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/users").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.POST,
