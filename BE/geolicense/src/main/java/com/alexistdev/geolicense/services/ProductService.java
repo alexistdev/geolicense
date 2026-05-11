@@ -78,12 +78,15 @@ public class ProductService {
                         messagesUtils.getMessage("product.not.found", id)));
 
         Optional<Product> foundProduct = productRepo.findByNameIncludingDeleted(request.getName());
+
         if(foundProduct.isPresent()){
-            Product existingProduct2 = foundProduct.get();
-            if(!existingProduct2.getDeleted()){
-                String message = messagesUtils.getMessage("product.already.exist", request.getName());
-                logger.warning(message);
-                throw new ExistingException(message);
+            if(!foundProduct.get().getId().equals(productId)){
+                Product existingProduct2 = foundProduct.get();
+                if(!existingProduct2.getDeleted()){
+                    String message = messagesUtils.getMessage("product.already.exist", request.getName());
+                    logger.warning(message);
+                    throw new ExistingException(message);
+                }
             }
         }
 

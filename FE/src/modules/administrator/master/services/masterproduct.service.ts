@@ -8,6 +8,7 @@ const BASE_PATH = '/products'
 const SEARCH_PATH = '/products/search'
 
 export interface ProductPageParams {
+  id?: string
   page: number
   size: number
   sortBy: string
@@ -41,6 +42,11 @@ class MasterProductService {
 
   async addProduct(request: ProductRequest): Promise<ProductResponse> {
     const response = await apiClient.post<ProductResponse>(BASE_PATH, request)
+    return response.data
+  }
+
+  async updateProduct(request: ProductRequest): Promise<ProductResponse> {
+    const response = await apiClient.patch<ProductResponse>(BASE_PATH, request)
     return response.data
   }
 }

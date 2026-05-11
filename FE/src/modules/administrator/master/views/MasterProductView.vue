@@ -162,6 +162,77 @@ async function submitProduct() {
     modalLoading.value = false
   }
 }
+
+// --- Edit Product Modal ---
+const showEditModal = ref(false)
+const editModalLoading = ref(false)
+const editModalError = ref<string | null>(null)
+
+interface EditProductForm {
+  id: string
+  name: string
+  version: string
+  description: string
+  sku: string
+  isActive: boolean
+}
+
+const editForm = ref<EditProductForm>({
+  id: '',
+  name: '',
+  version: '',
+  description: '',
+  sku: '',
+  isActive: true,
+})
+
+function openEditModal(product: ProductPayload) {
+  editForm.value = {
+    id: product.id,
+    name: product.name,
+    version: product.version,
+    description: product.description,
+    sku: product.sku,
+    isActive: product.active,
+  }
+  editModalError.value = null
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+}
+
+async function submitEditProduct() {
+  editModalError.value = null
+  if (!editForm.value.name.trim() || !editForm.value.version.trim() || !editForm.value.sku.trim()) {
+    editModalError.value = 'Name, version, and SKU are required.'
+    return
+  }
+  editModalLoading.value = true
+  try {
+    await MasterProductService.updateProduct({
+      id: editForm.value.id,
+      name: editForm.value.name.trim(),
+      version: editForm.value.version.trim(),
+      description: editForm.value.description.trim(),
+      sku: editForm.value.sku.trim(),
+      isActive: editForm.value.isActive,
+    })
+    closeEditModal()
+    showToast('Product successfully updated.')
+    await fetchProducts()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    closeEditModal()
+    showToast(
+      err.response?.data?.messages?.[0] ?? 'Failed to update product. Please try again.',
+      'error',
+    )
+  } finally {
+    editModalLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -439,6 +510,7 @@ async function submitProduct() {
                   <button
                     class="p-2 text-outline hover:text-primary hover:bg-primary-fixed transition-all rounded-lg"
                     aria-label="Edit product"
+                    @click="openEditModal(product)"
                   >
                     <span class="material-symbols-outlined">edit</span>
                   </button>
@@ -533,6 +605,141 @@ async function submitProduct() {
           </div>
         </TransitionGroup>
       </div>
+    </Teleport>
+
+    <!-- Edit Product Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showEditModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeEditModal"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+          <!-- Dialog -->
+          <div class="relative w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-surface-container">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center">
+                  <span class="material-symbols-outlined text-on-primary-fixed-variant text-lg">edit</span>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Edit Product</h3>
+              </div>
+              <button
+                class="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors"
+                aria-label="Close modal"
+                @click="closeEditModal"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <form class="px-6 py-6 space-y-5" @submit.prevent="submitEditProduct">
+              <!-- Name -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Product Name</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">deployed_code</span>
+                  <input
+                    v-model="editForm.name"
+                    type="text"
+                    placeholder="e.g. GeoLicense Pro"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- SKU -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">SKU</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">qr_code</span>
+                  <input
+                    v-model="editForm.sku"
+                    type="text"
+                    placeholder="e.g. GLP-001"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm font-mono"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Version -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Version</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">tag</span>
+                  <input
+                    v-model="editForm.version"
+                    type="text"
+                    placeholder="e.g. 1.0.0"
+                    class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
+                    :disabled="editModalLoading"
+                  />
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Description</label>
+                <textarea
+                  v-model="editForm.description"
+                  rows="3"
+                  placeholder="Short product description..."
+                  class="w-full px-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
+                  :disabled="editModalLoading"
+                ></textarea>
+              </div>
+
+              <!-- Active toggle -->
+              <div class="flex items-center justify-between py-1">
+                <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Active</label>
+                <button
+                  type="button"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  :class="editForm.isActive ? 'bg-primary' : 'bg-surface-container-high'"
+                  :disabled="editModalLoading"
+                  @click="editForm.isActive = !editForm.isActive"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="editForm.isActive ? 'translate-x-6' : 'translate-x-1'"
+                  ></span>
+                </button>
+              </div>
+
+              <!-- Validation error -->
+              <p v-if="editModalError" class="text-sm text-error font-medium">{{ editModalError }}</p>
+
+              <!-- Actions -->
+              <div class="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  class="flex-1 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors"
+                  :disabled="editModalLoading"
+                  @click="closeEditModal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="flex-1 py-3 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+                  :disabled="editModalLoading"
+                >
+                  <span v-if="editModalLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-base">save</span>
+                  {{ editModalLoading ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
 
     <!-- Add Product Modal -->
