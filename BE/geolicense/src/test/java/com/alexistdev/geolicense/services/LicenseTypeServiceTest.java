@@ -370,4 +370,43 @@ public class LicenseTypeServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> licenseTypeService.updateLicenseType(request, "invalid-uuid"));
     }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. deleteLicenseType should soft-delete and save when type exists")
+    void deleteLicenseType_WhenTypeExists_ShouldSetDeletedAndSave() {
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.of(entity));
+
+        licenseTypeService.deleteLicenseType(licenseTypeId.toString());
+
+        Assertions.assertTrue(entity.getDeleted());
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+        verify(licenseTypeRepo, times(1)).save(entity);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. deleteLicenseType should throw NotFoundException when type does not exist")
+    void deleteLicenseType_WhenTypeNotFound_ShouldThrowNotFoundException() {
+        String idStr = licenseTypeId.toString();
+        String expectedMessage = "License type " + idStr + " not found";
+
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("licensetype.not.found", idStr)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseTypeService.deleteLicenseType(idStr));
+
+        Assertions.assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+        verify(licenseTypeRepo, never()).save(any(LicenseType.class));
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. deleteLicenseType should throw IllegalArgumentException for an invalid UUID")
+    void deleteLicenseType_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> licenseTypeService.deleteLicenseType("invalid-uuid"));
+    }
 }

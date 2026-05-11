@@ -126,6 +126,15 @@ public class LicenseTypeService {
                 .build();
     }
 
+    public void deleteLicenseType(String id) {
+        UUID licenseTypeId = UUID.fromString(id);
+        LicenseType licenseType = licenseTypeRepo.findById(licenseTypeId)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("licensetype.not.found", id)));
+        licenseType.setDeleted(true);
+        licenseTypeRepo.save(licenseType);
+    }
+
     private LicenseType convertToLicenseType(LicenseTypeRequest request, UUID id){
         LicenseType licenseType = new LicenseType();
         if(id != null) licenseType.setId(id);
