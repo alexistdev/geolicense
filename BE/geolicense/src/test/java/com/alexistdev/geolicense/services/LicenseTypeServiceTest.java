@@ -14,7 +14,6 @@ import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
-import com.alexistdev.geolicense.services.LicenseTypeService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -111,9 +110,9 @@ public class LicenseTypeServiceTest {
         when(messagesUtils.getMessage("licensetype.already.exist", request.getName()))
                 .thenReturn(expectedMessage);
 
-        ExistingException exception = assertThrows(ExistingException.class, () -> {
-            licenseTypeService.addLicenseType(request);
-        });
+        ExistingException exception = assertThrows(ExistingException.class, () ->
+            licenseTypeService.addLicenseType(request)
+        );
 
         Assertions.assertEquals(expectedMessage, exception.getMessage());
 
@@ -199,11 +198,11 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByIsDeletedFalse(pageable)).thenReturn(expectedPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypes(pageable);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypes(pageable);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
+        Assertions.assertEquals(entity.getId().toString(), result.getContent().getFirst().getId());
         verify(licenseTypeRepo, times(1)).findByIsDeletedFalse(pageable);
     }
 
@@ -216,7 +215,7 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByIsDeletedFalse(pageable)).thenReturn(emptyPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypes(pageable);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypes(pageable);
 
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.isEmpty());
@@ -233,11 +232,11 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByFilter(keyword, pageable)).thenReturn(expectedPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getName(), result.getContent().get(0).getName());
+        Assertions.assertEquals(entity.getName(), result.getContent().getFirst().getName());
         verify(licenseTypeRepo, times(1)).findByFilter(keyword, pageable);
     }
 
@@ -251,7 +250,7 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByFilter(keyword, pageable)).thenReturn(emptyPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
 
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.isEmpty());

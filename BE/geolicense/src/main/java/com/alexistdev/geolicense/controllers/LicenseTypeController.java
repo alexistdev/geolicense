@@ -24,12 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.Errors;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Slf4j
 @RestController
@@ -39,7 +36,6 @@ public class LicenseTypeController {
     private final LicenseTypeService licenseTypeService;
     private final MessagesUtils messagesUtils;
     private final ModelMapper modelMapper;
-    private static final Logger logger = Logger.getLogger(LicenseTypeController.class.getName());
 
     public LicenseTypeController(LicenseTypeService licenseTypeService, MessagesUtils messagesUtils, ModelMapper modelMapper) {
         this.licenseTypeService = licenseTypeService;
@@ -57,7 +53,7 @@ public class LicenseTypeController {
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
-        Page<LicenseType> licenseTypesPage;
+        Page<LicenseTypeResponse> licenseTypesPage;
 
         try{
             licenseTypesPage = licenseTypeService.getAllLicenseTypes(pageable);
@@ -71,9 +67,7 @@ public class LicenseTypeController {
 
         handleNonEmptyPage(responseData, licenseTypesPage, page + 1);
 
-        Page<LicenseTypeResponse> licenseTypeResponses = licenseTypesPage
-                .map(licenseType -> modelMapper.map(licenseType, LicenseTypeResponse.class));
-        responseData.setPayload(licenseTypeResponses);
+        responseData.setPayload(licenseTypesPage);
         return ResponseEntity.ok(responseData);
     }
 
@@ -90,7 +84,7 @@ public class LicenseTypeController {
                 Sort.Direction.DESC : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
-        Page<LicenseType> licenseTypesPage;
+        Page<LicenseTypeResponse> licenseTypesPage;
 
         try{
             licenseTypesPage = licenseTypeService.getAllLicenseTypesByFilter(pageable,filter);
@@ -104,22 +98,14 @@ public class LicenseTypeController {
 
         handleNonEmptyPage(responseData, licenseTypesPage, page + 1);
 
-        Page<LicenseTypeResponse> licenseTypeResponses = licenseTypesPage
-                .map(licenseType -> modelMapper.map(licenseType, LicenseTypeResponse.class));
-        responseData.setPayload(licenseTypeResponses);
+        responseData.setPayload(licenseTypesPage);
         return ResponseEntity.ok(responseData);
     }
 
     @PostMapping
     public ResponseEntity<ResponseData<LicenseTypeResponse>> addLicenseType(
-            @Valid @RequestBody LicenseTypeRequest request, Errors errors) {
+            @Valid @RequestBody LicenseTypeRequest request) {
         ResponseData<LicenseTypeResponse> responseData = new ResponseData<>();
-        handleErrors(errors, responseData);
-
-        if (errors.hasErrors()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
-        }
-
         responseData.setPayload(licenseTypeService.addLicenseType(request));
         responseData.getMessages().add(messagesUtils.getMessage("license_type.add.success"));
         responseData.setStatus(true);
@@ -128,13 +114,8 @@ public class LicenseTypeController {
 
     @PatchMapping
     public ResponseEntity<ResponseData<LicenseTypeResponse>> updateLicenseType(
-            @Valid @RequestBody LicenseTypeRequest request, Errors errors) {
+            @Valid @RequestBody LicenseTypeRequest request) {
         ResponseData<LicenseTypeResponse> responseData = new ResponseData<>();
-        handleErrors(errors, responseData);
-
-        if (errors.hasErrors()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
-        }
 
         if (request.getId() == null) {
             responseData.getMessages().add(messagesUtils.getMessage("license_type.id.required"));
@@ -166,16 +147,5 @@ public class LicenseTypeController {
         }
     }
 
-    private void handleErrors(Errors errors, ResponseData<?> responseData) {
-        if (errors.hasErrors()) {
-            for (ObjectError error : errors.getAllErrors()) {
-                logger.info(error.getDefaultMessage());
-                responseData.getMessages().add(error.getDefaultMessage());
-            }
-            responseData.setStatus(false);
-        } else {
-            responseData.setStatus(true);
-        }
-    }
 
 }

@@ -38,12 +38,12 @@ public class LicenseTypeService {
         this.messagesUtils = messagesUtils;
     }
 
-    public Page<LicenseType> getAllLicenseTypes(Pageable pageable){
-        return licenseTypeRepo.findByIsDeletedFalse(pageable);
+    public Page<LicenseTypeResponse> getAllLicenseTypes(Pageable pageable){
+        return licenseTypeRepo.findByIsDeletedFalse(pageable).map(this::convertToLicenseTypeResponse);
     }
 
-    public Page<LicenseType> getAllLicenseTypesByFilter(Pageable pageable, String keyword){
-        return licenseTypeRepo.findByFilter(keyword, pageable);
+    public Page<LicenseTypeResponse> getAllLicenseTypesByFilter(Pageable pageable, String keyword){
+        return licenseTypeRepo.findByFilter(keyword, pageable).map(this::convertToLicenseTypeResponse);
     }
 
     public LicenseTypeResponse addLicenseType(LicenseTypeRequest request) {
@@ -148,6 +148,17 @@ public class LicenseTypeService {
         licenseType.setCreatedDate(new java.util.Date());
         licenseType.setModifiedDate(new java.util.Date());
         return licenseType;
+    }
+
+    private LicenseTypeResponse convertToLicenseTypeResponse(LicenseType licenseType){
+        return LicenseTypeResponse.builder()
+                .id(licenseType.getId().toString())
+                .name(licenseType.getName())
+                .description(licenseType.getDescription())
+                .durationDays(licenseType.getDuration_days())
+                .maxSeats(licenseType.getMax_seats())
+                .isTrial(licenseType.is_trial())
+                .build();
     }
 
 }

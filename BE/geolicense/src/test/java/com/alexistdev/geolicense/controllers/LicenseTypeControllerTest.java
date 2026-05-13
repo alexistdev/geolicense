@@ -19,7 +19,6 @@ import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
-import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.services.LicenseTypeService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
@@ -27,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -49,9 +47,6 @@ public class LicenseTypeControllerTest {
 
     @Mock
     private MessagesUtils messagesUtils;
-
-    @Mock
-    private ModelMapper modelMapper;
 
     @InjectMocks
     private LicenseTypeController licenseTypeController;
@@ -92,17 +87,6 @@ public class LicenseTypeControllerTest {
                 .build();
     }
 
-    private LicenseType buildLicenseTypeEntity() {
-        LicenseType licenseType = new LicenseType();
-        licenseType.setId(UUID.randomUUID());
-        licenseType.setName("Standard License");
-        licenseType.setDescription("Standard license type");
-        licenseType.setDuration_days(365);
-        licenseType.setMax_seats(5);
-        licenseType.set_trial(false);
-        return licenseType;
-    }
-
     private LicenseTypeResponse buildLicenseTypeResponse() {
         return LicenseTypeResponse.builder()
                 .id(UUID.randomUUID().toString())
@@ -120,11 +104,10 @@ public class LicenseTypeControllerTest {
     @Order(1)
     @DisplayName("1. GET /licenses_type with license types present returns 200 with status true")
     public void testGetAllLicenseTypes_withData_returns200WithStatusTrue() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type"))
@@ -140,7 +123,7 @@ public class LicenseTypeControllerTest {
     @Order(2)
     @DisplayName("2. GET /licenses_type with empty page returns 200 with status false")
     public void testGetAllLicenseTypes_emptyPage_returns200WithStatusFalse() throws Exception {
-        Page<LicenseType> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        Page<LicenseTypeResponse> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(emptyPage);
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
@@ -157,11 +140,10 @@ public class LicenseTypeControllerTest {
     @Order(3)
     @DisplayName("3. GET /licenses_type supports pagination and sort params")
     public void testGetAllLicenseTypes_withPaginationParams_passesPageableToService() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 5), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 5), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type")
@@ -179,11 +161,10 @@ public class LicenseTypeControllerTest {
     @Order(4)
     @DisplayName("4. GET /licenses_type with desc direction returns 200")
     public void testGetAllLicenseTypes_withDescDirection_returns200() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type")
@@ -199,13 +180,12 @@ public class LicenseTypeControllerTest {
     @Order(5)
     @DisplayName("5. GET /licenses_type falls back to id sort when invalid sortBy triggers RuntimeException")
     public void testGetAllLicenseTypes_invalidSortBy_fallsBackToIdSort() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class)))
                 .thenThrow(new RuntimeException("Invalid sort field"))
                 .thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type").param("sortBy", "invalidField"))
@@ -219,7 +199,7 @@ public class LicenseTypeControllerTest {
     @Order(6)
     @DisplayName("6. GET /licenses_type uses default params when none provided")
     public void testGetAllLicenseTypes_defaultParams_usesPageZeroSizeTen() throws Exception {
-        Page<LicenseType> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        Page<LicenseTypeResponse> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(emptyPage);
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
@@ -236,11 +216,10 @@ public class LicenseTypeControllerTest {
     @Order(7)
     @DisplayName("7. GET /licenses_type response includes page metadata")
     public void testGetAllLicenseTypes_responseIncludesPageMetadata() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type"))
@@ -257,11 +236,10 @@ public class LicenseTypeControllerTest {
     @Order(8)
     @DisplayName("8. GET /licenses_type/search with matching results returns 200 with status true")
     public void testSearchLicenseTypes_withMatches_returns200WithStatusTrue() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search").param("filter", "Standard"))
@@ -277,7 +255,7 @@ public class LicenseTypeControllerTest {
     @Order(9)
     @DisplayName("9. GET /licenses_type/search with no matches returns 200 with status false")
     public void testSearchLicenseTypes_withNoMatches_returns200WithStatusFalse() throws Exception {
-        Page<LicenseType> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        Page<LicenseTypeResponse> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("nonexistent"))).thenReturn(emptyPage);
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
@@ -294,11 +272,10 @@ public class LicenseTypeControllerTest {
     @Order(10)
     @DisplayName("10. GET /licenses_type/search with empty filter uses default empty string")
     public void testSearchLicenseTypes_withEmptyFilter_usesDefaultEmptyString() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq(""))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search"))
@@ -312,11 +289,10 @@ public class LicenseTypeControllerTest {
     @Order(11)
     @DisplayName("11. GET /licenses_type/search supports pagination and sort params")
     public void testSearchLicenseTypes_withPaginationParams_passesPageableToService() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(1, 5), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(1, 5), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search")
@@ -335,13 +311,12 @@ public class LicenseTypeControllerTest {
     @Order(12)
     @DisplayName("12. GET /licenses_type/search falls back to id sort when invalid sortBy triggers RuntimeException")
     public void testSearchLicenseTypes_invalidSortBy_fallsBackToIdSort() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard")))
                 .thenThrow(new RuntimeException("Invalid sort field"))
                 .thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search")
@@ -357,11 +332,10 @@ public class LicenseTypeControllerTest {
     @Order(13)
     @DisplayName("13. GET /licenses_type/search response includes page metadata")
     public void testSearchLicenseTypes_responseIncludesPageMetadata() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(buildLicenseTypeResponse());
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search").param("filter", "Standard"))
@@ -374,14 +348,12 @@ public class LicenseTypeControllerTest {
 
     @Test
     @Order(14)
-    @DisplayName("14. GET /licenses_type/search maps entities to LicenseTypeResponse via ModelMapper")
-    public void testSearchLicenseTypes_mapsEntitiesViaModelMapper() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+    @DisplayName("14. GET /licenses_type/search returns correctly mapped response fields")
+    public void testSearchLicenseTypes_returnsCorrectlyMappedResponseFields() throws Exception {
         LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(response);
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type/search").param("filter", "Standard"))
@@ -390,19 +362,17 @@ public class LicenseTypeControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].maxSeats").value(5))
                 .andExpect(jsonPath("$.payload.content[0].trial").value(false));
 
-        verify(modelMapper, times(1)).map(any(LicenseType.class), eq(LicenseTypeResponse.class));
+        verify(licenseTypeService, times(1)).getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"));
     }
 
     @Test
     @Order(15)
-    @DisplayName("15. GET /licenses_type maps entities to LicenseTypeResponse via ModelMapper")
-    public void testGetAllLicenseTypes_mapsEntitiesViaModelMapper() throws Exception {
-        LicenseType entity = buildLicenseTypeEntity();
-        Page<LicenseType> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 10), 1);
+    @DisplayName("15. GET /licenses_type returns correctly mapped response fields")
+    public void testGetAllLicenseTypes_returnsCorrectlyMappedResponseFields() throws Exception {
         LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
-        when(modelMapper.map(any(LicenseType.class), eq(LicenseTypeResponse.class))).thenReturn(response);
         when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
 
         mockMvc.perform(get("/api/v1/licenses_type"))
@@ -411,7 +381,7 @@ public class LicenseTypeControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].maxSeats").value(5))
                 .andExpect(jsonPath("$.payload.content[0].trial").value(false));
 
-        verify(modelMapper, times(1)).map(any(LicenseType.class), eq(LicenseTypeResponse.class));
+        verify(licenseTypeService, times(1)).getAllLicenseTypes(any(Pageable.class));
     }
 
     // ─── POST /api/v1/licenses_type ──────────────────────────────────────────
