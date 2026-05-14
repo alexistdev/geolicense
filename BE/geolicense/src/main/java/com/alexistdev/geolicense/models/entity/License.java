@@ -40,6 +40,12 @@ public class License extends BaseEntity<String> implements Serializable {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private LicenseType licenseType;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Product product;
+
     @NotBlank
     @Column(name = "license_key" , nullable = false, unique = true)
     private String licenseKey;

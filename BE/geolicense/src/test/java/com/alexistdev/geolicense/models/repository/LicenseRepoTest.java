@@ -10,6 +10,7 @@ package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,19 +40,22 @@ public class LicenseRepoTest {
 
     private User testUser;
     private LicenseType testLicenseType;
-    private License license1;
+    private Product testProduct;
 
     @BeforeEach
     void setUp() {
-        testUser = createUser("test@example.com");
+        testUser = createUser();
         entityManager.persist(testUser);
 
-        testLicenseType = createLicenseType("Premium");
+        testLicenseType = createLicenseType();
         entityManager.persist(testLicenseType);
 
-        license1 = createLicense(testUser, testLicenseType, "LK-001", false);
-        License license2 = createLicense(testUser, testLicenseType, "LK-002", false);
-        License license3 = createLicense(testUser, testLicenseType, "LK-003", true);
+        testProduct = createProduct();
+        entityManager.persist(testProduct);
+
+        License license1 = createLicense(testUser, testLicenseType, testProduct, "LK-001", false);
+        License license2 = createLicense(testUser, testLicenseType, testProduct, "LK-002", false);
+        License license3 = createLicense(testUser, testLicenseType, testProduct, "LK-003", true);
 
         entityManager.persist(license1);
         entityManager.persist(license2);
@@ -59,10 +63,10 @@ public class LicenseRepoTest {
         entityManager.flush();
     }
 
-    private User createUser(String email) {
+    private User createUser() {
         User user = new User();
         user.setFullName("Test User");
-        user.setEmail(email);
+        user.setEmail("test@example.com");
         user.setPassword("password");
         user.setCreatedBy(SYSTEM_USER);
         user.setModifiedBy(SYSTEM_USER);
@@ -72,9 +76,9 @@ public class LicenseRepoTest {
         return user;
     }
 
-    private LicenseType createLicenseType(String name) {
+    private LicenseType createLicenseType() {
         LicenseType lt = new LicenseType();
-        lt.setName(name);
+        lt.setName("Premium");
         lt.set_trial(false);
         lt.setDuration_days(30);
         lt.setMax_seats(100);
@@ -86,10 +90,24 @@ public class LicenseRepoTest {
         return lt;
     }
 
-    private License createLicense(User user, LicenseType licenseType, String key, boolean deleted) {
+    private Product createProduct() {
+        Product product = new Product();
+        product.setName("Test Product");
+        product.setVersion("1.0");
+        product.setSku("SKU-001");
+        product.setCreatedBy(SYSTEM_USER);
+        product.setModifiedBy(SYSTEM_USER);
+        product.setDeleted(false);
+        product.setCreatedDate(new Date());
+        product.setModifiedDate(new Date());
+        return product;
+    }
+
+    private License createLicense(User user, LicenseType licenseType, Product product, String key, boolean deleted) {
         License license = new License();
         license.setUser(user);
         license.setLicenseType(licenseType);
+        license.setProduct(product);
         license.setLicenseKey(key);
         license.setUsedSeats(0);
         license.setIssuedAt(LocalDateTime.now());
@@ -106,7 +124,7 @@ public class LicenseRepoTest {
     @Order(1)
     @DisplayName("1. Should save a new license successfully")
     void testSaveLicense() {
-        License newLicense = createLicense(testUser, testLicenseType, "LK-NEW", false);
+        License newLicense = createLicense(testUser, testLicenseType, testProduct, "LK-NEW", false);
 
         License saved = licenseRepo.save(newLicense);
 

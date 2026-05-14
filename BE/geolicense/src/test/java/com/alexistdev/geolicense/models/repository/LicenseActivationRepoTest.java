@@ -11,6 +11,7 @@ package com.alexistdev.geolicense.models.repository;
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseActivation;
 import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +50,11 @@ public class LicenseActivationRepoTest {
         LicenseType licenseType = createLicenseType();
         entityManager.persist(licenseType);
 
-        license = createLicense(user, licenseType, "LK-ACT-001");
-        otherLicense = createLicense(user, licenseType, "LK-ACT-002");
+        Product product = createProduct();
+        entityManager.persist(product);
+
+        license = createLicense(user, licenseType, product, "LK-ACT-001");
+        otherLicense = createLicense(user, licenseType, product, "LK-ACT-002");
         entityManager.persist(license);
         entityManager.persist(otherLicense);
 
@@ -86,10 +90,24 @@ public class LicenseActivationRepoTest {
         return lt;
     }
 
-    private License createLicense(User user, LicenseType licenseType, String key) {
+    private Product createProduct() {
+        Product product = new Product();
+        product.setName("Test Product");
+        product.setVersion("1.0");
+        product.setSku("SKU-ACT-001");
+        product.setCreatedBy(SYSTEM_USER);
+        product.setModifiedBy(SYSTEM_USER);
+        product.setDeleted(false);
+        product.setCreatedDate(new Date());
+        product.setModifiedDate(new Date());
+        return product;
+    }
+
+    private License createLicense(User user, LicenseType licenseType, Product product, String key) {
         License lic = new License();
         lic.setUser(user);
         lic.setLicenseType(licenseType);
+        lic.setProduct(product);
         lic.setLicenseKey(key);
         lic.setUsedSeats(0);
         lic.setIssuedAt(LocalDateTime.now());

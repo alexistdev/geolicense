@@ -122,10 +122,21 @@ public class AuditLogRepoTest {
         licenseType.setModifiedDate(new Date());
         entityManager.persist(licenseType);
 
+        Product product = new Product();
+        product.setName("Test Product");
+        product.setVersion("1.0");
+        product.setSku("SKU-AUDIT-001");
+        product.setCreatedBy(SYSTEM_USER);
+        product.setModifiedBy(SYSTEM_USER);
+        product.setCreatedDate(new Date());
+        product.setModifiedDate(new Date());
+        entityManager.persist(product);
+
         License license = new License();
         String licenseKey = "test-license-key";
         license.setUser(user);
         license.setLicenseType(licenseType);
+        license.setProduct(product);
         license.setLicenseKey(licenseKey);
         license.setUsedSeats(0);
         license.setIssuedAt(LocalDateTime.now());
