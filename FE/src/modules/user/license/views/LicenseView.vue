@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import licenseService from '@/modules/user/license/services/license.service.ts'
 import type { LicenseItem } from '@/modules/user/license/models/license.response.ts'
 
+const router = useRouter()
 const licenses = ref<LicenseItem[]>([])
 const loading = ref(false)
 const totalElements = ref(0)
@@ -157,6 +159,7 @@ onMounted(() => fetchLicenses(0))
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">License Key</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant text-right">Expiration</th>
+                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant text-center">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/[0.03]">
@@ -176,12 +179,13 @@ onMounted(() => fetchLicenses(0))
                   <td class="px-6 py-5"><div class="h-5 w-28 rounded bg-surface-variant"></div></td>
                   <td class="px-6 py-5"><div class="h-5 w-16 rounded-full bg-surface-variant"></div></td>
                   <td class="px-6 py-5 text-right"><div class="h-3 w-20 rounded bg-surface-variant ml-auto"></div></td>
+                  <td class="px-6 py-5"><div class="h-7 w-7 rounded bg-surface-variant mx-auto"></div></td>
                 </tr>
               </template>
 
               <!-- Empty state -->
               <tr v-else-if="licenses.length === 0">
-                <td colspan="5" class="px-6 py-16 text-center text-on-surface-variant text-sm">
+                <td colspan="6" class="px-6 py-16 text-center text-on-surface-variant text-sm">
                   <span class="material-symbols-outlined text-4xl block mb-2 opacity-40">key_off</span>
                   No licenses found.
                 </td>
@@ -233,6 +237,15 @@ onMounted(() => fetchLicenses(0))
                   >
                     {{ isExpired(item.expiresAt) ? 'EXPIRED' : formatDate(item.expiresAt) }}
                   </span>
+                </td>
+                <td class="px-6 py-5 text-center">
+                  <button
+                    class="text-on-surface-variant/50 hover:text-primary transition-colors"
+                    title="View details"
+                    @click="router.push({ name: 'user-license-detail', params: { id: item.id } })"
+                  >
+                    <span class="material-symbols-outlined text-[1.25rem]">open_in_new</span>
+                  </button>
                 </td>
               </tr>
             </tbody>

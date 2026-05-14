@@ -6,6 +6,7 @@ import LicenseView from '@/modules/user/license/views/LicenseView.vue'
 import MasterUserView from '@/modules/administrator/master/views/MasterUserView.vue'
 import MasterProductView from '@/modules/administrator/master/views/MasterProductView.vue'
 import MasterLicenseTypeView from '@/modules/administrator/master/views/MasterLicenseTypeView.vue'
+import LicenseDetailView from '@/modules/user/license/views/LicenseDetailView.vue'
 
 
 const router = createRouter({
@@ -44,6 +45,11 @@ const router = createRouter({
       path: '/user/license',
       name: 'user-license',
       component: LicenseView,
+    },
+    {
+      path: '/user/license/:id',
+      name: 'user-license-detail',
+      component: LicenseDetailView,
     },
     {
       path: '/login',
