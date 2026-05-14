@@ -42,9 +42,23 @@ public class LicenseController {
         this.messagesUtils = messagesUtils;
     }
 
+    @GetMapping("/{licenseId}/user/{userId}")
+    public ResponseEntity<ResponseData<LicenseResponse>> getDetailLicense(
+            @PathVariable String licenseId,
+            @PathVariable String userId
+    ) {
+        ResponseData<LicenseResponse> responseData = new ResponseData<>();
+        LicenseResponse license = licenseService.getLicenseByIdAndUserId(
+                UUID.fromString(licenseId), UUID.fromString(userId));
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("license.controller.found"));
+        responseData.setPayload(license);
+        return ResponseEntity.ok(responseData);
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<ResponseData<Page<LicenseResponse>>> getLicenseKey(
-            @PathVariable("userId") String userId,
+            @PathVariable String userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero int page,
             @RequestParam(defaultValue = "10") @PositiveOrZero int size,
             @RequestParam(defaultValue = "id") String sortBy,

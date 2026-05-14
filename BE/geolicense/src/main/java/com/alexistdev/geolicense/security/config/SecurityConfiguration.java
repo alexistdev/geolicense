@@ -56,7 +56,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE,
                                 "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
-                                "/user/licenses/user/*").hasAuthority(Role.USER.toString())
+                                "/api/v1/licenses/user/*").hasAuthority(Role.USER.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/licenses/*/user/*").hasAuthority(Role.USER.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
