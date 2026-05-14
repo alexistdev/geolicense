@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,5 +24,6 @@ public class LicenseTypeResponse {
     private String description;
     private int durationDays;
     private int maxSeats;
+    @JsonProperty("isTrial")
     private boolean isTrial;
 }
