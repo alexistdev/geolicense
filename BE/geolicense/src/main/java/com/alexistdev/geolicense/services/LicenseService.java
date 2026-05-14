@@ -18,6 +18,8 @@ import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.dto.response.UserResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
+import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
+import com.alexistdev.geolicense.mappers.ProductMapper;
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.entity.Product;
@@ -42,6 +44,8 @@ public class LicenseService {
     private final ProductService productService;
     private final LicenseTypeService licenseTypeService;
     private final LicenseTokenService licenseTokenService;
+    private final LicenseTypeMapper licenseTypeMapper;
+    private final ProductMapper productMapper;
     private final MessagesUtils messagesUtils;
     private static final Logger logger = Logger.getLogger(LicenseService.class.getName());
     private static final String SYSTEM_USER = "System";
@@ -51,13 +55,17 @@ public class LicenseService {
                           UserService userService,
                           ProductService productService,
                           LicenseTypeService licenseTypeService,
-                          LicenseTokenService licenseTokenService) {
+                          LicenseTokenService licenseTokenService,
+                          LicenseTypeMapper licenseTypeMapper,
+                          ProductMapper productMapper) {
         this.licenseRepo = licenseRepo;
         this.messagesUtils = messagesUtils;
         this.userService = userService;
         this.productService = productService;
         this.licenseTypeService = licenseTypeService;
         this.licenseTokenService = licenseTokenService;
+        this.licenseTypeMapper = licenseTypeMapper;
+        this.productMapper = productMapper;
     }
 
     public Page<LicenseResponse> getAllLicensesByUserId(Pageable pageable, UUID userId) {
@@ -88,7 +96,14 @@ public class LicenseService {
             logger.warning(msgSuspended);
             throw new NotFoundException(msgSuspended);
         }
+
         LicenseTypeResponse foundLicenseType = licenseTypeService.findLicenseTypeById(request.getLicenseTypeId());
+        if(foundLicenseType == null){
+            String msgLicenseTypeNotFound = messagesUtils.getMessage("licensetype.not.found", request.getLicenseTypeId());
+            logger.warning(msgLicenseTypeNotFound);
+            throw new NotFoundException(msgLicenseTypeNotFound);
+        }
+
         ProductResponse foundProduct = productService.findProductById(request.getProductId());
         if (!foundProduct.isActive()) {
             String msgProductInactive = messagesUtils.getMessage("product.not.active", foundProduct.getName());
@@ -122,9 +137,9 @@ public class LicenseService {
 
         return LicenseResponse.builder()
                 .id(savedLicense.getId().toString())
-                .userId(request.getUserId())
-                .licenseTypeId(request.getLicenseTypeId())
-                .productId(request.getProductId())
+                .userId(savedLicense.getUser().getId().toString())
+                .licenseType(foundLicenseType)
+                .product(foundProduct)
                 .licenseKey(savedLicense.getLicenseKey())
                 .issuedAt(savedLicense.getIssuedAt())
                 .expiresAt(savedLicense.getExpiresAt())
@@ -135,8 +150,8 @@ public class LicenseService {
         return LicenseResponse.builder()
                 .id(license.getId().toString())
                 .userId(license.getUser().getId().toString())
-                .licenseTypeId(license.getLicenseType().getId().toString())
-                .productId(license.getProduct().getId().toString())
+                .licenseType(licenseTypeMapper.toResponse(license.getLicenseType()))
+                .product(productMapper.toResponse(license.getProduct()))
                 .licenseKey(license.getLicenseKey())
                 .issuedAt(license.getIssuedAt())
                 .expiresAt(license.getExpiresAt())

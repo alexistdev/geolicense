@@ -19,10 +19,8 @@ import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
-import com.alexistdev.geolicense.services.LicenseService;
-import com.alexistdev.geolicense.services.LicenseTypeService;
-import com.alexistdev.geolicense.services.ProductService;
-import com.alexistdev.geolicense.services.UserService;
+import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
+import com.alexistdev.geolicense.mappers.ProductMapper;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +55,12 @@ public class LicenseServiceTest {
 
     @Mock
     private LicenseTypeService licenseTypeService;
+
+    @Mock
+    private LicenseTypeMapper licenseTypeMapper;
+
+    @Mock
+    private ProductMapper productMapper;
 
     @Mock
     private MessagesUtils messagesUtils;
@@ -125,8 +129,8 @@ public class LicenseServiceTest {
         assertNotNull(response);
         assertEquals(savedId.toString(), response.getId());
         assertEquals(userId, response.getUserId());
-        assertEquals(licenseTypeId, response.getLicenseTypeId());
-        assertEquals(productId, response.getProductId());
+        assertEquals(licenseType, response.getLicenseType());
+        assertEquals(activeProduct, response.getProduct());
         assertNotNull(response.getLicenseKey());
         assertNotNull(response.getIssuedAt());
         assertNotNull(response.getExpiresAt());
@@ -256,19 +260,27 @@ public class LicenseServiceTest {
         license.setIssuedAt(now);
         license.setExpiresAt(now.plusDays(365));
 
+        LicenseTypeResponse mappedLicenseType = new LicenseTypeResponse();
+        mappedLicenseType.setId(licenseTypeId);
+
+        ProductResponse mappedProduct = new ProductResponse();
+        mappedProduct.setId(productId);
+
         when(userService.findUserById(userId)).thenReturn(activeUser);
         when(licenseRepo.findByUserIdAndIsDeletedFalse(pageable, userUUID))
                 .thenReturn(new PageImpl<>(List.of(license)));
+        when(licenseTypeMapper.toResponse(lt)).thenReturn(mappedLicenseType);
+        when(productMapper.toResponse(product)).thenReturn(mappedProduct);
 
         Page<LicenseResponse> result = licenseService.getAllLicensesByUserId(pageable, userUUID);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        LicenseResponse response = result.getContent().get(0);
+        LicenseResponse response = result.getContent().getFirst();
         assertEquals(licenseId.toString(), response.getId());
         assertEquals(userId, response.getUserId());
-        assertEquals(licenseTypeId, response.getLicenseTypeId());
-        assertEquals(productId, response.getProductId());
+        assertEquals(licenseTypeId, response.getLicenseType().getId());
+        assertEquals(productId, response.getProduct().getId());
         assertEquals("LK-TEST-001", response.getLicenseKey());
         assertEquals(now, response.getIssuedAt());
         assertEquals(now.plusDays(365), response.getExpiresAt());

@@ -17,8 +17,10 @@ import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -44,6 +46,10 @@ public class LicenseTypeServiceTest {
 
     @Mock
     private MessagesUtils messagesUtils;
+
+    @SuppressWarnings("unused")
+    @Spy
+    private LicenseTypeMapper licenseTypeMapper = new LicenseTypeMapper();
 
     @InjectMocks
     private LicenseTypeService licenseTypeService;

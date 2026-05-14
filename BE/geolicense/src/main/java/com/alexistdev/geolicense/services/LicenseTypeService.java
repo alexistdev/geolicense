@@ -12,6 +12,7 @@ import com.alexistdev.geolicense.dto.request.LicenseTypeRequest;
 import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
+import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -30,20 +31,22 @@ public class LicenseTypeService {
 
     private final LicenseTypeRepo licenseTypeRepo;
     private final MessagesUtils messagesUtils;
+    private final LicenseTypeMapper licenseTypeMapper;
     private static final Logger logger = Logger.getLogger(LicenseTypeService.class.getName());
     private static final String SYSTEM_USER = "System";
 
-    public LicenseTypeService(LicenseTypeRepo licenseTypeRepo, MessagesUtils messagesUtils) {
+    public LicenseTypeService(LicenseTypeRepo licenseTypeRepo, MessagesUtils messagesUtils, LicenseTypeMapper licenseTypeMapper) {
         this.licenseTypeRepo = licenseTypeRepo;
         this.messagesUtils = messagesUtils;
+        this.licenseTypeMapper = licenseTypeMapper;
     }
 
     public Page<LicenseTypeResponse> getAllLicenseTypes(Pageable pageable){
-        return licenseTypeRepo.findByIsDeletedFalse(pageable).map(this::convertToLicenseTypeResponse);
+        return licenseTypeRepo.findByIsDeletedFalse(pageable).map(licenseTypeMapper::toResponse);
     }
 
     public Page<LicenseTypeResponse> getAllLicenseTypesByFilter(Pageable pageable, String keyword){
-        return licenseTypeRepo.findByFilter(keyword, pageable).map(this::convertToLicenseTypeResponse);
+        return licenseTypeRepo.findByFilter(keyword, pageable).map(licenseTypeMapper::toResponse);
     }
 
     public LicenseTypeResponse addLicenseType(LicenseTypeRequest request) {
@@ -66,14 +69,7 @@ public class LicenseTypeService {
         }
         LicenseType savedLicenseType = licenseTypeRepo.save(licenseTypeToSave);
 
-        return LicenseTypeResponse.builder()
-                .id(savedLicenseType.getId().toString())
-                .name(savedLicenseType.getName())
-                .description(savedLicenseType.getDescription())
-                .durationDays(savedLicenseType.getDuration_days())
-                .maxSeats(savedLicenseType.getMax_seats())
-                .isTrial(savedLicenseType.is_trial())
-                .build();
+        return licenseTypeMapper.toResponse(savedLicenseType);
     }
 
     public LicenseTypeResponse updateLicenseType(LicenseTypeRequest request, String id) {
@@ -101,14 +97,7 @@ public class LicenseTypeService {
 
         LicenseType licenseTypeToUpdate = convertToLicenseType(request, licenseTypeId);
         LicenseType updatedLicenseType = licenseTypeRepo.save(licenseTypeToUpdate);
-        return LicenseTypeResponse.builder()
-                .id(updatedLicenseType.getId().toString())
-                .name(updatedLicenseType.getName())
-                .description(updatedLicenseType.getDescription())
-                .durationDays(updatedLicenseType.getDuration_days())
-                .maxSeats(updatedLicenseType.getMax_seats())
-                .isTrial(updatedLicenseType.is_trial())
-                .build();
+        return licenseTypeMapper.toResponse(updatedLicenseType);
     }
 
     public LicenseTypeResponse findLicenseTypeById(String id){
@@ -116,14 +105,7 @@ public class LicenseTypeService {
         LicenseType licenseType = licenseTypeRepo.findById(licenseTypeId)
                 .orElseThrow(() -> new NotFoundException(
                 messagesUtils.getMessage("licensetype.not.found", id)));
-        return LicenseTypeResponse.builder()
-                .id(licenseType.getId().toString())
-                .name(licenseType.getName())
-                .description(licenseType.getDescription())
-                .durationDays(licenseType.getDuration_days())
-                .maxSeats(licenseType.getMax_seats())
-                .isTrial(licenseType.is_trial())
-                .build();
+        return licenseTypeMapper.toResponse(licenseType);
     }
 
     public void deleteLicenseType(String id) {
@@ -148,17 +130,6 @@ public class LicenseTypeService {
         licenseType.setCreatedDate(new java.util.Date());
         licenseType.setModifiedDate(new java.util.Date());
         return licenseType;
-    }
-
-    private LicenseTypeResponse convertToLicenseTypeResponse(LicenseType licenseType){
-        return LicenseTypeResponse.builder()
-                .id(licenseType.getId().toString())
-                .name(licenseType.getName())
-                .description(licenseType.getDescription())
-                .durationDays(licenseType.getDuration_days())
-                .maxSeats(licenseType.getMax_seats())
-                .isTrial(licenseType.is_trial())
-                .build();
     }
 
 }
