@@ -5,6 +5,8 @@ import RegisterView from '../views/RegisterView.vue'
 import LicenseView from '@/modules/user/license/views/LicenseView.vue'
 import MasterUserView from '@/modules/administrator/master/views/MasterUserView.vue'
 import MasterProductView from '@/modules/administrator/master/views/MasterProductView.vue'
+import MasterLicenseTypeView from '@/modules/administrator/master/views/MasterLicenseTypeView.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,12 +31,17 @@ const router = createRouter({
       component: MasterProductView,
     },
     {
+      path: '/admin/license_types',
+      name: 'admin-license-type',
+      component: MasterLicenseTypeView,
+    },
+    {
       path: '/user/dashboard',
       name: 'user-dashboard',
       component: DashboardView,
     },
     {
-      path: '/users/license',
+      path: '/user/license',
       name: 'user-license',
       component: LicenseView,
     },

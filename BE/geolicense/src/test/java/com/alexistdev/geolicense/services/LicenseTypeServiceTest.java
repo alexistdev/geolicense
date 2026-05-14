@@ -14,12 +14,13 @@ import com.alexistdev.geolicense.exceptions.ExistingException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
-import com.alexistdev.geolicense.services.LicenseTypeService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -45,6 +46,10 @@ public class LicenseTypeServiceTest {
 
     @Mock
     private MessagesUtils messagesUtils;
+
+    @SuppressWarnings("unused")
+    @Spy
+    private LicenseTypeMapper licenseTypeMapper = new LicenseTypeMapper();
 
     @InjectMocks
     private LicenseTypeService licenseTypeService;
@@ -94,7 +99,7 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(request.getDescription(), response.getDescription());
         Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
         Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
-        Assertions.assertEquals(request.isTrial(), response.isTrial());
+        Assertions.assertEquals(request.getIsTrial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(licenseTypeRepo, times(1)).save(any(LicenseType.class));
@@ -111,9 +116,9 @@ public class LicenseTypeServiceTest {
         when(messagesUtils.getMessage("licensetype.already.exist", request.getName()))
                 .thenReturn(expectedMessage);
 
-        ExistingException exception = assertThrows(ExistingException.class, () -> {
-            licenseTypeService.addLicenseType(request);
-        });
+        ExistingException exception = assertThrows(ExistingException.class, () ->
+            licenseTypeService.addLicenseType(request)
+        );
 
         Assertions.assertEquals(expectedMessage, exception.getMessage());
 
@@ -140,7 +145,7 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(request.getDescription(), response.getDescription());
         Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
         Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
-        Assertions.assertEquals(request.isTrial(), response.isTrial());
+        Assertions.assertEquals(request.getIsTrial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(licenseTypeRepo, times(1)).save(any(LicenseType.class));
@@ -199,11 +204,11 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByIsDeletedFalse(pageable)).thenReturn(expectedPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypes(pageable);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypes(pageable);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
+        Assertions.assertEquals(entity.getId().toString(), result.getContent().getFirst().getId());
         verify(licenseTypeRepo, times(1)).findByIsDeletedFalse(pageable);
     }
 
@@ -216,7 +221,7 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByIsDeletedFalse(pageable)).thenReturn(emptyPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypes(pageable);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypes(pageable);
 
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.isEmpty());
@@ -233,11 +238,11 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByFilter(keyword, pageable)).thenReturn(expectedPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getName(), result.getContent().get(0).getName());
+        Assertions.assertEquals(entity.getName(), result.getContent().getFirst().getName());
         verify(licenseTypeRepo, times(1)).findByFilter(keyword, pageable);
     }
 
@@ -251,7 +256,7 @@ public class LicenseTypeServiceTest {
 
         when(licenseTypeRepo.findByFilter(keyword, pageable)).thenReturn(emptyPage);
 
-        Page<LicenseType> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
+        Page<LicenseTypeResponse> result = licenseTypeService.getAllLicenseTypesByFilter(pageable, keyword);
 
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.isEmpty());
@@ -274,7 +279,7 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(request.getDescription(), response.getDescription());
         Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
         Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
-        Assertions.assertEquals(request.isTrial(), response.isTrial());
+        Assertions.assertEquals(request.getIsTrial(), response.isTrial());
         verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(licenseTypeRepo, times(1)).save(any(LicenseType.class));
@@ -369,5 +374,44 @@ public class LicenseTypeServiceTest {
     void updateLicenseType_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> licenseTypeService.updateLicenseType(request, "invalid-uuid"));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. deleteLicenseType should soft-delete and save when type exists")
+    void deleteLicenseType_WhenTypeExists_ShouldSetDeletedAndSave() {
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.of(entity));
+
+        licenseTypeService.deleteLicenseType(licenseTypeId.toString());
+
+        Assertions.assertTrue(entity.getDeleted());
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+        verify(licenseTypeRepo, times(1)).save(entity);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. deleteLicenseType should throw NotFoundException when type does not exist")
+    void deleteLicenseType_WhenTypeNotFound_ShouldThrowNotFoundException() {
+        String idStr = licenseTypeId.toString();
+        String expectedMessage = "License type " + idStr + " not found";
+
+        when(licenseTypeRepo.findById(licenseTypeId)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("licensetype.not.found", idStr)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseTypeService.deleteLicenseType(idStr));
+
+        Assertions.assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
+        verify(licenseTypeRepo, never()).save(any(LicenseType.class));
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. deleteLicenseType should throw IllegalArgumentException for an invalid UUID")
+    void deleteLicenseType_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> licenseTypeService.deleteLicenseType("invalid-uuid"));
     }
 }

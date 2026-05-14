@@ -28,7 +28,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
@@ -45,6 +45,18 @@ public class SecurityConfiguration {
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/products/search").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/licenses_type/search").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/user/licenses/user/*").hasAuthority(Role.USER.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

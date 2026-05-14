@@ -10,6 +10,7 @@ package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ public class LicenseRepoTest {
 
     private User testUser;
     private LicenseType testLicenseType;
-    private License license1;
+    private Product testProduct;
 
     @BeforeEach
     void setUp() {
@@ -49,15 +50,16 @@ public class LicenseRepoTest {
         testLicenseType = createLicenseType("Premium");
         entityManager.persist(testLicenseType);
 
-        license1 = createLicense(testUser, testLicenseType, "LK-001", false);
-        License license2 = createLicense(testUser, testLicenseType, "LK-002", false);
-        License license3 = createLicense(testUser, testLicenseType, "LK-003", true);
+        testProduct = createProduct("Test Product", "SKU-001");
+        entityManager.persist(testProduct);
 
-        entityManager.persist(license1);
-        entityManager.persist(license2);
-        entityManager.persist(license3);
+        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-001", false));
+        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-002", false));
+        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-003", true));
         entityManager.flush();
     }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
 
     private User createUser(String email) {
         User user = new User();
@@ -86,10 +88,24 @@ public class LicenseRepoTest {
         return lt;
     }
 
-    private License createLicense(User user, LicenseType licenseType, String key, boolean deleted) {
+    private Product createProduct(String name, String sku) {
+        Product product = new Product();
+        product.setName(name);
+        product.setVersion("1.0");
+        product.setSku(sku);
+        product.setCreatedBy(SYSTEM_USER);
+        product.setModifiedBy(SYSTEM_USER);
+        product.setDeleted(false);
+        product.setCreatedDate(new Date());
+        product.setModifiedDate(new Date());
+        return product;
+    }
+
+    private License createLicense(User user, LicenseType licenseType, Product product, String key, boolean deleted) {
         License license = new License();
         license.setUser(user);
         license.setLicenseType(licenseType);
+        license.setProduct(product);
         license.setLicenseKey(key);
         license.setUsedSeats(0);
         license.setIssuedAt(LocalDateTime.now());
@@ -102,11 +118,13 @@ public class LicenseRepoTest {
         return license;
     }
 
+    // ── save ───────────────────────────────────────────────────────────────────
+
     @Test
     @Order(1)
     @DisplayName("1. Should save a new license successfully")
     void testSaveLicense() {
-        License newLicense = createLicense(testUser, testLicenseType, "LK-NEW", false);
+        License newLicense = createLicense(testUser, testLicenseType, testProduct, "LK-NEW", false);
 
         License saved = licenseRepo.save(newLicense);
 
@@ -120,9 +138,11 @@ public class LicenseRepoTest {
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
 
+    // ── findByIsDeletedFalse ───────────────────────────────────────────────────
+
     @Test
     @Order(2)
-    @DisplayName("2. Should find only non-deleted licenses")
+    @DisplayName("2. Should return only non-deleted licenses")
     void testFindByIsDeletedFalse() {
         Pageable pageable = PageRequest.of(0, 10);
 
@@ -135,9 +155,11 @@ public class LicenseRepoTest {
         Assertions.assertFalse(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-003")));
     }
 
+    // ── findByNameIncludingDeleted ─────────────────────────────────────────────
+
     @Test
     @Order(3)
-    @DisplayName("3. Should find an active license by key including deleted")
+    @DisplayName("3. Should find an active license by key (including-deleted query)")
     void testFindByNameIncludingDeleted_active() {
         Optional<License> result = licenseRepo.findByNameIncludingDeleted("LK-001");
 
@@ -148,7 +170,7 @@ public class LicenseRepoTest {
 
     @Test
     @Order(4)
-    @DisplayName("4. Should find a soft-deleted license by key")
+    @DisplayName("4. Should find a soft-deleted license by key (including-deleted query)")
     void testFindByNameIncludingDeleted_deleted() {
         Optional<License> result = licenseRepo.findByNameIncludingDeleted("LK-003");
 
@@ -159,10 +181,125 @@ public class LicenseRepoTest {
 
     @Test
     @Order(5)
-    @DisplayName("5. Should return empty for non-existent license key")
+    @DisplayName("5. Should return empty for a non-existent license key (including-deleted query)")
     void testFindByNameIncludingDeleted_notFound() {
         Optional<License> result = licenseRepo.findByNameIncludingDeleted("LK-NONEXISTENT");
 
         Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Should find an active license by license key")
+    void testFindByLicenseKeyAndIsDeletedFalse_active() {
+        Optional<License> result = licenseRepo.findByLicenseKeyAndIsDeletedFalse("LK-001");
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("LK-001", result.get().getLicenseKey());
+        Assertions.assertFalse(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Should return empty for a soft-deleted license key")
+    void testFindByLicenseKeyAndIsDeletedFalse_deleted() {
+        Optional<License> result = licenseRepo.findByLicenseKeyAndIsDeletedFalse("LK-003");
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Should return empty for a non-existent license key")
+    void testFindByLicenseKeyAndIsDeletedFalse_notFound() {
+        Optional<License> result = licenseRepo.findByLicenseKeyAndIsDeletedFalse("LK-NONEXISTENT");
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Should return active licenses for a valid user with all parents active")
+    void testFindByUserIdAndIsDeletedFalse_returnsActiveLicenses() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, testUser.getId());
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(2, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-001")));
+        Assertions.assertTrue(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-002")));
+        Assertions.assertFalse(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-003")));
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Should return empty when the license itself is soft-deleted")
+    void testFindByUserIdAndIsDeletedFalse_licenseDeleted() {
+        User user = createUser("only-deleted-license@example.com");
+        entityManager.persist(user);
+        entityManager.persist(createLicense(user, testLicenseType, testProduct, "LK-SELF-DEL", true));
+        entityManager.flush();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, user.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("11. Should return empty when the user is soft-deleted")
+    void testFindByUserIdAndIsDeletedFalse_userDeleted() {
+        User deletedUser = createUser("deleted-user@example.com");
+        deletedUser.setDeleted(true);
+        entityManager.persist(deletedUser);
+        entityManager.persist(createLicense(deletedUser, testLicenseType, testProduct, "LK-USER-DEL", false));
+        entityManager.flush();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, deletedUser.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("12. Should return empty when the license type is soft-deleted")
+    void testFindByUserIdAndIsDeletedFalse_licenseTypeDeleted() {
+        User user = createUser("user-lt-del@example.com");
+        entityManager.persist(user);
+
+        LicenseType deletedType = createLicenseType("Deleted Type");
+        deletedType.setDeleted(true);
+        entityManager.persist(deletedType);
+
+        entityManager.persist(createLicense(user, deletedType, testProduct, "LK-LT-DEL", false));
+        entityManager.flush();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, user.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Should return empty when the product is soft-deleted")
+    void testFindByUserIdAndIsDeletedFalse_productDeleted() {
+        User user = createUser("user-prod-del@example.com");
+        entityManager.persist(user);
+
+        Product deletedProduct = createProduct("Deleted Product", "SKU-DEL");
+        deletedProduct.setDeleted(true);
+        entityManager.persist(deletedProduct);
+
+        entityManager.persist(createLicense(user, testLicenseType, deletedProduct, "LK-PROD-DEL", false));
+        entityManager.flush();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, user.getId());
+
+        Assertions.assertTrue(result.isEmpty());
     }
 }

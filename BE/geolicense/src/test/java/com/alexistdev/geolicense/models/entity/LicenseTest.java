@@ -17,6 +17,7 @@ public class LicenseTest {
     private License license;
     private User user;
     private LicenseType licenseType;
+    private Product product;
     private String licenseKey;
     private int usedSeats;
     private LocalDateTime issuedAt;
@@ -49,10 +50,17 @@ public class LicenseTest {
         licenseType.setDuration_days(30);
         licenseType.setMax_seats(5);
 
+        product = new Product();
+        product.setId(UUID.randomUUID());
+        product.setName("Test Product");
+        product.setVersion("1.0");
+        product.setSku("SKU-001");
+
         license = new License();
         license.setId(id);
         license.setUser(user);
         license.setLicenseType(licenseType);
+        license.setProduct(product);
         license.setLicenseKey(licenseKey);
         license.setUsedSeats(usedSeats);
         license.setIssuedAt(issuedAt);
@@ -72,10 +80,12 @@ public class LicenseTest {
         Assertions.assertEquals(id, license.getId());
         Assertions.assertEquals(user, license.getUser());
         Assertions.assertEquals(licenseType, license.getLicenseType());
+        Assertions.assertEquals(product, license.getProduct());
         Assertions.assertEquals(licenseKey, license.getLicenseKey());
         Assertions.assertEquals(usedSeats, license.getUsedSeats());
         Assertions.assertEquals(issuedAt, license.getIssuedAt());
         Assertions.assertEquals(expiresAt, license.getExpiresAt());
+        Assertions.assertEquals(LicenseStatus.ACTIVE, license.getStatus());
         Assertions.assertEquals("System", license.getCreatedBy());
         Assertions.assertEquals("System", license.getModifiedBy());
         Assertions.assertFalse(license.getDeleted());
@@ -99,22 +109,32 @@ public class LicenseTest {
         newLicenseType.setId(UUID.randomUUID());
         newLicenseType.setName("Premium License");
 
+        Product newProduct = new Product();
+        newProduct.setId(UUID.randomUUID());
+        newProduct.setName("New Product");
+        newProduct.setVersion("2.0");
+        newProduct.setSku("SKU-002");
+
         License newLicense = new License();
         newLicense.setId(newId);
         newLicense.setUser(newUser);
         newLicense.setLicenseType(newLicenseType);
+        newLicense.setProduct(newProduct);
         newLicense.setLicenseKey(newLicenseKey);
         newLicense.setUsedSeats(newUsedSeats);
         newLicense.setIssuedAt(newIssuedAt);
         newLicense.setExpiresAt(newExpiresAt);
+        newLicense.setStatus(LicenseStatus.REVOKED);
 
         Assertions.assertEquals(newId, newLicense.getId());
         Assertions.assertEquals(newUser, newLicense.getUser());
         Assertions.assertEquals(newLicenseType, newLicense.getLicenseType());
+        Assertions.assertEquals(newProduct, newLicense.getProduct());
         Assertions.assertEquals(newLicenseKey, newLicense.getLicenseKey());
         Assertions.assertEquals(newUsedSeats, newLicense.getUsedSeats());
         Assertions.assertEquals(newIssuedAt, newLicense.getIssuedAt());
         Assertions.assertEquals(newExpiresAt, newLicense.getExpiresAt());
+        Assertions.assertEquals(LicenseStatus.REVOKED, newLicense.getStatus());
     }
 
     @Test
@@ -188,7 +208,21 @@ public class LicenseTest {
 
     @Test
     @Order(9)
-    @DisplayName("9. Test issuedAt not null validation")
+    @DisplayName("9. Test product not null validation")
+    void testProductNotNullValidation() {
+        license.setProduct(null);
+
+        var violations = validator.validate(license);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when product is null");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("product")),
+                "Violation should be on the product field"
+        );
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Test issuedAt not null validation")
     void testIssuedAtNotNullValidation() {
         license.setIssuedAt(null);
 
@@ -201,8 +235,8 @@ public class LicenseTest {
     }
 
     @Test
-    @Order(10)
-    @DisplayName("10. Test expiresAt not null validation")
+    @Order(11)
+    @DisplayName("11. Test expiresAt not null validation")
     void testExpiresAtNotNullValidation() {
         license.setExpiresAt(null);
 
@@ -215,8 +249,27 @@ public class LicenseTest {
     }
 
     @Test
-    @Order(11)
-    @DisplayName("11. Test equals and hashCode based on id")
+    @Order(12)
+    @DisplayName("12. Test status defaults to ACTIVE")
+    void testStatusDefaultsToActive() {
+        License newLicense = new License();
+        Assertions.assertEquals(LicenseStatus.ACTIVE, newLicense.getStatus(),
+                "status should default to ACTIVE");
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Test all LicenseStatus values can be set")
+    void testAllLicenseStatusValues() {
+        for (LicenseStatus status : LicenseStatus.values()) {
+            license.setStatus(status);
+            Assertions.assertEquals(status, license.getStatus());
+        }
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Test equals and hashCode based on id")
     void testEqualsAndHashCode() {
         License license2 = new License();
         license2.setId(id);
@@ -229,8 +282,8 @@ public class LicenseTest {
     }
 
     @Test
-    @Order(12)
-    @DisplayName("12. Test two Licenses with different ids are not equal")
+    @Order(15)
+    @DisplayName("15. Test two Licenses with different ids are not equal")
     void testNotEqualWithDifferentIds() {
         License license2 = new License();
         license2.setId(UUID.randomUUID());
@@ -241,8 +294,8 @@ public class LicenseTest {
     }
 
     @Test
-    @Order(13)
-    @DisplayName("13. Test isDeleted defaults to false")
+    @Order(16)
+    @DisplayName("16. Test isDeleted defaults to false")
     void testIsDeletedDefaultsFalse() {
         License newLicense = new License();
         Assertions.assertFalse(newLicense.getDeleted(), "isDeleted should default to false");
