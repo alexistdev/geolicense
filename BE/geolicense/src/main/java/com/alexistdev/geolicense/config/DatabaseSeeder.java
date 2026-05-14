@@ -134,7 +134,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedMenuUser(){
         log.info("START: Seeding Menu User");
         MenuRequest menuUser1 = createMenu("Dashboard", "/user/dashboard", 1, null,2,"us1","bx bx-home-alt");
-        MenuRequest menuUser2 = createMenu("License", "#", 2, null,2,"us2","bx bx-collection");
+        MenuRequest menuUser2 = createMenu("License", "/user/license", 2, null,2,"us2","bx bx-collection");
         MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
         MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
         menuService.addMenu(menuUser1);

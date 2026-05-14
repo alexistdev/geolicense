@@ -41,7 +41,7 @@ const router = createRouter({
       component: DashboardView,
     },
     {
-      path: '/users/license',
+      path: '/user/license',
       name: 'user-license',
       component: LicenseView,
     },
