@@ -411,7 +411,7 @@ async function submitEditLicenseType() {
                   MAX SEATS
                 </th>
                 <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  TYPE
+                  TYPE LICENSE
                 </th>
                 <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest text-right">
                   ACTIONS
