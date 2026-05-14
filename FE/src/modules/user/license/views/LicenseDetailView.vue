@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import licenseService from '@/modules/user/license/services/license.service.ts'
 import type { LicenseItem } from '@/modules/user/license/models/license.response.ts'
+import { useLicenseStore } from '@/modules/user/license/stores/license.store.ts'
 
 const route = useRoute()
 const router = useRouter()
+const licenseStore = useLicenseStore()
 const license = ref<LicenseItem | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -21,12 +23,20 @@ const licenseId = computed(() => route.params['id'] as string)
 
 async function fetchDetail() {
   if (!userId.value || !licenseId.value) return
+
+  const cached = licenseStore.findById(licenseId.value)
+  if (cached) {
+    license.value = cached
+    return
+  }
+
   loading.value = true
   error.value = null
   try {
     const res = await licenseService.getDetail(userId.value, licenseId.value)
     if (res.status) {
       license.value = res.payload
+      licenseStore.setItem(res.payload)
     } else {
       error.value = res.messages[0] ?? 'Failed to load license.'
     }

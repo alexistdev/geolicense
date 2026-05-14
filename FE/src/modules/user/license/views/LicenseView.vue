@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import licenseService from '@/modules/user/license/services/license.service.ts'
 import type { LicenseItem } from '@/modules/user/license/models/license.response.ts'
+import { useLicenseStore } from '@/modules/user/license/stores/license.store.ts'
 
 const router = useRouter()
+const licenseStore = useLicenseStore()
 const licenses = ref<LicenseItem[]>([])
 const loading = ref(false)
 const totalElements = ref(0)
@@ -59,6 +61,7 @@ async function fetchLicenses(page = 0) {
       totalElements.value = res.payload.totalElements
       totalPages.value = res.payload.totalPages
       currentPage.value = res.payload.number
+      licenseStore.setItems(res.payload.content)
     }
   } catch (e: unknown) {
     const err = e as { response?: { data?: { messages?: string[] } } }
