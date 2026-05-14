@@ -12,17 +12,22 @@ import com.alexistdev.geolicense.dto.ResponseData;
 import com.alexistdev.geolicense.dto.request.ActivateLicenseRequest;
 import com.alexistdev.geolicense.dto.request.VerifyLicenseRequest;
 import com.alexistdev.geolicense.dto.response.ActiveLicenseResponse;
+import com.alexistdev.geolicense.dto.response.LicenseResponse;
 import com.alexistdev.geolicense.dto.response.VerifyLicenseResponse;
 import com.alexistdev.geolicense.services.LicenseService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -35,6 +40,39 @@ public class LicenseController {
     public LicenseController(LicenseService licenseService, MessagesUtils messagesUtils) {
         this.licenseService = licenseService;
         this.messagesUtils = messagesUtils;
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ResponseData<Page<LicenseResponse>>> getLicenseKey(
+            @PathVariable("userId") String userId,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "10") @PositiveOrZero int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        ResponseData<Page<LicenseResponse>> responseData = new ResponseData<>();
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        Page<LicenseResponse> licensePage;
+
+        UUID userUUID = UUID.fromString(userId);
+
+        try{
+            licensePage = licenseService.getAllLicensesByUserId(pageable, userUUID);
+        } catch (RuntimeException e){
+            Pageable fallbackPageable = PageRequest.of(page, size, Sort.by(sortDirection, "id"));
+            licensePage = licenseService.getAllLicensesByUserId(fallbackPageable, userUUID);
+        }
+
+        responseData.getMessages().add(messagesUtils.getMessage("license.controller.nolicense"));
+        responseData.setStatus(false);
+
+        handleNonEmptyPage(responseData, licensePage, page + 1);
+
+        responseData.setPayload(licensePage);
+        return ResponseEntity.ok(responseData);
     }
 
     @PostMapping("/activate")
@@ -67,5 +105,15 @@ public class LicenseController {
             responseData.getMessages().add(messagesUtils.getMessage("license.verification.failed"));
         }
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+    private <T> void handleNonEmptyPage(ResponseData<Page<T>> responseData, Page<?> pageResult, int pageNumber) {
+        if (!pageResult.isEmpty()) {
+            responseData.setStatus(true);
+            if (!responseData.getMessages().isEmpty()) {
+                responseData.getMessages().removeFirst();
+            }
+            responseData.getMessages().add("Retrieved page " + pageNumber + " of products");
+        }
     }
 }

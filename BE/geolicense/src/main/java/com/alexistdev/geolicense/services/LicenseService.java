@@ -20,6 +20,7 @@ import com.alexistdev.geolicense.dto.response.UserResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -101,11 +102,15 @@ public class LicenseService {
         LicenseType licenseType = new LicenseType();
         licenseType.setId(UUID.fromString(foundLicenseType.getId()));
 
+        Product product = new Product();
+        product.setId(UUID.fromString(foundProduct.getId()));
+
         LocalDateTime now = LocalDateTime.now();
 
         License license = new License();
         license.setUser(user);
         license.setLicenseType(licenseType);
+        license.setProduct(product);
         license.setLicenseKey(UUID.randomUUID().toString());
         license.setUsedSeats(0);
         license.setIssuedAt(now);
