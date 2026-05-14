@@ -9,6 +9,8 @@ const route = useRoute()
 
 const menus = ref<Menu[]>([])
 const expandedMenus = ref<Record<string, boolean>>({})
+const fullName = ref('')
+const role = ref('')
 
 onMounted(() => {
   const fetchedMenus = AuthService.getMenus()
@@ -20,6 +22,8 @@ onMounted(() => {
       }
     })
   }
+  fullName.value = AuthService.getFullName()
+  role.value = AuthService.getRole()
 })
 
 const mapIcon = (bxIcon: string) => {
@@ -179,9 +183,9 @@ const logout = () => {
 
           <div class="flex items-center gap-3 pl-6 border-l border-white/10">
             <div class="text-right">
-              <p class="text-sm font-bold text-white">Admin Unit 01</p>
+              <p class="text-sm font-bold text-white">{{ fullName || 'User' }}</p>
               <p class="text-[0.6875rem] text-primary uppercase tracking-widest">
-                Super Administrator
+                {{ role }}
               </p>
             </div>
             <img

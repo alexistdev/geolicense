@@ -14,6 +14,7 @@ export interface LoginResponse {
   id: string;
   sessionToken: string;
   role: 'USER' | 'ADMIN';
+  fullName?: string;
   menus?: Menu[];
   homeURL?: string;
 }
