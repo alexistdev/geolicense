@@ -24,6 +24,8 @@ import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -55,6 +57,19 @@ public class LicenseService {
         this.productService = productService;
         this.licenseTypeService = licenseTypeService;
         this.licenseTokenService = licenseTokenService;
+    }
+
+    public Page<LicenseResponse> getAllLicensesByUserId(Pageable pageable, UUID userId) {
+        UserResponse foundUser = userService.findUserById(userId.toString());
+
+        if (foundUser == null) {
+            String msgUserNotFound = messagesUtils.getMessage("userservice.user.notfound", userId.toString());
+            logger.warning(msgUserNotFound);
+            throw new NotFoundException(msgUserNotFound);
+        }
+
+        return licenseRepo.findByUserIdAndIsDeletedFalse(pageable, userId)
+                .map(this::convertToLicenseResponse);
     }
 
     public ActiveLicenseResponse activateLicense(ActivateLicenseRequest request) {
@@ -108,6 +123,18 @@ public class LicenseService {
                 .licenseKey(savedLicense.getLicenseKey())
                 .issuedAt(savedLicense.getIssuedAt())
                 .expiresAt(savedLicense.getExpiresAt())
+                .build();
+    }
+
+    private LicenseResponse convertToLicenseResponse(License license){
+        return LicenseResponse.builder()
+                .id(license.getId().toString())
+                .userId(license.getUser().getId().toString())
+                .licenseTypeId(license.getLicenseType().getId().toString())
+                .productId(license.getProduct().getId().toString())
+                .licenseKey(license.getLicenseKey())
+                .issuedAt(license.getIssuedAt())
+                .expiresAt(license.getExpiresAt())
                 .build();
     }
 }

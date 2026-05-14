@@ -15,6 +15,9 @@ import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.dto.response.UserResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.License;
+import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
+import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import com.alexistdev.geolicense.services.LicenseService;
 import com.alexistdev.geolicense.services.LicenseTypeService;
@@ -26,7 +29,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -213,5 +222,95 @@ public class LicenseServiceTest {
         assertThrows(NotFoundException.class, () -> licenseService.addLicense(request));
 
         verify(licenseRepo, never()).save(any());
+    }
+
+    // ── getAllLicensesByUserId ─────────────────────────────────────────────────
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Test getAllLicensesByUserId - success")
+    void getAllLicensesByUserId_WhenUserExistsAndHasLicenses_ShouldReturnMappedPage() {
+        UUID userUUID = UUID.fromString(userId);
+        UUID ltUUID = UUID.fromString(licenseTypeId);
+        UUID prodUUID = UUID.fromString(productId);
+        UUID licenseId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now();
+        Pageable pageable = PageRequest.of(0, 10);
+
+        User user = new User();
+        user.setId(userUUID);
+
+        LicenseType lt = new LicenseType();
+        lt.setId(ltUUID);
+
+        Product product = new Product();
+        product.setId(prodUUID);
+
+        License license = new License();
+        license.setId(licenseId);
+        license.setUser(user);
+        license.setLicenseType(lt);
+        license.setProduct(product);
+        license.setLicenseKey("LK-TEST-001");
+        license.setUsedSeats(0);
+        license.setIssuedAt(now);
+        license.setExpiresAt(now.plusDays(365));
+
+        when(userService.findUserById(userId)).thenReturn(activeUser);
+        when(licenseRepo.findByUserIdAndIsDeletedFalse(pageable, userUUID))
+                .thenReturn(new PageImpl<>(List.of(license)));
+
+        Page<LicenseResponse> result = licenseService.getAllLicensesByUserId(pageable, userUUID);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        LicenseResponse response = result.getContent().get(0);
+        assertEquals(licenseId.toString(), response.getId());
+        assertEquals(userId, response.getUserId());
+        assertEquals(licenseTypeId, response.getLicenseTypeId());
+        assertEquals(productId, response.getProductId());
+        assertEquals("LK-TEST-001", response.getLicenseKey());
+        assertEquals(now, response.getIssuedAt());
+        assertEquals(now.plusDays(365), response.getExpiresAt());
+
+        verify(userService, times(1)).findUserById(userId);
+        verify(licenseRepo, times(1)).findByUserIdAndIsDeletedFalse(pageable, userUUID);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Test getAllLicensesByUserId - user not found")
+    void getAllLicensesByUserId_WhenUserNotFound_ShouldThrowNotFoundException() {
+        UUID userUUID = UUID.fromString(userId);
+        Pageable pageable = PageRequest.of(0, 10);
+        String expectedMessage = "User with id " + userId + " not found";
+
+        when(userService.findUserById(userId)).thenReturn(null);
+        when(messagesUtils.getMessage("userservice.user.notfound", userId)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseService.getAllLicensesByUserId(pageable, userUUID));
+
+        assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseRepo, never()).findByUserIdAndIsDeletedFalse(any(), any());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Test getAllLicensesByUserId - user has no licenses")
+    void getAllLicensesByUserId_WhenUserHasNoLicenses_ShouldReturnEmptyPage() {
+        UUID userUUID = UUID.fromString(userId);
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(userService.findUserById(userId)).thenReturn(activeUser);
+        when(licenseRepo.findByUserIdAndIsDeletedFalse(pageable, userUUID))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<LicenseResponse> result = licenseService.getAllLicensesByUserId(pageable, userUUID);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(userService, times(1)).findUserById(userId);
+        verify(licenseRepo, times(1)).findByUserIdAndIsDeletedFalse(pageable, userUUID);
     }
 }
