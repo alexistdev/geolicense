@@ -34,6 +34,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -310,6 +311,7 @@ public class LicenseServiceTest {
     @Test
     @Order(9)
     @DisplayName("9. Test getAllLicensesByUserId - user has no licenses")
+
     void getAllLicensesByUserId_WhenUserHasNoLicenses_ShouldReturnEmptyPage() {
         UUID userUUID = UUID.fromString(userId);
         Pageable pageable = PageRequest.of(0, 10);
@@ -324,5 +326,81 @@ public class LicenseServiceTest {
         assertTrue(result.isEmpty());
         verify(userService, times(1)).findUserById(userId);
         verify(licenseRepo, times(1)).findByUserIdAndIsDeletedFalse(pageable, userUUID);
+    }
+
+    // ── getLicenseByIdAndUserId ───────────────────────────────────────────────
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Test getLicenseByIdAndUserId - success")
+    void getLicenseByIdAndUserId_WhenFound_ShouldReturnResponse() {
+        UUID licenseUUID = UUID.randomUUID();
+        UUID userUUID = UUID.fromString(userId);
+        LocalDateTime now = LocalDateTime.now();
+
+        User user = new User();
+        user.setId(userUUID);
+
+        LicenseType lt = new LicenseType();
+        lt.setId(UUID.fromString(licenseTypeId));
+
+        Product product = new Product();
+        product.setId(UUID.fromString(productId));
+
+        License license = new License();
+        license.setId(licenseUUID);
+        license.setUser(user);
+        license.setLicenseType(lt);
+        license.setProduct(product);
+        license.setLicenseKey("LK-DETAIL-001");
+        license.setUsedSeats(0);
+        license.setIssuedAt(now);
+        license.setExpiresAt(now.plusDays(365));
+
+        LicenseTypeResponse mappedLicenseType = new LicenseTypeResponse();
+        mappedLicenseType.setId(licenseTypeId);
+
+        ProductResponse mappedProduct = new ProductResponse();
+        mappedProduct.setId(productId);
+
+        when(licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(licenseUUID, userUUID))
+                .thenReturn(Optional.of(license));
+        when(licenseTypeMapper.toResponse(lt)).thenReturn(mappedLicenseType);
+        when(productMapper.toResponse(product)).thenReturn(mappedProduct);
+
+        LicenseResponse response = licenseService.getLicenseByIdAndUserId(licenseUUID, userUUID);
+
+        assertNotNull(response);
+        assertEquals(licenseUUID.toString(), response.getId());
+        assertEquals(userId, response.getUserId());
+        assertEquals(licenseTypeId, response.getLicenseType().getId());
+        assertEquals(productId, response.getProduct().getId());
+        assertEquals("LK-DETAIL-001", response.getLicenseKey());
+        assertEquals(now, response.getIssuedAt());
+        assertEquals(now.plusDays(365), response.getExpiresAt());
+
+        verify(licenseRepo).findByLicenseIdAndUserIdAndIsDeletedFalse(licenseUUID, userUUID);
+        verifyNoInteractions(messagesUtils);
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("11. Test getLicenseByIdAndUserId - license not found")
+    void getLicenseByIdAndUserId_WhenNotFound_ShouldThrowNotFoundException() {
+        UUID licenseUUID = UUID.randomUUID();
+        UUID userUUID = UUID.fromString(userId);
+        String expectedMessage = "License " + licenseUUID + " not found";
+
+        when(licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(licenseUUID, userUUID))
+                .thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("license.not.found", licenseUUID.toString()))
+                .thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseService.getLicenseByIdAndUserId(licenseUUID, userUUID));
+
+        assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseRepo).findByLicenseIdAndUserIdAndIsDeletedFalse(licenseUUID, userUUID);
+        verify(licenseRepo, never()).findByUserIdAndIsDeletedFalse(any(), any());
     }
 }
