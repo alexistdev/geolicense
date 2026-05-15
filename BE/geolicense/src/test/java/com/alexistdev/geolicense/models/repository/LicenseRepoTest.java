@@ -8,10 +8,7 @@
 
 package com.alexistdev.geolicense.models.repository;
 
-import com.alexistdev.geolicense.models.entity.License;
-import com.alexistdev.geolicense.models.entity.LicenseType;
-import com.alexistdev.geolicense.models.entity.Product;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -42,8 +39,9 @@ public class LicenseRepoTest {
     private User testUser;
     private LicenseType testLicenseType;
     private Product testProduct;
+    private LicensePlan testLicensePlan;
+    private Orders testOrders;
     private License testLicense1;
-    private License testLicense2;
     private License testLicenseDeleted;
 
     @BeforeEach
@@ -51,19 +49,27 @@ public class LicenseRepoTest {
         testUser = createUser("test@example.com");
         entityManager.persist(testUser);
 
-        testLicenseType = createLicenseType("Premium");
+        testLicenseType = createLicenseType();
         entityManager.persist(testLicenseType);
 
         testProduct = createProduct("Test Product", "SKU-001");
         entityManager.persist(testProduct);
 
-        testLicense1 = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-001", false));
-        testLicense2 = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-002", false));
-        testLicenseDeleted = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-003", true));
+        testLicensePlan = createLicensePlan("Premium Plan", testLicenseType, testProduct, false);
+        entityManager.persist(testLicensePlan);
+
+        testOrders = createOrders(testUser, "ORD-001");
+        entityManager.persist(testOrders);
+
+        OrderItem oi1 = persistOrderItem(testOrders, testLicensePlan);
+        OrderItem oi2 = persistOrderItem(testOrders, testLicensePlan);
+        OrderItem oi3 = persistOrderItem(testOrders, testLicensePlan);
+
+        testLicense1 = entityManager.persist(createLicense(testUser, testLicensePlan, testProduct, oi1, "LK-001", false));
+        entityManager.persist(createLicense(testUser, testLicensePlan, testProduct, oi2, "LK-002", false));
+        testLicenseDeleted = entityManager.persist(createLicense(testUser, testLicensePlan, testProduct, oi3, "LK-003", true));
         entityManager.flush();
     }
-
-    // ── Helpers ────────────────────────────────────────────────────────────────
 
     private User createUser(String email) {
         User user = new User();
@@ -78,9 +84,9 @@ public class LicenseRepoTest {
         return user;
     }
 
-    private LicenseType createLicenseType(String name) {
+    private LicenseType createLicenseType() {
         LicenseType lt = new LicenseType();
-        lt.setName(name);
+        lt.setName("Premium");
         lt.set_trial(false);
         lt.setDuration_days(30);
         lt.setMax_seats(100);
@@ -105,12 +111,60 @@ public class LicenseRepoTest {
         return product;
     }
 
-    private License createLicense(User user, LicenseType licenseType, Product product, String key, boolean deleted) {
+    private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted) {
+        LicensePlan lp = new LicensePlan();
+        lp.setName(name);
+        lp.setBillingCycle("MONTHLY");
+        lp.setDuration_days(30);
+        lp.setMax_seats(100);
+        lp.setPrice(9.99);
+        lp.setCurrency("USD");
+        lp.setProduct(product);
+        lp.setLicenseType(licenseType);
+        lp.setCreatedBy(SYSTEM_USER);
+        lp.setModifiedBy(SYSTEM_USER);
+        lp.setDeleted(deleted);
+        lp.setCreatedDate(new Date());
+        lp.setModifiedDate(new Date());
+        return lp;
+    }
+
+    private Orders createOrders(User user, String orderNumber) {
+        Orders orders = new Orders();
+        orders.setUser(user);
+        orders.setOrderNumber(orderNumber);
+        orders.setCurrency("USD");
+        orders.setStatus(0);
+        orders.setCreatedBy(SYSTEM_USER);
+        orders.setModifiedBy(SYSTEM_USER);
+        orders.setCreatedDate(new Date());
+        orders.setModifiedDate(new Date());
+        return orders;
+    }
+
+    private OrderItem persistOrderItem(Orders orders, LicensePlan licensePlan) {
+        OrderItem oi = new OrderItem();
+        oi.setOrders(orders);
+        oi.setLicensePlan(licensePlan);
+        oi.setQuantity(1);
+        oi.setUnitPrice(9.99);
+        oi.setTotalPrice(9.99);
+        oi.setCreatedBy(SYSTEM_USER);
+        oi.setModifiedBy(SYSTEM_USER);
+        oi.setDeleted(false);
+        oi.setCreatedDate(new Date());
+        oi.setModifiedDate(new Date());
+        return entityManager.persist(oi);
+    }
+
+    private License createLicense(User user, LicensePlan licensePlan, Product product, OrderItem orderItem, String key, boolean deleted) {
         License license = new License();
         license.setUser(user);
-        license.setLicenseType(licenseType);
+        license.setLicensePlan(licensePlan);
         license.setProduct(product);
+        license.setOrderItem(orderItem);
         license.setLicenseKey(key);
+        license.setMaxSeats(100);
         license.setUsedSeats(0);
         license.setIssuedAt(LocalDateTime.now());
         license.setExpiresAt(LocalDateTime.now().plusDays(30));
@@ -122,13 +176,12 @@ public class LicenseRepoTest {
         return license;
     }
 
-    // ── save ───────────────────────────────────────────────────────────────────
-
     @Test
     @Order(1)
     @DisplayName("1. Should save a new license successfully")
     void testSaveLicense() {
-        License newLicense = createLicense(testUser, testLicenseType, testProduct, "LK-NEW", false);
+        OrderItem oi = persistOrderItem(testOrders, testLicensePlan);
+        License newLicense = createLicense(testUser, testLicensePlan, testProduct, oi, "LK-NEW", false);
 
         License saved = licenseRepo.save(newLicense);
 
@@ -141,8 +194,6 @@ public class LicenseRepoTest {
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
-
-    // ── findByIsDeletedFalse ───────────────────────────────────────────────────
 
     @Test
     @Order(2)
@@ -158,8 +209,6 @@ public class LicenseRepoTest {
         Assertions.assertTrue(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-002")));
         Assertions.assertFalse(result.getContent().stream().anyMatch(l -> l.getLicenseKey().equals("LK-003")));
     }
-
-    // ── findByNameIncludingDeleted ─────────────────────────────────────────────
 
     @Test
     @Order(3)
@@ -242,7 +291,10 @@ public class LicenseRepoTest {
     void testFindByUserIdAndIsDeletedFalse_licenseDeleted() {
         User user = createUser("only-deleted-license@example.com");
         entityManager.persist(user);
-        entityManager.persist(createLicense(user, testLicenseType, testProduct, "LK-SELF-DEL", true));
+        Orders orders = createOrders(user, "ORD-DEL-001");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, testLicensePlan);
+        entityManager.persist(createLicense(user, testLicensePlan, testProduct, oi, "LK-SELF-DEL", true));
         entityManager.flush();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -258,7 +310,10 @@ public class LicenseRepoTest {
         User deletedUser = createUser("deleted-user@example.com");
         deletedUser.setDeleted(true);
         entityManager.persist(deletedUser);
-        entityManager.persist(createLicense(deletedUser, testLicenseType, testProduct, "LK-USER-DEL", false));
+        Orders orders = createOrders(deletedUser, "ORD-UDEL-001");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, testLicensePlan);
+        entityManager.persist(createLicense(deletedUser, testLicensePlan, testProduct, oi, "LK-USER-DEL", false));
         entityManager.flush();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -269,16 +324,18 @@ public class LicenseRepoTest {
 
     @Test
     @Order(12)
-    @DisplayName("12. Should return empty when the license type is soft-deleted")
-    void testFindByUserIdAndIsDeletedFalse_licenseTypeDeleted() {
-        User user = createUser("user-lt-del@example.com");
+    @DisplayName("12. Should return empty when the license plan is soft-deleted")
+    void testFindByUserIdAndIsDeletedFalse_licensePlanDeleted() {
+        User user = createUser("user-lp-del@example.com");
         entityManager.persist(user);
 
-        LicenseType deletedType = createLicenseType("Deleted Type");
-        deletedType.setDeleted(true);
-        entityManager.persist(deletedType);
+        LicensePlan deletedPlan = createLicensePlan("Deleted Plan", testLicenseType, testProduct, true);
+        entityManager.persist(deletedPlan);
 
-        entityManager.persist(createLicense(user, deletedType, testProduct, "LK-LT-DEL", false));
+        Orders orders = createOrders(user, "ORD-LPDEL-001");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, deletedPlan);
+        entityManager.persist(createLicense(user, deletedPlan, testProduct, oi, "LK-LP-DEL", false));
         entityManager.flush();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -298,7 +355,10 @@ public class LicenseRepoTest {
         deletedProduct.setDeleted(true);
         entityManager.persist(deletedProduct);
 
-        entityManager.persist(createLicense(user, testLicenseType, deletedProduct, "LK-PROD-DEL", false));
+        Orders orders = createOrders(user, "ORD-PDEL-001");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, testLicensePlan);
+        entityManager.persist(createLicense(user, testLicensePlan, deletedProduct, oi, "LK-PROD-DEL", false));
         entityManager.flush();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -306,8 +366,6 @@ public class LicenseRepoTest {
 
         Assertions.assertTrue(result.isEmpty());
     }
-
-    // ── findByLicenseIdAndUserIdAndIsDeletedFalse ──────────────────────────────
 
     @Test
     @Order(14)
@@ -362,7 +420,10 @@ public class LicenseRepoTest {
         User deletedUser = createUser("del-user-by-id@example.com");
         deletedUser.setDeleted(true);
         entityManager.persist(deletedUser);
-        License license = entityManager.persist(createLicense(deletedUser, testLicenseType, testProduct, "LK-BY-ID-UDEL", false));
+        Orders orders = createOrders(deletedUser, "ORD-UDEL-ID");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, testLicensePlan);
+        License license = entityManager.persist(createLicense(deletedUser, testLicensePlan, testProduct, oi, "LK-BY-ID-UDEL", false));
         entityManager.flush();
 
         Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
@@ -373,14 +434,16 @@ public class LicenseRepoTest {
 
     @Test
     @Order(19)
-    @DisplayName("19. Should return empty when the license type is soft-deleted")
-    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_licenseTypeDeleted() {
-        User user = createUser("user-lt-del-by-id@example.com");
+    @DisplayName("19. Should return empty when the license plan is soft-deleted")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_licensePlanDeleted() {
+        User user = createUser("user-lp-del-by-id@example.com");
         entityManager.persist(user);
-        LicenseType deletedType = createLicenseType("Deleted Type By Id");
-        deletedType.setDeleted(true);
-        entityManager.persist(deletedType);
-        License license = entityManager.persist(createLicense(user, deletedType, testProduct, "LK-BY-ID-LTDEL", false));
+        LicensePlan deletedPlan = createLicensePlan("Deleted Plan By Id", testLicenseType, testProduct, true);
+        entityManager.persist(deletedPlan);
+        Orders orders = createOrders(user, "ORD-LPDEL-ID");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, deletedPlan);
+        License license = entityManager.persist(createLicense(user, deletedPlan, testProduct, oi, "LK-BY-ID-LPDEL", false));
         entityManager.flush();
 
         Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
@@ -398,7 +461,10 @@ public class LicenseRepoTest {
         Product deletedProduct = createProduct("Deleted Product By Id", "SKU-DEL-ID");
         deletedProduct.setDeleted(true);
         entityManager.persist(deletedProduct);
-        License license = entityManager.persist(createLicense(user, testLicenseType, deletedProduct, "LK-BY-ID-PDEL", false));
+        Orders orders = createOrders(user, "ORD-PDEL-ID");
+        entityManager.persist(orders);
+        OrderItem oi = persistOrderItem(orders, testLicensePlan);
+        License license = entityManager.persist(createLicense(user, testLicensePlan, deletedProduct, oi, "LK-BY-ID-PDEL", false));
         entityManager.flush();
 
         Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
