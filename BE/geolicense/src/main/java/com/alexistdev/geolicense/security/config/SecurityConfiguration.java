@@ -46,9 +46,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/products/search").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
+                                "/api/v1/licenses_type").hasAnyAuthority(Role.ADMIN.toString(), Role.USER.toString())
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/licenses_type/search").hasAuthority(Role.ADMIN.toString())
+                                "/api/v1/licenses_type/search").hasAnyAuthority(Role.ADMIN.toString(),Role.USER.toString())
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/licenses_type").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.PATCH,

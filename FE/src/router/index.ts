@@ -7,6 +7,7 @@ import MasterUserView from '@/modules/administrator/master/views/MasterUserView.
 import MasterProductView from '@/modules/administrator/master/views/MasterProductView.vue'
 import MasterLicenseTypeView from '@/modules/administrator/master/views/MasterLicenseTypeView.vue'
 import LicenseDetailView from '@/modules/user/license/views/LicenseDetailView.vue'
+import MarketplaceView from '@/modules/user/marketplace/views/MarketplaceView.vue'
 
 
 const router = createRouter({
@@ -40,6 +41,11 @@ const router = createRouter({
       path: '/user/dashboard',
       name: 'user-dashboard',
       component: DashboardView,
+    },
+    {
+      path: '/user/marketplace',
+      name: 'user-marketplace',
+      component: MarketplaceView,
     },
     {
       path: '/user/license',

@@ -1,6 +1,6 @@
 import type { BaseResponse } from '@/modules/shared/models/base.response.ts'
 import apiClient from '@/modules/shared/api/api.client.ts'
-import type { PageResponse } from '@/modules/administrator/master/models/page.response.ts'
+import type { PageResponse } from '@/modules/shared/models/page.response.ts'
 import type { ProductPayload, ProductResponse } from '@/modules/administrator/master/models/product.response.ts'
 import type { ProductRequest } from '@/modules/administrator/master/models/product.request.ts'
 
