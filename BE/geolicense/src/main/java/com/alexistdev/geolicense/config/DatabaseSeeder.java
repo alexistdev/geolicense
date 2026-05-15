@@ -68,7 +68,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
           Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5","ad6"),
-          Role.USER, List.of("us1", "us2","us3","uc1")
+          Role.USER, List.of("us1", "us2","us3","us4","us5","uc1")
         );
 
         List<RoleMenu> roleMenus = roleMenuCode.entrySet().stream().flatMap(
@@ -137,10 +137,12 @@ public class DatabaseSeeder implements CommandLineRunner {
         MenuRequest menuUser2 = createMenu("License", "/user/license", 2, null,2,"us2","bx bx-collection");
         MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
         MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
+        MenuRequest menuUser5 = createMenu("Marketplace", "/user/marketplace", 2, null,2,"us5","bx bx-store");
         menuService.addMenu(menuUser1);
         menuService.addMenu(menuUser2);
         menuService.addMenu(menuUser3);
         menuService.addMenu(menuUser4);
+        menuService.addMenu(menuUser5);
         log.info("END: Seeding Menu User");
     }
 
