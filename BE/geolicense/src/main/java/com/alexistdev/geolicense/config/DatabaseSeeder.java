@@ -199,10 +199,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedProducts(){
         log.info("START: Seeding products");
         ProductRequest request = new ProductRequest();
-        request.setName("Hosting Premium");
+        request.setName("GeoBill License Premium");
         request.setSku("SKU-1");
         request.setVersion("1.0");
-        request.setDescription("Premium Hosting Description");
+        request.setDescription("Geobill is Sofware Billing System, Running on Springboot and Angular");
         request.setIsActive(true);
         productService.addProduct(request);
         log.info("END: Seeding products");

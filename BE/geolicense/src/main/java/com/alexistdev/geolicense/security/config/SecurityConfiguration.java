@@ -40,7 +40,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/products").hasAuthority(Role.ADMIN.toString())
+                                "/api/v1/products").hasAnyAuthority(Role.ADMIN.toString(),Role.USER.toString())
                         .requestMatchers(HttpMethod.DELETE,
                                 "/api/v1/products").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.GET,
