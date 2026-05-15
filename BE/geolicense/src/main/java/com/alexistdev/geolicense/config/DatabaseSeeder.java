@@ -214,7 +214,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         if(foundUser == null) return;
         LicenseType foundLicenseType = licenseTypeRepo.findByNameIncludingDeleted("Premium License").orElse(null);
         if(foundLicenseType == null) return;
-        Product foundProduct = productRepo.findByNameIncludingDeleted("Hosting Premium").orElse(null);
+        Product foundProduct = productRepo.findByNameIncludingDeleted("GeoBill License Premium").orElse(null);
         if(foundProduct == null) return;
         LicenseRequest request = new LicenseRequest();
         request.setUserId(foundUser.getId().toString());
