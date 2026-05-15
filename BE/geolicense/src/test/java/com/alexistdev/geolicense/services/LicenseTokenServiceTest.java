@@ -19,7 +19,6 @@ import com.alexistdev.geolicense.exceptions.SeatLimitReachedException;
 import com.alexistdev.geolicense.models.entity.License;
 import com.alexistdev.geolicense.models.entity.LicenseActivation;
 import com.alexistdev.geolicense.models.entity.LicenseStatus;
-import com.alexistdev.geolicense.models.entity.LicenseType;
 import com.alexistdev.geolicense.models.repository.LicenseActivationRepo;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import io.jsonwebtoken.Jwts;
@@ -67,14 +66,9 @@ public class LicenseTokenServiceTest {
         ReflectionTestUtils.setField(licenseTokenService, "secretKey", SECRET_KEY);
         ReflectionTestUtils.setField(licenseTokenService, "tokenExpiration", TOKEN_EXPIRATION);
 
-        LicenseType licenseType = new LicenseType();
-        licenseType.setName("Premium");
-        licenseType.setMax_seats(5);
-        licenseType.setDuration_days(365);
-
         license = new License();
         license.setLicenseKey("TEST-LICENSE-KEY");
-        license.setLicenseType(licenseType);
+        license.setMaxSeats(5);
         license.setStatus(LicenseStatus.ACTIVE);
         license.setUsedSeats(1);
         license.setIssuedAt(LocalDateTime.now().minusDays(1));
