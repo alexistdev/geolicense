@@ -36,19 +36,29 @@ public class License extends BaseEntity<String> implements Serializable {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "license_type_id", referencedColumnName = "id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private LicenseType licenseType;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Product product;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "license_plan_id", referencedColumnName = "id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private LicensePlan licensePlan;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id", referencedColumnName = "id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private OrderItem orderItem;
+
     @NotBlank
     @Column(name = "license_key" , nullable = false, unique = true)
     private String licenseKey;
+
+    @NotNull
+    @Column(name="max_seats", nullable = false)
+    private int maxSeats;
 
     @NotNull
     @Column(name="used_seats", nullable = false)
