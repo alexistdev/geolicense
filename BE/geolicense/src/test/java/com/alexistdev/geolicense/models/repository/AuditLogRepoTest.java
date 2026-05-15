@@ -132,12 +132,52 @@ public class AuditLogRepoTest {
         product.setModifiedDate(new Date());
         entityManager.persist(product);
 
+        LicensePlan licensePlan = new LicensePlan();
+        licensePlan.setName("Basic Plan");
+        licensePlan.setBillingCycle("MONTHLY");
+        licensePlan.setDuration_days(30);
+        licensePlan.setMax_seats(5);
+        licensePlan.setPrice(9.99);
+        licensePlan.setCurrency("USD");
+        licensePlan.setProduct(product);
+        licensePlan.setLicenseType(licenseType);
+        licensePlan.setCreatedBy(SYSTEM_USER);
+        licensePlan.setModifiedBy(SYSTEM_USER);
+        licensePlan.setCreatedDate(new Date());
+        licensePlan.setModifiedDate(new Date());
+        entityManager.persist(licensePlan);
+
+        Orders orders = new Orders();
+        orders.setUser(user);
+        orders.setOrderNumber("ORD-001");
+        orders.setCurrency("USD");
+        orders.setStatus(0);
+        orders.setCreatedBy(SYSTEM_USER);
+        orders.setModifiedBy(SYSTEM_USER);
+        orders.setCreatedDate(new Date());
+        orders.setModifiedDate(new Date());
+        entityManager.persist(orders);
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setOrders(orders);
+        orderItem.setLicensePlan(licensePlan);
+        orderItem.setQuantity(1);
+        orderItem.setUnitPrice(9.99);
+        orderItem.setTotalPrice(9.99);
+        orderItem.setCreatedBy(SYSTEM_USER);
+        orderItem.setModifiedBy(SYSTEM_USER);
+        orderItem.setCreatedDate(new Date());
+        orderItem.setModifiedDate(new Date());
+        entityManager.persist(orderItem);
+
         License license = new License();
         String licenseKey = "test-license-key";
         license.setUser(user);
-        license.setLicenseType(licenseType);
         license.setProduct(product);
+        license.setLicensePlan(licensePlan);
+        license.setOrderItem(orderItem);
         license.setLicenseKey(licenseKey);
+        license.setMaxSeats(5);
         license.setUsedSeats(0);
         license.setIssuedAt(LocalDateTime.now());
         license.setExpiresAt(LocalDateTime.now().plusDays(30));
