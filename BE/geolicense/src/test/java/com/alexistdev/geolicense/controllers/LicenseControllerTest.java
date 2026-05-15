@@ -9,9 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.alexistdev.geolicense.dto.request.ActivateLicenseRequest;
 import com.alexistdev.geolicense.dto.request.VerifyLicenseRequest;
 import com.alexistdev.geolicense.dto.response.ActiveLicenseResponse;
+import com.alexistdev.geolicense.dto.response.LicensePlanResponse;
 import com.alexistdev.geolicense.dto.response.LicenseResponse;
-import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
-import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.dto.response.VerifyLicenseResponse;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
@@ -122,8 +121,6 @@ public class LicenseControllerTest {
                 .andExpect(jsonPath("$.payload").doesNotExist());
     }
 
-    // ── getDetailLicense ──────────────────────────────────────────────────────
-
     @Test
     @Order(5)
     @DisplayName("5. Testing getDetailLicense success")
@@ -132,19 +129,14 @@ public class LicenseControllerTest {
         UUID userId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
 
-        LicenseTypeResponse licenseType = new LicenseTypeResponse();
-        licenseType.setId(UUID.randomUUID().toString());
-        licenseType.setName("Premium");
-
-        ProductResponse product = new ProductResponse();
-        product.setId(UUID.randomUUID().toString());
-        product.setName("GeoApp");
+        LicensePlanResponse licensePlan = new LicensePlanResponse();
+        licensePlan.setId(UUID.randomUUID().toString());
+        licensePlan.setName("Premium Plan");
 
         LicenseResponse license = LicenseResponse.builder()
                 .id(licenseId.toString())
                 .userId(userId.toString())
-                .licenseType(licenseType)
-                .product(product)
+                .licensePlan(licensePlan)
                 .licenseKey("LK-DETAIL-001")
                 .issuedAt(now)
                 .expiresAt(now.plusDays(365))
@@ -177,8 +169,6 @@ public class LicenseControllerTest {
                 .andExpect(jsonPath("$.status").value(false))
                 .andExpect(jsonPath("$.messages[0]").value(expectedMessage));
     }
-
-    // ── getLicenseKey ─────────────────────────────────────────────────────────
 
     @Test
     @Order(7)
