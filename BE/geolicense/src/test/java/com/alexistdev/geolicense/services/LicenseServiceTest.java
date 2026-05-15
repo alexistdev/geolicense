@@ -9,18 +9,15 @@
 package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.request.LicenseRequest;
+import com.alexistdev.geolicense.dto.response.LicensePlanResponse;
 import com.alexistdev.geolicense.dto.response.LicenseResponse;
-import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
-import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.dto.response.UserResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
-import com.alexistdev.geolicense.models.entity.License;
-import com.alexistdev.geolicense.models.entity.LicenseType;
-import com.alexistdev.geolicense.models.entity.Product;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.mappers.LicensePlanMapper;
+import com.alexistdev.geolicense.models.entity.*;
+import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
-import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
-import com.alexistdev.geolicense.mappers.ProductMapper;
+import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,19 +46,16 @@ public class LicenseServiceTest {
     private LicenseRepo licenseRepo;
 
     @Mock
+    private OrderItemRepo orderItemRepo;
+
+    @Mock
     private UserService userService;
 
     @Mock
-    private ProductService productService;
+    private LicensePlanService licensePlanService;
 
     @Mock
-    private LicenseTypeService licenseTypeService;
-
-    @Mock
-    private LicenseTypeMapper licenseTypeMapper;
-
-    @Mock
-    private ProductMapper productMapper;
+    private LicensePlanMapper licensePlanMapper;
 
     @Mock
     private MessagesUtils messagesUtils;
@@ -71,22 +65,21 @@ public class LicenseServiceTest {
 
     private LicenseRequest request;
     private String userId;
-    private String licenseTypeId;
-    private String productId;
+    private String licensePlanId;
+    private String orderItemId;
     private UserResponse activeUser;
-    private LicenseTypeResponse licenseType;
-    private ProductResponse activeProduct;
+    private LicensePlanResponse activeLicensePlan;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID().toString();
-        licenseTypeId = UUID.randomUUID().toString();
-        productId = UUID.randomUUID().toString();
+        licensePlanId = UUID.randomUUID().toString();
+        orderItemId = UUID.randomUUID().toString();
 
         request = LicenseRequest.builder()
                 .userId(userId)
-                .licenseTypeId(licenseTypeId)
-                .productId(productId)
+                .licensePlanId(licensePlanId)
+                .orderItemId(orderItemId)
                 .build();
 
         activeUser = new UserResponse();
@@ -96,19 +89,16 @@ public class LicenseServiceTest {
         activeUser.setRole("USER");
         activeUser.setSuspended(false);
 
-        licenseType = new LicenseTypeResponse();
-        licenseType.setId(licenseTypeId);
-        licenseType.setName("Premium");
-        licenseType.setDurationDays(365);
-        licenseType.setMaxSeats(10);
-        licenseType.setTrial(false);
-
-        activeProduct = new ProductResponse();
-        activeProduct.setId(productId);
-        activeProduct.setName("GeoApp");
-        activeProduct.setSku("GEO-001");
-        activeProduct.setVersion("1.0");
-        activeProduct.setActive(true);
+        activeLicensePlan = new LicensePlanResponse();
+        activeLicensePlan.setId(licensePlanId);
+        activeLicensePlan.setProductId(UUID.randomUUID().toString());
+        activeLicensePlan.setName("Premium Plan");
+        activeLicensePlan.setBillingCycle("MONTHLY");
+        activeLicensePlan.setDurationDays(365);
+        activeLicensePlan.setMaxSeats(10);
+        activeLicensePlan.setPrice(9.99);
+        activeLicensePlan.setCurrency("USD");
+        activeLicensePlan.setActive(true);
     }
 
     @Test
@@ -116,9 +106,12 @@ public class LicenseServiceTest {
     @DisplayName("1. Test addLicense - success")
     void addLicense_WhenAllValid_ShouldSaveAndReturnResponse() {
         UUID savedId = UUID.randomUUID();
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(UUID.fromString(orderItemId));
+
         when(userService.findUserById(userId)).thenReturn(activeUser);
-        when(licenseTypeService.findLicenseTypeById(licenseTypeId)).thenReturn(licenseType);
-        when(productService.findProductById(productId)).thenReturn(activeProduct);
+        when(licensePlanService.findLicensePlanById(licensePlanId)).thenReturn(activeLicensePlan);
+        when(orderItemRepo.findById(UUID.fromString(orderItemId))).thenReturn(Optional.of(orderItem));
         when(licenseRepo.save(any(License.class))).thenAnswer(invocation -> {
             License l = invocation.getArgument(0);
             l.setId(savedId);
@@ -130,16 +123,15 @@ public class LicenseServiceTest {
         assertNotNull(response);
         assertEquals(savedId.toString(), response.getId());
         assertEquals(userId, response.getUserId());
-        assertEquals(licenseType, response.getLicenseType());
-        assertEquals(activeProduct, response.getProduct());
+        assertEquals(activeLicensePlan, response.getLicensePlan());
         assertNotNull(response.getLicenseKey());
         assertNotNull(response.getIssuedAt());
         assertNotNull(response.getExpiresAt());
         assertEquals(response.getIssuedAt().plusDays(365), response.getExpiresAt());
 
         verify(userService, times(1)).findUserById(userId);
-        verify(licenseTypeService, times(1)).findLicenseTypeById(licenseTypeId);
-        verify(productService, times(1)).findProductById(productId);
+        verify(licensePlanService, times(1)).findLicensePlanById(licensePlanId);
+        verify(orderItemRepo, times(1)).findById(UUID.fromString(orderItemId));
         verify(licenseRepo, times(1)).save(any(License.class));
         verifyNoInteractions(messagesUtils);
     }
@@ -161,24 +153,41 @@ public class LicenseServiceTest {
 
         assertEquals(expectedMessage, exception.getMessage());
         verify(licenseRepo, never()).save(any());
-        verifyNoInteractions(licenseTypeService);
-        verifyNoInteractions(productService);
+        verifyNoInteractions(licensePlanService);
+        verifyNoInteractions(orderItemRepo);
     }
 
     @Test
     @Order(3)
-    @DisplayName("3. Test addLicense - product is not active")
-    void addLicense_WhenProductIsNotActive_ShouldThrowNotFoundException() {
-        ProductResponse inactiveProduct = new ProductResponse();
-        inactiveProduct.setId(productId);
-        inactiveProduct.setName("GeoApp");
-        inactiveProduct.setActive(false);
+    @DisplayName("3. Test addLicense - license plan is not active")
+    void addLicense_WhenLicensePlanIsNotActive_ShouldThrowNotFoundException() {
+        LicensePlanResponse inactivePlan = new LicensePlanResponse();
+        inactivePlan.setId(licensePlanId);
+        inactivePlan.setName("Inactive Plan");
+        inactivePlan.setActive(false);
 
-        String expectedMessage = "Product GeoApp is not active";
+        String expectedMessage = "License plan " + licensePlanId + " is not active";
         when(userService.findUserById(userId)).thenReturn(activeUser);
-        when(licenseTypeService.findLicenseTypeById(licenseTypeId)).thenReturn(licenseType);
-        when(productService.findProductById(productId)).thenReturn(inactiveProduct);
-        when(messagesUtils.getMessage("product.not.active", "GeoApp")).thenReturn(expectedMessage);
+        when(licensePlanService.findLicensePlanById(licensePlanId)).thenReturn(inactivePlan);
+        when(messagesUtils.getMessage("licenseplan.not.active", licensePlanId)).thenReturn(expectedMessage);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> licenseService.addLicense(request));
+
+        assertEquals(expectedMessage, exception.getMessage());
+        verify(licenseRepo, never()).save(any());
+        verifyNoInteractions(orderItemRepo);
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("4. Test addLicense - order item not found")
+    void addLicense_WhenOrderItemNotFound_ShouldThrowNotFoundException() {
+        String expectedMessage = "Order item " + orderItemId + " not found";
+        when(userService.findUserById(userId)).thenReturn(activeUser);
+        when(licensePlanService.findLicensePlanById(licensePlanId)).thenReturn(activeLicensePlan);
+        when(orderItemRepo.findById(UUID.fromString(orderItemId))).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("orderitem.not.found", orderItemId)).thenReturn(expectedMessage);
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> licenseService.addLicense(request));
@@ -188,8 +197,8 @@ public class LicenseServiceTest {
     }
 
     @Test
-    @Order(4)
-    @DisplayName("4. Test addLicense - user not found")
+    @Order(5)
+    @DisplayName("5. Test addLicense - user not found")
     void addLicense_WhenUserNotFound_ShouldThrowNotFoundException() {
         when(userService.findUserById(userId))
                 .thenThrow(new NotFoundException("User with id " + userId + " not found"));
@@ -197,47 +206,31 @@ public class LicenseServiceTest {
         assertThrows(NotFoundException.class, () -> licenseService.addLicense(request));
 
         verify(licenseRepo, never()).save(any());
-        verifyNoInteractions(licenseTypeService);
-        verifyNoInteractions(productService);
-    }
-
-    @Test
-    @Order(5)
-    @DisplayName("5. Test addLicense - license type not found")
-    void addLicense_WhenLicenseTypeNotFound_ShouldThrowNotFoundException() {
-        when(userService.findUserById(userId)).thenReturn(activeUser);
-        when(licenseTypeService.findLicenseTypeById(licenseTypeId))
-                .thenThrow(new NotFoundException("License type " + licenseTypeId + " not found"));
-
-        assertThrows(NotFoundException.class, () -> licenseService.addLicense(request));
-
-        verify(licenseRepo, never()).save(any());
-        verifyNoInteractions(productService);
+        verifyNoInteractions(licensePlanService);
+        verifyNoInteractions(orderItemRepo);
     }
 
     @Test
     @Order(6)
-    @DisplayName("6. Test addLicense - product not found")
-    void addLicense_WhenProductNotFound_ShouldThrowNotFoundException() {
+    @DisplayName("6. Test addLicense - license plan not found")
+    void addLicense_WhenLicensePlanNotFound_ShouldThrowNotFoundException() {
         when(userService.findUserById(userId)).thenReturn(activeUser);
-        when(licenseTypeService.findLicenseTypeById(licenseTypeId)).thenReturn(licenseType);
-        when(productService.findProductById(productId))
-                .thenThrow(new NotFoundException("Product " + productId + " not found"));
+        when(licensePlanService.findLicensePlanById(licensePlanId))
+                .thenThrow(new NotFoundException("License plan " + licensePlanId + " not found"));
 
         assertThrows(NotFoundException.class, () -> licenseService.addLicense(request));
 
         verify(licenseRepo, never()).save(any());
+        verifyNoInteractions(orderItemRepo);
     }
-
-    // ── getAllLicensesByUserId ─────────────────────────────────────────────────
 
     @Test
     @Order(7)
     @DisplayName("7. Test getAllLicensesByUserId - success")
     void getAllLicensesByUserId_WhenUserExistsAndHasLicenses_ShouldReturnMappedPage() {
         UUID userUUID = UUID.fromString(userId);
-        UUID ltUUID = UUID.fromString(licenseTypeId);
-        UUID prodUUID = UUID.fromString(productId);
+        UUID lpUUID = UUID.fromString(licensePlanId);
+        UUID prodUUID = UUID.randomUUID();
         UUID licenseId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
         Pageable pageable = PageRequest.of(0, 10);
@@ -245,33 +238,39 @@ public class LicenseServiceTest {
         User user = new User();
         user.setId(userUUID);
 
-        LicenseType lt = new LicenseType();
-        lt.setId(ltUUID);
-
         Product product = new Product();
         product.setId(prodUUID);
+
+        LicensePlan lp = new LicensePlan();
+        lp.setId(lpUUID);
+
+        Orders orders = new Orders();
+        orders.setId(UUID.randomUUID());
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(UUID.fromString(orderItemId));
+        orderItem.setOrders(orders);
+        orderItem.setLicensePlan(lp);
 
         License license = new License();
         license.setId(licenseId);
         license.setUser(user);
-        license.setLicenseType(lt);
         license.setProduct(product);
+        license.setLicensePlan(lp);
+        license.setOrderItem(orderItem);
         license.setLicenseKey("LK-TEST-001");
+        license.setMaxSeats(10);
         license.setUsedSeats(0);
         license.setIssuedAt(now);
         license.setExpiresAt(now.plusDays(365));
 
-        LicenseTypeResponse mappedLicenseType = new LicenseTypeResponse();
-        mappedLicenseType.setId(licenseTypeId);
-
-        ProductResponse mappedProduct = new ProductResponse();
-        mappedProduct.setId(productId);
+        LicensePlanResponse mappedLicensePlan = new LicensePlanResponse();
+        mappedLicensePlan.setId(licensePlanId);
 
         when(userService.findUserById(userId)).thenReturn(activeUser);
         when(licenseRepo.findByUserIdAndIsDeletedFalse(pageable, userUUID))
                 .thenReturn(new PageImpl<>(List.of(license)));
-        when(licenseTypeMapper.toResponse(lt)).thenReturn(mappedLicenseType);
-        when(productMapper.toResponse(product)).thenReturn(mappedProduct);
+        when(licensePlanMapper.toResponse(lp)).thenReturn(mappedLicensePlan);
 
         Page<LicenseResponse> result = licenseService.getAllLicensesByUserId(pageable, userUUID);
 
@@ -280,8 +279,7 @@ public class LicenseServiceTest {
         LicenseResponse response = result.getContent().getFirst();
         assertEquals(licenseId.toString(), response.getId());
         assertEquals(userId, response.getUserId());
-        assertEquals(licenseTypeId, response.getLicenseType().getId());
-        assertEquals(productId, response.getProduct().getId());
+        assertEquals(licensePlanId, response.getLicensePlan().getId());
         assertEquals("LK-TEST-001", response.getLicenseKey());
         assertEquals(now, response.getIssuedAt());
         assertEquals(now.plusDays(365), response.getExpiresAt());
@@ -311,7 +309,6 @@ public class LicenseServiceTest {
     @Test
     @Order(9)
     @DisplayName("9. Test getAllLicensesByUserId - user has no licenses")
-
     void getAllLicensesByUserId_WhenUserHasNoLicenses_ShouldReturnEmptyPage() {
         UUID userUUID = UUID.fromString(userId);
         Pageable pageable = PageRequest.of(0, 10);
@@ -328,8 +325,6 @@ public class LicenseServiceTest {
         verify(licenseRepo, times(1)).findByUserIdAndIsDeletedFalse(pageable, userUUID);
     }
 
-    // ── getLicenseByIdAndUserId ───────────────────────────────────────────────
-
     @Test
     @Order(10)
     @DisplayName("10. Test getLicenseByIdAndUserId - success")
@@ -341,40 +336,40 @@ public class LicenseServiceTest {
         User user = new User();
         user.setId(userUUID);
 
-        LicenseType lt = new LicenseType();
-        lt.setId(UUID.fromString(licenseTypeId));
-
         Product product = new Product();
-        product.setId(UUID.fromString(productId));
+        product.setId(UUID.randomUUID());
+
+        LicensePlan lp = new LicensePlan();
+        lp.setId(UUID.fromString(licensePlanId));
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(UUID.fromString(orderItemId));
 
         License license = new License();
         license.setId(licenseUUID);
         license.setUser(user);
-        license.setLicenseType(lt);
         license.setProduct(product);
+        license.setLicensePlan(lp);
+        license.setOrderItem(orderItem);
         license.setLicenseKey("LK-DETAIL-001");
+        license.setMaxSeats(10);
         license.setUsedSeats(0);
         license.setIssuedAt(now);
         license.setExpiresAt(now.plusDays(365));
 
-        LicenseTypeResponse mappedLicenseType = new LicenseTypeResponse();
-        mappedLicenseType.setId(licenseTypeId);
-
-        ProductResponse mappedProduct = new ProductResponse();
-        mappedProduct.setId(productId);
+        LicensePlanResponse mappedLicensePlan = new LicensePlanResponse();
+        mappedLicensePlan.setId(licensePlanId);
 
         when(licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(licenseUUID, userUUID))
                 .thenReturn(Optional.of(license));
-        when(licenseTypeMapper.toResponse(lt)).thenReturn(mappedLicenseType);
-        when(productMapper.toResponse(product)).thenReturn(mappedProduct);
+        when(licensePlanMapper.toResponse(lp)).thenReturn(mappedLicensePlan);
 
         LicenseResponse response = licenseService.getLicenseByIdAndUserId(licenseUUID, userUUID);
 
         assertNotNull(response);
         assertEquals(licenseUUID.toString(), response.getId());
         assertEquals(userId, response.getUserId());
-        assertEquals(licenseTypeId, response.getLicenseType().getId());
-        assertEquals(productId, response.getProduct().getId());
+        assertEquals(licensePlanId, response.getLicensePlan().getId());
         assertEquals("LK-DETAIL-001", response.getLicenseKey());
         assertEquals(now, response.getIssuedAt());
         assertEquals(now.plusDays(365), response.getExpiresAt());

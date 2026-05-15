@@ -63,8 +63,6 @@ public class LicenseTypeServiceTest {
         request = LicenseTypeRequest.builder()
                 .name("Premium License")
                 .description("Premium Version Description")
-                .durationDays(365)
-                .maxSeats(20)
                 .isTrial(false)
                 .build();
 
@@ -74,8 +72,6 @@ public class LicenseTypeServiceTest {
         entity.setId(licenseTypeId);
         entity.setName("Premium License");
         entity.setDescription("Premium Version Description");
-        entity.setDuration_days(365);
-        entity.setMax_seats(20);
         entity.set_trial(false);
     }
 
@@ -97,8 +93,6 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(licenseTypeId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
         Assertions.assertEquals(request.getDescription(), response.getDescription());
-        Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
-        Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
         Assertions.assertEquals(request.getIsTrial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
@@ -143,8 +137,6 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(licenseTypeId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
         Assertions.assertEquals(request.getDescription(), response.getDescription());
-        Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
-        Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
         Assertions.assertEquals(request.getIsTrial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());
@@ -164,8 +156,6 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(licenseTypeId.toString(), response.getId());
         Assertions.assertEquals(entity.getName(), response.getName());
         Assertions.assertEquals(entity.getDescription(), response.getDescription());
-        Assertions.assertEquals(entity.getDuration_days(), response.getDurationDays());
-        Assertions.assertEquals(entity.getMax_seats(), response.getMaxSeats());
         Assertions.assertEquals(entity.is_trial(), response.isTrial());
 
         verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
@@ -277,8 +267,6 @@ public class LicenseTypeServiceTest {
         Assertions.assertEquals(licenseTypeId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
         Assertions.assertEquals(request.getDescription(), response.getDescription());
-        Assertions.assertEquals(request.getDurationDays(), response.getDurationDays());
-        Assertions.assertEquals(request.getMaxSeats(), response.getMaxSeats());
         Assertions.assertEquals(request.getIsTrial(), response.isTrial());
         verify(licenseTypeRepo, times(1)).findById(licenseTypeId);
         verify(licenseTypeRepo, times(1)).findByNameIncludingDeleted(request.getName());

@@ -8,11 +8,7 @@
 
 package com.alexistdev.geolicense.models.repository;
 
-import com.alexistdev.geolicense.models.entity.License;
-import com.alexistdev.geolicense.models.entity.LicenseActivation;
-import com.alexistdev.geolicense.models.entity.LicenseType;
-import com.alexistdev.geolicense.models.entity.Product;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -53,8 +49,19 @@ public class LicenseActivationRepoTest {
         Product product = createProduct();
         entityManager.persist(product);
 
-        license = createLicense(user, licenseType, product, "LK-ACT-001");
-        otherLicense = createLicense(user, licenseType, product, "LK-ACT-002");
+        LicensePlan licensePlan = createLicensePlan(licenseType, product);
+        entityManager.persist(licensePlan);
+
+        Orders orders = createOrders(user);
+        entityManager.persist(orders);
+
+        OrderItem orderItem1 = createOrderItem(orders, licensePlan);
+        OrderItem orderItem2 = createOrderItem(orders, licensePlan);
+        entityManager.persist(orderItem1);
+        entityManager.persist(orderItem2);
+
+        license = createLicense(user, licensePlan, product, orderItem1, "LK-ACT-001");
+        otherLicense = createLicense(user, licensePlan, product, orderItem2, "LK-ACT-002");
         entityManager.persist(license);
         entityManager.persist(otherLicense);
 
@@ -80,8 +87,6 @@ public class LicenseActivationRepoTest {
         LicenseType lt = new LicenseType();
         lt.setName("Activation Type");
         lt.set_trial(false);
-        lt.setDuration_days(30);
-        lt.setMax_seats(100);
         lt.setCreatedBy(SYSTEM_USER);
         lt.setModifiedBy(SYSTEM_USER);
         lt.setDeleted(false);
@@ -103,12 +108,60 @@ public class LicenseActivationRepoTest {
         return product;
     }
 
-    private License createLicense(User user, LicenseType licenseType, Product product, String key) {
+    private LicensePlan createLicensePlan(LicenseType licenseType, Product product) {
+        LicensePlan lp = new LicensePlan();
+        lp.setName("Basic Plan");
+        lp.setBillingCycle("MONTHLY");
+        lp.setDuration_days(30);
+        lp.setMax_seats(100);
+        lp.setPrice(9.99);
+        lp.setCurrency("USD");
+        lp.setProduct(product);
+        lp.setLicenseType(licenseType);
+        lp.setCreatedBy(SYSTEM_USER);
+        lp.setModifiedBy(SYSTEM_USER);
+        lp.setDeleted(false);
+        lp.setCreatedDate(new Date());
+        lp.setModifiedDate(new Date());
+        return lp;
+    }
+
+    private Orders createOrders(User user) {
+        Orders orders = new Orders();
+        orders.setUser(user);
+        orders.setOrderNumber("ORD-ACT-001");
+        orders.setCurrency("USD");
+        orders.setStatus(0);
+        orders.setCreatedBy(SYSTEM_USER);
+        orders.setModifiedBy(SYSTEM_USER);
+        orders.setCreatedDate(new Date());
+        orders.setModifiedDate(new Date());
+        return orders;
+    }
+
+    private OrderItem createOrderItem(Orders orders, LicensePlan licensePlan) {
+        OrderItem oi = new OrderItem();
+        oi.setOrders(orders);
+        oi.setLicensePlan(licensePlan);
+        oi.setQuantity(1);
+        oi.setUnitPrice(9.99);
+        oi.setTotalPrice(9.99);
+        oi.setCreatedBy(SYSTEM_USER);
+        oi.setModifiedBy(SYSTEM_USER);
+        oi.setDeleted(false);
+        oi.setCreatedDate(new Date());
+        oi.setModifiedDate(new Date());
+        return oi;
+    }
+
+    private License createLicense(User user, LicensePlan licensePlan, Product product, OrderItem orderItem, String key) {
         License lic = new License();
         lic.setUser(user);
-        lic.setLicenseType(licenseType);
+        lic.setLicensePlan(licensePlan);
         lic.setProduct(product);
+        lic.setOrderItem(orderItem);
         lic.setLicenseKey(key);
+        lic.setMaxSeats(100);
         lic.setUsedSeats(0);
         lic.setIssuedAt(LocalDateTime.now());
         lic.setExpiresAt(LocalDateTime.now().plusDays(30));

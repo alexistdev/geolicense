@@ -19,6 +19,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LicenseRequest {
     private String userId;
-    private String licenseTypeId;
-    private String productId;
+    private String licensePlanId;
+    private String orderItemId;
 }

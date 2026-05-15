@@ -75,7 +75,7 @@ public class LicenseTokenService {
                 .orElse(null);
 
         if (activation == null) {
-            int maxSeats = license.getLicenseType().getMax_seats();
+            int maxSeats = license.getMaxSeats();
             if (license.getUsedSeats() >= maxSeats) {
                 throw new SeatLimitReachedException("Seat limit reached for license: " + request.getLicenseKey());
             }
@@ -113,7 +113,7 @@ public class LicenseTokenService {
                 .machineId(request.getMachineId())
                 .token(token)
                 .usedSeats(license.getUsedSeats())
-                .maxSeats(license.getLicenseType().getMax_seats())
+                .maxSeats(license.getMaxSeats())
                 .licenseExpiresAt(license.getExpiresAt())
                 .tokenExpiresAt(tokenExpiresAt)
                 .build();

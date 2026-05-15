@@ -13,17 +13,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LicenseResponse {
+public class LicensePlanResponse {
     private String id;
-    private String userId;
-    private LicensePlanResponse licensePlan;
-    private String licenseKey;
-    private LocalDateTime issuedAt;
-    private LocalDateTime expiresAt;
+    private String productId;
+    private String name;
+    private String billingCycle;
+    private int durationDays;
+    private int maxSeats;
+    private double price;
+    private String currency;
+    private boolean isActive;
 }

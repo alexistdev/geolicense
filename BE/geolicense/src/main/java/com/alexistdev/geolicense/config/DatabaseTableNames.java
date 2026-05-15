@@ -9,5 +9,10 @@ public class DatabaseTableNames {
     public static final String TB_AUDIT_LOG = "glo_audit_logs";
     public static final String TB_MENU = "glo_menus";
     public static final String TB_ROLE_MENUS = "glo_role_menus";
+    public static final String TB_LICENSE_PLAN = "glo_license_plans";
+    public static final String TB_ORDER = "glo_orders";
+    public static final String TB_PAYMENT = "glo_payments";
+    public static final String TB_INVOICE = "glo_invoices";
+    public static final String TB_ORDER_ITEM = "glo_order_items";
 
 }

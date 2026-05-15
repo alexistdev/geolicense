@@ -1,8 +1,8 @@
-export interface LicenseCatalogItem {
+export interface ProductItem {
   id: string
   name: string
+  version: string
   description: string
-  durationDays: number
-  maxSeats: number
-  isTrial: boolean
+  sku: string
+  active: boolean
 }

@@ -15,8 +15,6 @@ public class LicenseTypeTest {
     private LicenseType licenseType;
     private String name;
     private String description;
-    private int durationDays;
-    private int maxSeats;
     private boolean isTrial;
     private Date createdDate;
     private Date modifiedDate;
@@ -33,8 +31,6 @@ public class LicenseTypeTest {
         id = UUID.randomUUID();
         name = "Basic License";
         description = "A basic license type";
-        durationDays = 30;
-        maxSeats = 5;
         isTrial = false;
         createdDate = new Date();
         modifiedDate = new Date();
@@ -43,8 +39,6 @@ public class LicenseTypeTest {
         licenseType.setId(id);
         licenseType.setName(name);
         licenseType.setDescription(description);
-        licenseType.setDuration_days(durationDays);
-        licenseType.setMax_seats(maxSeats);
         licenseType.set_trial(isTrial);
         licenseType.setCreatedBy("System");
         licenseType.setModifiedBy("System");
@@ -61,8 +55,6 @@ public class LicenseTypeTest {
         Assertions.assertEquals(id, licenseType.getId());
         Assertions.assertEquals(name, licenseType.getName());
         Assertions.assertEquals(description, licenseType.getDescription());
-        Assertions.assertEquals(durationDays, licenseType.getDuration_days());
-        Assertions.assertEquals(maxSeats, licenseType.getMax_seats());
         Assertions.assertEquals(isTrial, licenseType.is_trial());
         Assertions.assertEquals("System", licenseType.getCreatedBy());
         Assertions.assertEquals("System", licenseType.getModifiedBy());
@@ -78,24 +70,18 @@ public class LicenseTypeTest {
         UUID newId = UUID.randomUUID();
         String newName = "Premium License";
         String newDescription = "A premium license type";
-        int newDurationDays = 365;
-        int newMaxSeats = 50;
         boolean newIsTrial = true;
 
         LicenseType newLicenseType = new LicenseType();
         newLicenseType.setId(newId);
         newLicenseType.setName(newName);
         newLicenseType.setDescription(newDescription);
-        newLicenseType.setDuration_days(newDurationDays);
-        newLicenseType.setMax_seats(newMaxSeats);
         newLicenseType.set_trial(newIsTrial);
         newLicenseType.setDeleted(false);
 
         Assertions.assertEquals(newId, newLicenseType.getId());
         Assertions.assertEquals(newName, newLicenseType.getName());
         Assertions.assertEquals(newDescription, newLicenseType.getDescription());
-        Assertions.assertEquals(newDurationDays, newLicenseType.getDuration_days());
-        Assertions.assertEquals(newMaxSeats, newLicenseType.getMax_seats());
         Assertions.assertTrue(newLicenseType.is_trial());
         Assertions.assertFalse(newLicenseType.getDeleted());
     }
@@ -197,7 +183,6 @@ public class LicenseTypeTest {
         LicenseType licenseType2 = new LicenseType();
         licenseType2.setId(id);
         licenseType2.setName("Different Name");
-        licenseType2.setDuration_days(999);
 
         Assertions.assertEquals(licenseType, licenseType2, "LicenseTypes with the same id should be equal");
         Assertions.assertEquals(licenseType.hashCode(), licenseType2.hashCode(),

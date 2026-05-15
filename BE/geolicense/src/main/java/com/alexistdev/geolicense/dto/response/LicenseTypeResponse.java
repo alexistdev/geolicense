@@ -22,8 +22,6 @@ public class LicenseTypeResponse {
     private String id;
     private String name;
     private String description;
-    private int durationDays;
-    private int maxSeats;
     @JsonProperty("isTrial")
     private boolean isTrial;
 }

@@ -2,9 +2,9 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import marketplaceService from '@/modules/user/marketplace/services/marketplace.service.ts'
-import type { LicenseCatalogItem } from '@/modules/user/marketplace/models/marketplace.response.ts'
+import type { ProductItem } from '@/modules/user/marketplace/models/marketplace.response.ts'
 
-const items = ref<LicenseCatalogItem[]>([])
+const items = ref<ProductItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -32,10 +32,10 @@ onMounted(async () => {
       <!-- Header Section -->
       <div class="space-y-4">
         <h2 class="font-display text-4xl lg:text-5xl font-extrabold text-on-surface tracking-tight">
-          License Catalog
+          Product Catalog
         </h2>
         <p class="font-body text-body-lg text-on-surface-variant max-w-2xl">
-          Choose the license plan that fits your needs. Select a plan below to get started.
+          Choose the product that fits your needs. Select a product below to get started.
         </p>
       </div>
 
@@ -66,7 +66,7 @@ onMounted(async () => {
         v-else-if="items.length === 0"
         class="text-center py-20 text-on-surface-variant font-body text-body-lg"
       >
-        No license plans available at the moment.
+        No products available at the moment.
       </div>
 
       <!-- Catalog Grid -->
@@ -87,7 +87,7 @@ onMounted(async () => {
             <span
               class="material-symbols-outlined text-3xl"
               style="font-variation-settings: 'FILL' 1"
-            >{{ item.isTrial ? 'science' : 'workspace_premium' }}</span>
+            >workspace_premium</span>
           </div>
 
           <!-- Name -->
@@ -98,15 +98,15 @@ onMounted(async () => {
           <!-- Badges -->
           <div class="flex items-center gap-2 mb-4 flex-wrap">
             <span
-              v-if="item.isTrial"
-              class="font-label text-label-sm uppercase tracking-widest text-tertiary bg-tertiary/10 px-2 py-1 rounded"
-            >Trial</span>
+              v-if="!item.active"
+              class="font-label text-label-sm uppercase tracking-widest text-error bg-error/10 px-2 py-1 rounded"
+            >Inactive</span>
             <span
               class="font-label text-label-sm uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded"
-            >{{ item.durationDays }} days</span>
+            >v{{ item.version }}</span>
             <span
               class="font-label text-label-sm uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded"
-            >{{ item.maxSeats }} seats</span>
+            >{{ item.sku }}</span>
           </div>
 
           <!-- Description -->

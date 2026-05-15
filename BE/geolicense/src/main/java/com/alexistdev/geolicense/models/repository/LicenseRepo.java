@@ -30,24 +30,24 @@ public interface LicenseRepo extends JpaRepository<License, UUID> {
 
     @Query("SELECT l FROM License l " +
             "JOIN FETCH l.user u " +
-            "JOIN FETCH l.licenseType lt " +
+            "JOIN FETCH l.licensePlan lp " +
             "JOIN FETCH l.product p " +
             "WHERE u.id = :userId " +
             "AND l.isDeleted = false " +
             "AND u.isDeleted = false " +
-            "AND lt.isDeleted = false " +
+            "AND lp.isDeleted = false " +
             "AND p.isDeleted = false")
-    Page<License> findByUserIdAndIsDeletedFalse(Pageable pageable,UUID userId);
+    Page<License> findByUserIdAndIsDeletedFalse(Pageable pageable, UUID userId);
 
     @Query("SELECT l FROM License l " +
             "JOIN FETCH l.user u " +
-            "JOIN FETCH l.licenseType lt " +
+            "JOIN FETCH l.licensePlan lp " +
             "JOIN FETCH l.product p " +
             "WHERE u.id = :userId " +
             "AND l.id = :licenseId " +
             "AND l.isDeleted = false " +
             "AND u.isDeleted = false " +
-            "AND lt.isDeleted = false " +
+            "AND lp.isDeleted = false " +
             "AND p.isDeleted = false")
     Optional<License> findByLicenseIdAndUserIdAndIsDeletedFalse(UUID licenseId, UUID userId);
 
