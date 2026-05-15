@@ -102,6 +102,7 @@ public class AuthService {
         assert user.getRole() != null;
         response.setRole(user.getRole().toString());
         response.setSessionToken(sessionId);
+        response.setFullName(user.getFullName());
         List<MenuResponse> menus = menuService.getMenusByRole(user.getRole());
         response.setMenus(menus);
         response.setHomeURL(this.getDefaultHomeURL(user.getRole()));

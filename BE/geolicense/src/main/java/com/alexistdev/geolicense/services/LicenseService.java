@@ -32,6 +32,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -66,6 +67,16 @@ public class LicenseService {
         this.licenseTokenService = licenseTokenService;
         this.licenseTypeMapper = licenseTypeMapper;
         this.productMapper = productMapper;
+    }
+
+    public LicenseResponse getLicenseByIdAndUserId(UUID id, UUID userId) {
+        Optional<License> foundLicense = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(id,userId);
+        if(foundLicense.isEmpty()){
+            String msgNotFound = messagesUtils.getMessage("license.not.found", id.toString());
+            logger.warning(msgNotFound);
+            throw new NotFoundException(msgNotFound);
+        }
+        return convertToLicenseResponse(foundLicense.get());
     }
 
     public Page<LicenseResponse> getAllLicensesByUserId(Pageable pageable, UUID userId) {

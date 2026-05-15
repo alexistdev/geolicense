@@ -94,6 +94,7 @@ class AuthControllerTest {
         authLoginResponse = AuthLoginResponse.builder()
                 .id("some-uuid")
                 .sessionToken("login-jwt-token")
+                .fullName("John Doe")
                 .build();
     }
 
@@ -361,5 +362,20 @@ class AuthControllerTest {
                 .andDo(print()).andExpect(status().isOk());
 
         verify(messagesUtils, times(1)).getMessage(eq("authcontroller.login.success"));
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. Login - success response payload contains fullName")
+    @WithMockUser
+    void login_shouldContainFullNameInPayload() throws Exception {
+        when(messagesUtils.getMessage("authcontroller.login.success")).thenReturn("Login successful");
+        when(authService.authenticate(any(LoginRequest.class))).thenReturn(authLoginResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest)))
+                .andExpect(jsonPath("$.payload.fullName").value("John Doe"));
     }
 }

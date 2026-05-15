@@ -1,5 +1,5 @@
 import type { BaseResponse } from '@/modules/shared/models/base.response.ts'
-import type { PageResponse } from '@/modules/administrator/master/models/page.response.ts'
+import type { PageResponse } from '@/modules/shared/models/page.response.ts'
 import type { LicenseTypePayload, LicenseTypeResponse } from '@/modules/administrator/master/models/licensetype.response.ts'
 import type { LicensetypeRequest } from '@/modules/administrator/master/models/licensetype.request.ts'
 import apiClient from '@/modules/shared/api/api.client.ts'

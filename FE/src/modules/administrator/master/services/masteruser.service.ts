@@ -3,7 +3,7 @@ import type { BaseResponse } from '@/modules/shared/models/base.response'
 import type { UserResponse } from '../models/user.response'
 import type { RegisterRequest } from '../models/register.request'
 import type { RegisterResponse } from '../models/register.response'
-import type { PageResponse } from '@/modules/administrator/master/models/page.response.ts'
+import type { PageResponse } from '@/modules/shared/models/page.response.ts'
 
 const BASE_PATH = '/users'
 const REGISTER_PATH = '/auth/register'

@@ -217,6 +217,7 @@ class AuthServiceTest {
         );
         when(menuService.getMenusByRole(Role.USER)).thenReturn(expectedMenus);
 
+        @SuppressWarnings("unchecked")
         ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
         doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
@@ -232,6 +233,7 @@ class AuthServiceTest {
         Assertions.assertNotNull(response);
         Assertions.assertNotNull(response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
+        Assertions.assertEquals("Alexsander Hendra Wijaya", response.getFullName());
         Assertions.assertEquals(expectedMenus, response.getMenus());
         Assertions.assertEquals("/user/dashboard", response.getHomeURL());
     }
@@ -316,6 +318,7 @@ class AuthServiceTest {
         );
         when(menuService.getMenusByRole(Role.USER)).thenReturn(expectedMenus);
 
+        @SuppressWarnings("unchecked")
         ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
 
@@ -336,6 +339,7 @@ class AuthServiceTest {
         Assertions.assertNotNull(response);
         Assertions.assertEquals(sessionIdCaptor.getValue(), response.getSessionToken());
         Assertions.assertEquals(user.getId().toString(), response.getId());
+        Assertions.assertEquals("Test User", response.getFullName());
         Assertions.assertEquals(expectedMenus, response.getMenus());
         Assertions.assertEquals("/user/dashboard", response.getHomeURL());
     }
@@ -350,6 +354,7 @@ class AuthServiceTest {
 
         User adminUser = new User();
         adminUser.setId(UUID.randomUUID());
+        adminUser.setFullName("Admin User");
         adminUser.setEmail(loginRequest.getEmail());
         adminUser.setRole(Role.ADMIN);
 
@@ -360,12 +365,14 @@ class AuthServiceTest {
         when(jwtService.generateToken(adminUser)).thenReturn("admin-jwt-token");
         when(menuService.getMenusByRole(Role.ADMIN)).thenReturn(List.of());
 
+        @SuppressWarnings("unchecked")
         ValueOperations<String, String> mockValueOperations = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValueOperations);
         doNothing().when(mockValueOperations).set(anyString(), anyString(), any(Duration.class));
 
         AuthLoginResponse response = authService.authenticate(loginRequest);
 
+        Assertions.assertEquals("Admin User", response.getFullName());
         Assertions.assertEquals("/admin/dashboard", response.getHomeURL());
     }
 }

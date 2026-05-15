@@ -19,6 +19,8 @@ class AuthService {
         Cookies.set('SID', payload.sessionToken);
         localStorage.setItem('menus', JSON.stringify(payload.menus));
         localStorage.setItem('userId', JSON.stringify(payload.id));
+        localStorage.setItem('fullName', payload.fullName ?? '');
+        localStorage.setItem('role', payload.role);
       }
 
       return response.data;
@@ -38,12 +40,22 @@ class AuthService {
   logout(): void {
     Cookies.remove('SID');
     localStorage.removeItem('menus');
-    localStorage.removeItem('userId')
+    localStorage.removeItem('userId');
+    localStorage.removeItem('fullName');
+    localStorage.removeItem('role');
   }
 
   getMenus(): Menu[] | null {
     const menus = localStorage.getItem('menus');
     return menus ? JSON.parse(menus) : null
+  }
+
+  getFullName(): string {
+    return localStorage.getItem('fullName') ?? ''
+  }
+
+  getRole(): string {
+    return localStorage.getItem('role') ?? ''
   }
 }
 

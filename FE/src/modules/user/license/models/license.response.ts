@@ -40,3 +40,9 @@ export interface LicenseResponse {
   payload: LicensePagePayload
   status: boolean
 }
+
+export interface LicenseDetailResponse {
+  messages: string[]
+  payload: LicenseItem
+  status: boolean
+}

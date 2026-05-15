@@ -24,6 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 @DataJpaTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -41,6 +42,9 @@ public class LicenseRepoTest {
     private User testUser;
     private LicenseType testLicenseType;
     private Product testProduct;
+    private License testLicense1;
+    private License testLicense2;
+    private License testLicenseDeleted;
 
     @BeforeEach
     void setUp() {
@@ -53,9 +57,9 @@ public class LicenseRepoTest {
         testProduct = createProduct("Test Product", "SKU-001");
         entityManager.persist(testProduct);
 
-        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-001", false));
-        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-002", false));
-        entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-003", true));
+        testLicense1 = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-001", false));
+        testLicense2 = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-002", false));
+        testLicenseDeleted = entityManager.persist(createLicense(testUser, testLicenseType, testProduct, "LK-003", true));
         entityManager.flush();
     }
 
@@ -301,5 +305,105 @@ public class LicenseRepoTest {
         Page<License> result = licenseRepo.findByUserIdAndIsDeletedFalse(pageable, user.getId());
 
         Assertions.assertTrue(result.isEmpty());
+    }
+
+    // ── findByLicenseIdAndUserIdAndIsDeletedFalse ──────────────────────────────
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Should return license when licenseId and userId both match and license is active")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_found() {
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                testLicense1.getId(), testUser.getId());
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("LK-001", result.get().getLicenseKey());
+        Assertions.assertFalse(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Should return empty when licenseId does not belong to the given user")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_wrongUser() {
+        User otherUser = createUser("other@example.com");
+        entityManager.persist(otherUser);
+        entityManager.flush();
+
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                testLicense1.getId(), otherUser.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Should return empty when licenseId does not exist")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_wrongLicenseId() {
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                UUID.randomUUID(), testUser.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Should return empty when the license is soft-deleted")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_licenseDeleted() {
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                testLicenseDeleted.getId(), testUser.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. Should return empty when the user is soft-deleted")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_userDeleted() {
+        User deletedUser = createUser("del-user-by-id@example.com");
+        deletedUser.setDeleted(true);
+        entityManager.persist(deletedUser);
+        License license = entityManager.persist(createLicense(deletedUser, testLicenseType, testProduct, "LK-BY-ID-UDEL", false));
+        entityManager.flush();
+
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                license.getId(), deletedUser.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. Should return empty when the license type is soft-deleted")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_licenseTypeDeleted() {
+        User user = createUser("user-lt-del-by-id@example.com");
+        entityManager.persist(user);
+        LicenseType deletedType = createLicenseType("Deleted Type By Id");
+        deletedType.setDeleted(true);
+        entityManager.persist(deletedType);
+        License license = entityManager.persist(createLicense(user, deletedType, testProduct, "LK-BY-ID-LTDEL", false));
+        entityManager.flush();
+
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                license.getId(), user.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. Should return empty when the product is soft-deleted")
+    void testFindByLicenseIdAndUserIdAndIsDeletedFalse_productDeleted() {
+        User user = createUser("user-prod-del-by-id@example.com");
+        entityManager.persist(user);
+        Product deletedProduct = createProduct("Deleted Product By Id", "SKU-DEL-ID");
+        deletedProduct.setDeleted(true);
+        entityManager.persist(deletedProduct);
+        License license = entityManager.persist(createLicense(user, testLicenseType, deletedProduct, "LK-BY-ID-PDEL", false));
+        entityManager.flush();
+
+        Optional<License> result = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(
+                license.getId(), user.getId());
+
+        Assertions.assertFalse(result.isPresent());
     }
 }
