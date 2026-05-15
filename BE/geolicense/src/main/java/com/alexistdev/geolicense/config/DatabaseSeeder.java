@@ -10,10 +10,7 @@ package com.alexistdev.geolicense.config;
 
 import com.alexistdev.geolicense.dto.request.*;
 import com.alexistdev.geolicense.models.entity.*;
-import com.alexistdev.geolicense.models.repository.LicenseTypeRepo;
-import com.alexistdev.geolicense.models.repository.ProductRepo;
-import com.alexistdev.geolicense.models.repository.RoleMenuRepo;
-import com.alexistdev.geolicense.models.repository.UserRepo;
+import com.alexistdev.geolicense.models.repository.*;
 import com.alexistdev.geolicense.services.*;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +19,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +43,12 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final MenuService menuService;
     private final RoleMenuRepo roleMenuRepo;
     private final MessagesUtils messagesUtils;
+    private final LicensePlanRepo licensePlanRepo;
+    private final OrdersRepo ordersRepo;
+    private final OrderItemRepo orderItemRepo;
+    private final PaymentRepo paymentRepo;
+    private final InvoiceRepo invoiceRepo;
+    private final LicenseRepo licenseRepo;
     private static final String SYSTEM_USER = "System";
 
 
@@ -55,12 +59,13 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedUsers();
         seedLicenseTypes();
         seedProducts();
-        seedLicenses();
-        seedMenuAdmin();
-        seedMenuUser();
-        seedChildAdmin();
-        seedChildUser();
-        seedRoleMenus();
+        seedLicensePlans();
+        seedOrderFlow();
+//        seedMenuAdmin();
+//        seedMenuUser();
+//        seedChildAdmin();
+//        seedChildUser();
+//        seedRoleMenus();
         log.info("END: Database seeded");
     }
 
@@ -188,11 +193,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         request.setName("Premium License");
         request.setIsTrial(false);
         request.setDescription("Premium Version Description");
-        request.setMaxSeats(1000);
-        request.setDurationDays(30);
-
         licenseTypeService.addLicenseType(request);
-
         log.info("END: Seeding license types");
     }
 
@@ -208,19 +209,156 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("END: Seeding products");
     }
 
-    private void seedLicenses(){
-        log.info("START: Seeding license");
-        User foundUser = userRepo.findByEmail("alexistdev@gmail.com").orElse(null);
-        if(foundUser == null) return;
-        LicenseType foundLicenseType = licenseTypeRepo.findByNameIncludingDeleted("Premium License").orElse(null);
-        if(foundLicenseType == null) return;
-        Product foundProduct = productRepo.findByNameIncludingDeleted("GeoBill License Premium").orElse(null);
-        if(foundProduct == null) return;
-        LicenseRequest request = new LicenseRequest();
-        request.setUserId(foundUser.getId().toString());
-        request.setLicenseTypeId(foundLicenseType.getId().toString());
-        request.setProductId(foundProduct.getId().toString());
-        licenseService.addLicense(request);
-        log.info("END: Seeding license");
+    private void seedLicensePlans() {
+        log.info("START: Seeding license plans");
+        Product product = productRepo.findByNameIncludingDeleted("GeoBill License Premium")
+                .orElse(null);
+        LicenseType licenseType = licenseTypeRepo.findByNameIncludingDeleted("Premium License")
+                .orElse(null);
+        if (product == null || licenseType == null) {
+            log.warn("SKIP: seedLicensePlans — product or licenseType not found");
+            return;
+        }
+
+        List<LicensePlan> plans = List.of(
+                buildLicensePlan(product, licenseType, "Monthly Premium", "MONTHLY", 30, 5, 99999.99, "IDR"),
+                buildLicensePlan(product, licenseType, "Yearly Premium",  "YEARLY",  365, 5, 999999.99, "IDR")
+        );
+        licensePlanRepo.saveAll(plans);
+        log.info("END: Seeding license plans");
+    }
+
+    private LicensePlan buildLicensePlan(
+            Product product, LicenseType licenseType,
+            String name, String billingCycle,
+            int durationDays, int maxSeats, double price, String currency
+    ) {
+        LicensePlan plan = new LicensePlan();
+        plan.setProduct(product);
+        plan.setLicenseType(licenseType);
+        plan.setName(name);
+        plan.setBillingCycle(billingCycle);
+        plan.setDuration_days(durationDays);
+        plan.setMax_seats(maxSeats);
+        plan.setPrice(price);
+        plan.setCurrency(currency);
+        plan.setActive(true);
+        plan.setCreatedBy(SYSTEM_USER);
+        plan.setModifiedBy(SYSTEM_USER);
+        plan.setCreatedDate(new java.util.Date());
+        plan.setModifiedDate(new java.util.Date());
+        plan.setIsDeleted(false);
+        return plan;
+    }
+
+    private void seedOrderFlow() {
+        log.info("START: Seeding order flow");
+        User user = userRepo.findByEmail("alexistdev@gmail.com").orElse(null);
+        LicensePlan plan = licensePlanRepo.findAll().stream()
+                .filter(p -> "Monthly Premium".equals(p.getName()))
+                .findFirst().orElse(null);
+        Product product = productRepo.findByNameIncludingDeleted("GeoBill License Premium").orElse(null);
+
+        if (user == null || plan == null || product == null) {
+            log.warn("SKIP: seedOrderFlow — user, plan, or product not found");
+            return;
+        }
+
+        Orders order = buildOrder(user, "ORDER-0001", "IDR");
+        order = ordersRepo.save(order);
+
+        OrderItem orderItem = buildOrderItem(order, plan, 1);
+        orderItem = orderItemRepo.save(orderItem);
+
+        paymentRepo.save(buildPayment(order, plan.getPrice(), plan.getCurrency(), "MANUAL", "PAY-0001"));
+
+        invoiceRepo.save(buildInvoice(order, plan.getPrice(), plan.getCurrency(), "INV-0001"));
+
+        licenseRepo.save(buildLicense(user, product, plan, orderItem));
+        log.info("END: Seeding order flow");
+    }
+
+    private Orders buildOrder(User user, String orderNumber, String currency) {
+        Orders order = new Orders();
+        order.setUser(user);
+        order.setOrderNumber(orderNumber);
+        order.setCurrency(currency);
+        order.setStatus(1);
+        order.setCreatedBy(SYSTEM_USER);
+        order.setModifiedBy(SYSTEM_USER);
+        order.setCreatedDate(new java.util.Date());
+        order.setModifiedDate(new java.util.Date());
+        order.setIsDeleted(false);
+        return order;
+    }
+
+    private OrderItem buildOrderItem(Orders order, LicensePlan plan, int quantity) {
+        OrderItem item = new OrderItem();
+        item.setOrders(order);
+        item.setLicensePlan(plan);
+        item.setQuantity(quantity);
+        item.setUnitPrice(plan.getPrice());
+        item.setTotalPrice(plan.getPrice() * quantity);
+        item.setCreatedBy(SYSTEM_USER);
+        item.setModifiedBy(SYSTEM_USER);
+        item.setCreatedDate(new java.util.Date());
+        item.setModifiedDate(new java.util.Date());
+        item.setIsDeleted(false);
+        return item;
+    }
+
+    private Payment buildPayment(Orders order, double amount, String currency, String provider, String ref) {
+        Payment payment = new Payment();
+        payment.setOrders(order);
+        payment.setProvider(provider);
+        payment.setProviderReference(ref);
+        payment.setAmount(amount);
+        payment.setCurrency(currency);
+        payment.setStatus(1);
+        payment.setPaidAt(LocalDateTime.now());
+        payment.setCreatedBy(SYSTEM_USER);
+        payment.setModifiedBy(SYSTEM_USER);
+        payment.setCreatedDate(new java.util.Date());
+        payment.setModifiedDate(new java.util.Date());
+        payment.setIsDeleted(false);
+        return payment;
+    }
+
+    private Invoice buildInvoice(Orders order, double amount, String currency, String invoiceNumber) {
+        Invoice invoice = new Invoice();
+        invoice.setOrders(order);
+        invoice.setInvoiceNumber(invoiceNumber);
+        invoice.setAmount(amount);
+        invoice.setCurrency(currency);
+        invoice.setStatus(1);
+        invoice.setIssuedAt(LocalDateTime.now());
+        invoice.setCreatedBy(SYSTEM_USER);
+        invoice.setModifiedBy(SYSTEM_USER);
+        invoice.setCreatedDate(new java.util.Date());
+        invoice.setModifiedDate(new java.util.Date());
+        invoice.setIsDeleted(false);
+        return invoice;
+    }
+
+    private License buildLicense(User user, Product product, LicensePlan plan, OrderItem orderItem) {
+        String key = "GEOLIC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase()
+                + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        License license = new License();
+        license.setUser(user);
+        license.setProduct(product);
+        license.setLicensePlan(plan);
+        license.setOrderItem(orderItem);
+        license.setLicenseKey(key);
+        license.setMaxSeats(plan.getMax_seats());
+        license.setUsedSeats(0);
+        license.setIssuedAt(LocalDateTime.now());
+        license.setExpiresAt(LocalDateTime.now().plusDays(plan.getDuration_days()));
+        license.setStatus(LicenseStatus.ACTIVE);
+        license.setCreatedBy(SYSTEM_USER);
+        license.setModifiedBy(SYSTEM_USER);
+        license.setCreatedDate(new java.util.Date());
+        license.setModifiedDate(new java.util.Date());
+        license.setIsDeleted(false);
+        return license;
     }
 }
