@@ -12,19 +12,20 @@ import com.alexistdev.geolicense.dto.request.ActivateLicenseRequest;
 import com.alexistdev.geolicense.dto.request.LicenseRequest;
 import com.alexistdev.geolicense.dto.request.VerifyLicenseRequest;
 import com.alexistdev.geolicense.dto.response.ActiveLicenseResponse;
-import com.alexistdev.geolicense.dto.response.VerifyLicenseResponse;
+import com.alexistdev.geolicense.dto.response.LicensePlanResponse;
 import com.alexistdev.geolicense.dto.response.LicenseResponse;
-import com.alexistdev.geolicense.dto.response.LicenseTypeResponse;
-import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.dto.response.UserResponse;
+import com.alexistdev.geolicense.dto.response.VerifyLicenseResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
-import com.alexistdev.geolicense.mappers.LicenseTypeMapper;
-import com.alexistdev.geolicense.mappers.ProductMapper;
+import com.alexistdev.geolicense.mappers.LicensePlanMapper;
 import com.alexistdev.geolicense.models.entity.License;
-import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.LicensePlan;
+import com.alexistdev.geolicense.models.entity.OrderItem;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
+import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,37 +42,37 @@ import java.util.logging.Logger;
 public class LicenseService {
 
     private final LicenseRepo licenseRepo;
+    private final LicensePlanRepo licensePlanRepo;
+    private final OrderItemRepo orderItemRepo;
     private final UserService userService;
-    private final ProductService productService;
-    private final LicenseTypeService licenseTypeService;
+    private final LicensePlanService licensePlanService;
     private final LicenseTokenService licenseTokenService;
-    private final LicenseTypeMapper licenseTypeMapper;
-    private final ProductMapper productMapper;
+    private final LicensePlanMapper licensePlanMapper;
     private final MessagesUtils messagesUtils;
     private static final Logger logger = Logger.getLogger(LicenseService.class.getName());
     private static final String SYSTEM_USER = "System";
 
     public LicenseService(LicenseRepo licenseRepo,
+                          LicensePlanRepo licensePlanRepo,
+                          OrderItemRepo orderItemRepo,
                           MessagesUtils messagesUtils,
                           UserService userService,
-                          ProductService productService,
-                          LicenseTypeService licenseTypeService,
+                          LicensePlanService licensePlanService,
                           LicenseTokenService licenseTokenService,
-                          LicenseTypeMapper licenseTypeMapper,
-                          ProductMapper productMapper) {
+                          LicensePlanMapper licensePlanMapper) {
         this.licenseRepo = licenseRepo;
+        this.licensePlanRepo = licensePlanRepo;
+        this.orderItemRepo = orderItemRepo;
         this.messagesUtils = messagesUtils;
         this.userService = userService;
-        this.productService = productService;
-        this.licenseTypeService = licenseTypeService;
+        this.licensePlanService = licensePlanService;
         this.licenseTokenService = licenseTokenService;
-        this.licenseTypeMapper = licenseTypeMapper;
-        this.productMapper = productMapper;
+        this.licensePlanMapper = licensePlanMapper;
     }
 
     public LicenseResponse getLicenseByIdAndUserId(UUID id, UUID userId) {
-        Optional<License> foundLicense = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(id,userId);
-        if(foundLicense.isEmpty()){
+        Optional<License> foundLicense = licenseRepo.findByLicenseIdAndUserIdAndIsDeletedFalse(id, userId);
+        if (foundLicense.isEmpty()) {
             String msgNotFound = messagesUtils.getMessage("license.not.found", id.toString());
             logger.warning(msgNotFound);
             throw new NotFoundException(msgNotFound);
@@ -108,39 +109,42 @@ public class LicenseService {
             throw new NotFoundException(msgSuspended);
         }
 
-        LicenseTypeResponse foundLicenseType = licenseTypeService.findLicenseTypeById(request.getLicenseTypeId());
-        if(foundLicenseType == null){
-            String msgLicenseTypeNotFound = messagesUtils.getMessage("licensetype.not.found", request.getLicenseTypeId());
-            logger.warning(msgLicenseTypeNotFound);
-            throw new NotFoundException(msgLicenseTypeNotFound);
+        LicensePlanResponse foundLicensePlan = licensePlanService.findLicensePlanById(request.getLicensePlanId());
+        if (!foundLicensePlan.isActive()) {
+            String msgInactive = messagesUtils.getMessage("licenseplan.not.active", request.getLicensePlanId());
+            logger.warning(msgInactive);
+            throw new NotFoundException(msgInactive);
         }
 
-        ProductResponse foundProduct = productService.findProductById(request.getProductId());
-        if (!foundProduct.isActive()) {
-            String msgProductInactive = messagesUtils.getMessage("product.not.active", foundProduct.getName());
-            logger.warning(msgProductInactive);
-            throw new NotFoundException(msgProductInactive);
-        }
+        UUID orderItemId = UUID.fromString(request.getOrderItemId());
+        OrderItem orderItem = orderItemRepo.findById(orderItemId)
+                .orElseThrow(() -> {
+                    String msg = messagesUtils.getMessage("orderitem.not.found", request.getOrderItemId());
+                    logger.warning(msg);
+                    return new NotFoundException(msg);
+                });
 
         User user = new User();
         user.setId(UUID.fromString(foundUser.getId()));
 
-        LicenseType licenseType = new LicenseType();
-        licenseType.setId(UUID.fromString(foundLicenseType.getId()));
+        LicensePlan licensePlan = new LicensePlan();
+        licensePlan.setId(UUID.fromString(foundLicensePlan.getId()));
 
         Product product = new Product();
-        product.setId(UUID.fromString(foundProduct.getId()));
+        product.setId(UUID.fromString(foundLicensePlan.getProductId()));
 
         LocalDateTime now = LocalDateTime.now();
 
         License license = new License();
         license.setUser(user);
-        license.setLicenseType(licenseType);
         license.setProduct(product);
+        license.setLicensePlan(licensePlan);
+        license.setOrderItem(orderItem);
         license.setLicenseKey(UUID.randomUUID().toString());
+        license.setMaxSeats(foundLicensePlan.getMaxSeats());
         license.setUsedSeats(0);
         license.setIssuedAt(now);
-        license.setExpiresAt(now.plusDays(foundLicenseType.getDurationDays()));
+        license.setExpiresAt(now.plusDays(foundLicensePlan.getDurationDays()));
         license.setCreatedBy(SYSTEM_USER);
         license.setModifiedBy(SYSTEM_USER);
 
@@ -149,20 +153,18 @@ public class LicenseService {
         return LicenseResponse.builder()
                 .id(savedLicense.getId().toString())
                 .userId(savedLicense.getUser().getId().toString())
-                .licenseType(foundLicenseType)
-                .product(foundProduct)
+                .licensePlan(foundLicensePlan)
                 .licenseKey(savedLicense.getLicenseKey())
                 .issuedAt(savedLicense.getIssuedAt())
                 .expiresAt(savedLicense.getExpiresAt())
                 .build();
     }
 
-    private LicenseResponse convertToLicenseResponse(License license){
+    private LicenseResponse convertToLicenseResponse(License license) {
         return LicenseResponse.builder()
                 .id(license.getId().toString())
                 .userId(license.getUser().getId().toString())
-                .licenseType(licenseTypeMapper.toResponse(license.getLicenseType()))
-                .product(productMapper.toResponse(license.getProduct()))
+                .licensePlan(licensePlanMapper.toResponse(license.getLicensePlan()))
                 .licenseKey(license.getLicenseKey())
                 .issuedAt(license.getIssuedAt())
                 .expiresAt(license.getExpiresAt())

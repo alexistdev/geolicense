@@ -22,8 +22,7 @@ import java.time.LocalDateTime;
 public class LicenseResponse {
     private String id;
     private String userId;
-    private LicenseTypeResponse licenseType;
-    private ProductResponse product;
+    private LicensePlanResponse licensePlan;
     private String licenseKey;
     private LocalDateTime issuedAt;
     private LocalDateTime expiresAt;
