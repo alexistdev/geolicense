@@ -20,8 +20,6 @@ public class LicenseTypeMapper {
                 .id(licenseType.getId().toString())
                 .name(licenseType.getName())
                 .description(licenseType.getDescription())
-                .durationDays(licenseType.getDuration_days())
-                .maxSeats(licenseType.getMax_seats())
                 .isTrial(licenseType.is_trial())
                 .build();
     }

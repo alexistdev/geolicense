@@ -34,13 +34,11 @@ public class LicenseTypeRepoTest {
     private static final String SYSTEM_USER = "System";
 
     private LicenseType createLicenseType(
-            String name, int duration_days, int max_seats, boolean deleted
+            String name, boolean deleted
     ) {
         LicenseType licenseType = new LicenseType();
         licenseType.setName(name);
         licenseType.set_trial(false);
-        licenseType.setDuration_days(duration_days);
-        licenseType.setMax_seats(max_seats);
         licenseType.setCreatedBy(SYSTEM_USER);
         licenseType.setModifiedBy(SYSTEM_USER);
         licenseType.setDeleted(deleted);
@@ -53,15 +51,12 @@ public class LicenseTypeRepoTest {
     @Order(1)
     @DisplayName("1. Test Save LicenseType")
     void testSaveLicenseType() {
-        LicenseType licenseType = createLicenseType("Premium-Hosting",
-                365, 100000, false);
+        LicenseType licenseType = createLicenseType("Premium-Hosting", false);
 
         LicenseType savedLicenseType = licenseTypeRepo.save(licenseType);
 
         Assertions.assertNotNull(savedLicenseType, "LicenseType should be saved");
         Assertions.assertEquals(licenseType.getName(), savedLicenseType.getName());
-        Assertions.assertEquals(licenseType.getDuration_days(), savedLicenseType.getDuration_days());
-        Assertions.assertEquals(licenseType.getMax_seats(), savedLicenseType.getMax_seats());
         Assertions.assertEquals(licenseType.is_trial(), savedLicenseType.is_trial());
         Assertions.assertEquals(licenseType.getCreatedBy(), savedLicenseType.getCreatedBy());
         Assertions.assertEquals(licenseType.getModifiedBy(), savedLicenseType.getModifiedBy());
@@ -73,8 +68,8 @@ public class LicenseTypeRepoTest {
     @Order(2)
     @DisplayName("2. Test findByIsDeletedFalse")
     void testFindByIsDeletedFalse() {
-        LicenseType activeType = createLicenseType("Active-License", 30, 10, false);
-        LicenseType deletedType = createLicenseType("Deleted-License", 30, 10, true);
+        LicenseType activeType = createLicenseType("Active-License", false);
+        LicenseType deletedType = createLicenseType("Deleted-License", true);
 
         entityManager.persist(activeType);
         entityManager.persist(deletedType);
@@ -91,9 +86,9 @@ public class LicenseTypeRepoTest {
     @Order(3)
     @DisplayName("3. Test findByFilter (by name keyword, not deleted)")
     void testFindByFilter() {
-        LicenseType type1 = createLicenseType("Pro-Edition", 365, 5, false);
-        LicenseType type2 = createLicenseType("Basic-Edition", 365, 5, false);
-        LicenseType deletedType = createLicenseType("Pro-Legacy", 365, 5, true);
+        LicenseType type1 = createLicenseType("Pro-Edition", false);
+        LicenseType type2 = createLicenseType("Basic-Edition", false);
+        LicenseType deletedType = createLicenseType("Pro-Legacy", true);
 
         entityManager.persist(type1);
         entityManager.persist(type2);
@@ -112,7 +107,7 @@ public class LicenseTypeRepoTest {
     @Order(4)
     @DisplayName("4. Test findByNameIncludingDeleted")
     void testFindByNameIncludingDeleted() {
-        LicenseType deletedType = createLicenseType("Hidden-License", 365, 5, true);
+        LicenseType deletedType = createLicenseType("Hidden-License", true);
         entityManager.persist(deletedType);
         entityManager.flush();
 
@@ -127,8 +122,8 @@ public class LicenseTypeRepoTest {
     @Order(5)
     @DisplayName("5. Test findByProductTypeId (by ID and not deleted)")
     void testFindByProductTypeId() {
-        LicenseType activeType = createLicenseType("Active-Product-Type", 365, 5, false);
-        LicenseType deletedType = createLicenseType("Deleted-Product-Type", 365, 5, true);
+        LicenseType activeType = createLicenseType("Active-Product-Type", false);
+        LicenseType deletedType = createLicenseType("Deleted-Product-Type", true);
 
         LicenseType savedActive = entityManager.persistAndFlush(activeType);
         LicenseType savedDeleted = entityManager.persistAndFlush(deletedType);

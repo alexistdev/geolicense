@@ -123,8 +123,6 @@ public class LicenseTypeService {
         licenseType.setName(request.getName());
         licenseType.setDescription(request.getDescription());
         licenseType.set_trial(request.getIsTrial());
-        licenseType.setDuration_days(request.getDurationDays());
-        licenseType.setMax_seats(request.getMaxSeats());
         licenseType.setCreatedBy(SYSTEM_USER);
         licenseType.setModifiedBy(SYSTEM_USER);
         licenseType.setCreatedDate(new java.util.Date());

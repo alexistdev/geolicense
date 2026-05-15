@@ -57,8 +57,6 @@ public class LicensePlanTest {
         licenseType = new LicenseType();
         licenseType.setId(UUID.randomUUID());
         licenseType.setName("Standard");
-        licenseType.setDuration_days(30);
-        licenseType.setMax_seats(5);
 
         licensePlan = new LicensePlan();
         licensePlan.setId(id);

@@ -88,8 +88,6 @@ public class LicenseRepoTest {
         LicenseType lt = new LicenseType();
         lt.setName("Premium");
         lt.set_trial(false);
-        lt.setDuration_days(30);
-        lt.setMax_seats(100);
         lt.setCreatedBy(SYSTEM_USER);
         lt.setModifiedBy(SYSTEM_USER);
         lt.setDeleted(false);

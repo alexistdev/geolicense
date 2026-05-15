@@ -87,8 +87,6 @@ public class LicenseActivationRepoTest {
         LicenseType lt = new LicenseType();
         lt.setName("Activation Type");
         lt.set_trial(false);
-        lt.setDuration_days(30);
-        lt.setMax_seats(100);
         lt.setCreatedBy(SYSTEM_USER);
         lt.setModifiedBy(SYSTEM_USER);
         lt.setDeleted(false);

@@ -38,12 +38,6 @@ public class LicenseType extends BaseEntity<String> implements Serializable {
     @Size(max = 255)
     private String description;
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 1")
-    private int duration_days;
-
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 5")
-    private int max_seats;
-
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean is_trial = false;
 }

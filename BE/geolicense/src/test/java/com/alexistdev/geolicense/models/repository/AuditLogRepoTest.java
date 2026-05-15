@@ -114,8 +114,6 @@ public class AuditLogRepoTest {
 
         LicenseType licenseType = new LicenseType();
         licenseType.setName("Test Type");
-        licenseType.setDuration_days(30);
-        licenseType.setMax_seats(1);
         licenseType.setCreatedBy(SYSTEM_USER);
         licenseType.setModifiedBy(SYSTEM_USER);
         licenseType.setCreatedDate(new Date());
