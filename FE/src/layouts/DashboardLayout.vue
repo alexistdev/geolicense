@@ -36,6 +36,8 @@ const mapIcon = (bxIcon: string) => {
   if (bxIcon.includes('bx-cog')) return 'settings'
   if (bxIcon.includes('bx-box') || bxIcon.includes('bx-archive')) return 'inventory_2'
   if (bxIcon.includes('bx-shield')) return 'verified_user'
+  if (bxIcon.includes('bx-headphone')) return 'support_agent'
+  if (bxIcon.includes('bx-store')) return 'store'
   return 'circle'
 }
 
