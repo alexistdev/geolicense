@@ -253,4 +253,96 @@ public class OrderItemTest {
         OrderItem newItem = new OrderItem();
         Assertions.assertFalse(newItem.getDeleted(), "isDeleted should default to false");
     }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Test OrderItem not equal to null")
+    void testNotEqualToNull() {
+        Assertions.assertNotEquals(null, orderItem, "OrderItem should not be equal to null");
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Test OrderItem not equal to different type")
+    void testNotEqualToDifferentType() {
+        Object differentType = "string";
+        Assertions.assertNotEquals(differentType, orderItem, "OrderItem should not be equal to a different type");
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Test OrderItem with null id has consistent hashCode")
+    void testNullIdHashCode() {
+        OrderItem item1 = new OrderItem();
+        OrderItem item2 = new OrderItem();
+
+        Assertions.assertEquals(item1.hashCode(), item2.hashCode(),
+                "Two OrderItems with null id should have equal hashCodes");
+        Assertions.assertEquals(item1, item2,
+                "Two OrderItems with null id should be equal");
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Test quantity field type is int")
+    void testQuantityFieldType() {
+        try {
+            Field field = OrderItem.class.getDeclaredField("quantity");
+            field.setAccessible(true);
+            Assertions.assertEquals(int.class, field.getType());
+        } catch (Exception e) {
+            Assertions.fail("quantity should be of type int");
+        }
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. Test unitPrice field type is double")
+    void testUnitPriceFieldType() {
+        try {
+            Field field = OrderItem.class.getDeclaredField("unitPrice");
+            field.setAccessible(true);
+            Assertions.assertEquals(double.class, field.getType());
+        } catch (Exception e) {
+            Assertions.fail("unitPrice should be of type double");
+        }
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. Test totalPrice field type is double")
+    void testTotalPriceFieldType() {
+        try {
+            Field field = OrderItem.class.getDeclaredField("totalPrice");
+            field.setAccessible(true);
+            Assertions.assertEquals(double.class, field.getType());
+        } catch (Exception e) {
+            Assertions.fail("totalPrice should be of type double");
+        }
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. Test audit fields are set correctly")
+    void testAuditFields() {
+        Date now = new Date();
+        orderItem.setCreatedDate(now);
+        orderItem.setModifiedDate(now);
+
+        Assertions.assertEquals(now, orderItem.getCreatedDate());
+        Assertions.assertEquals(now, orderItem.getModifiedDate());
+        Assertions.assertEquals("System", orderItem.getCreatedBy());
+        Assertions.assertEquals("System", orderItem.getModifiedBy());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. Test isDeleted can be toggled")
+    void testIsDeletedToggle() {
+        orderItem.setDeleted(true);
+        Assertions.assertTrue(orderItem.getDeleted(), "isDeleted should be true after setting");
+
+        orderItem.setDeleted(false);
+        Assertions.assertFalse(orderItem.getDeleted(), "isDeleted should be false after resetting");
+    }
 }
