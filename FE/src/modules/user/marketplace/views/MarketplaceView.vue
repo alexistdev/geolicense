@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import marketplaceService from '@/modules/user/marketplace/services/marketplace.service.ts'
 import type { ProductItem } from '@/modules/user/marketplace/models/marketplace.response.ts'
+
+const router = useRouter()
 
 const items = ref<ProductItem[]>([])
 const loading = ref(false)
@@ -74,7 +77,8 @@ onMounted(async () => {
         <div
           v-for="item in items"
           :key="item.productId"
-          class="bg-surface rounded-xl p-6 flex flex-col h-full group relative overflow-hidden transition-all duration-300 hover:bg-surface-container"
+          class="bg-surface rounded-xl p-6 flex flex-col h-full group relative overflow-hidden transition-all duration-300 hover:bg-surface-container cursor-pointer"
+          @click="router.push({ name: 'user-marketplace-detail', params: { productId: item.productId } })"
         >
           <div
             class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"

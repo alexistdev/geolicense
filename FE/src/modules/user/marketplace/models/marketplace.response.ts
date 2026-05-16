@@ -8,3 +8,23 @@ export interface ProductItem {
   totalPlans: number
   hasTrial: boolean
 }
+
+export interface ProductPlan {
+  planId: string
+  planName: string
+  licenseType: string
+  price: number
+  currency: string
+  billingCycle: string
+  durationDays: number
+  maxSeats: number
+  trial: boolean
+}
+
+export interface ProductDetail {
+  productId: string
+  name: string
+  version: string
+  description: string
+  plans: ProductPlan[]
+}
