@@ -10,8 +10,16 @@ package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.response.MarketplaceProductProjection;
 import com.alexistdev.geolicense.dto.response.MarketplaceProductResponse;
+import com.alexistdev.geolicense.dto.response.ProductDetailResponse;
+import com.alexistdev.geolicense.dto.response.ProductPlanResponse;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.MarketplaceMapper;
+import com.alexistdev.geolicense.models.entity.LicensePlan;
+import com.alexistdev.geolicense.models.entity.LicenseType;
+import com.alexistdev.geolicense.models.entity.Product;
+import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.MarketplaceRepo;
+import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +30,7 @@ import org.springframework.data.domain.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -32,6 +41,12 @@ public class MarketplaceServiceTest {
 
     @Mock
     private MarketplaceRepo marketplaceRepo;
+
+    @Mock
+    private ProductRepo productRepo;
+
+    @Mock
+    private LicensePlanRepo licensePlanRepo;
 
     @SuppressWarnings("unused")
     @Mock
@@ -146,5 +161,111 @@ public class MarketplaceServiceTest {
         Assertions.assertEquals(1, result.getNumber());
         Assertions.assertEquals(5, result.getSize());
         Assertions.assertEquals(2, result.getTotalPages());
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("5. Should return full product detail with plans when product exists")
+    void getProductDetail_WhenProductExists_ShouldReturnDetailWithPlans() {
+        UUID productUUID = UUID.randomUUID();
+        UUID planUUID = UUID.randomUUID();
+
+        LicenseType mockLicenseType = mock(LicenseType.class);
+        when(mockLicenseType.getName()).thenReturn("STANDARD");
+        when(mockLicenseType.is_trial()).thenReturn(false);
+
+        LicensePlan mockPlan = mock(LicensePlan.class);
+        when(mockPlan.getId()).thenReturn(planUUID);
+        when(mockPlan.getName()).thenReturn("Monthly");
+        when(mockPlan.getLicenseType()).thenReturn(mockLicenseType);
+        when(mockPlan.getPrice()).thenReturn(9.99);
+        when(mockPlan.getCurrency()).thenReturn("USD");
+        when(mockPlan.getBillingCycle()).thenReturn("MONTHLY");
+        when(mockPlan.getDuration_days()).thenReturn(30);
+        when(mockPlan.getMax_seats()).thenReturn(5);
+
+        Product mockProduct = mock(Product.class);
+        when(mockProduct.getId()).thenReturn(productUUID);
+        when(mockProduct.getName()).thenReturn("Test Product");
+        when(mockProduct.getVersion()).thenReturn("1.0.0");
+        when(mockProduct.getDescription()).thenReturn("A description");
+
+        when(productRepo.findByProductId(productUUID)).thenReturn(Optional.of(mockProduct));
+        when(licensePlanRepo.findAllActivePlansByProductId(productUUID)).thenReturn(List.of(mockPlan));
+
+        ProductDetailResponse result = marketplaceService.getProductDetail(productUUID.toString());
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(productUUID.toString(), result.getProductId());
+        Assertions.assertEquals("Test Product", result.getName());
+        Assertions.assertEquals("1.0.0", result.getVersion());
+        Assertions.assertEquals("A description", result.getDescription());
+        Assertions.assertEquals(1, result.getPlans().size());
+
+        ProductPlanResponse plan = result.getPlans().getFirst();
+        Assertions.assertEquals(planUUID.toString(), plan.getPlanId());
+        Assertions.assertEquals("Monthly", plan.getPlanName());
+        Assertions.assertEquals("STANDARD", plan.getLicenseType());
+        Assertions.assertEquals(9.99, plan.getPrice(), 0.001);
+        Assertions.assertEquals("USD", plan.getCurrency());
+        Assertions.assertEquals("MONTHLY", plan.getBillingCycle());
+        Assertions.assertEquals(30, plan.getDurationDays());
+        Assertions.assertEquals(5, plan.getMaxSeats());
+        Assertions.assertFalse(plan.isTrial());
+
+        verify(productRepo, times(1)).findByProductId(productUUID);
+        verify(licensePlanRepo, times(1)).findAllActivePlansByProductId(productUUID);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Should return empty plans list when product has no active plans")
+    void getProductDetail_WhenProductHasNoPlans_ShouldReturnEmptyPlansList() {
+        UUID productUUID = UUID.randomUUID();
+
+        Product mockProduct = mock(Product.class);
+        when(mockProduct.getId()).thenReturn(productUUID);
+        when(mockProduct.getName()).thenReturn("Test Product");
+        when(mockProduct.getVersion()).thenReturn("1.0.0");
+        when(mockProduct.getDescription()).thenReturn("A description");
+
+        when(productRepo.findByProductId(productUUID)).thenReturn(Optional.of(mockProduct));
+        when(licensePlanRepo.findAllActivePlansByProductId(productUUID)).thenReturn(Collections.emptyList());
+
+        ProductDetailResponse result = marketplaceService.getProductDetail(productUUID.toString());
+
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.getPlans().isEmpty());
+
+        verify(productRepo, times(1)).findByProductId(productUUID);
+        verify(licensePlanRepo, times(1)).findAllActivePlansByProductId(productUUID);
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Should throw NotFoundException when product does not exist")
+    void getProductDetail_WhenProductNotFound_ShouldThrowNotFoundException() {
+        UUID productUUID = UUID.randomUUID();
+        String productIdStr = productUUID.toString();
+
+        when(productRepo.findByProductId(productUUID)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage("marketplace.product.notfound", productIdStr))
+                .thenReturn("Product not found: " + productIdStr);
+
+        Assertions.assertThrows(NotFoundException.class,
+                () -> marketplaceService.getProductDetail(productIdStr));
+
+        verify(productRepo, times(1)).findByProductId(productUUID);
+        verify(licensePlanRepo, never()).findAllActivePlansByProductId(any());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Should throw IllegalArgumentException when product ID is not a valid UUID")
+    void getProductDetail_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> marketplaceService.getProductDetail("not-a-valid-uuid"));
+
+        verify(productRepo, never()).findByProductId(any());
     }
 }

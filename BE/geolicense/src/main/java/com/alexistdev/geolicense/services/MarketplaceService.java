@@ -10,8 +10,15 @@ package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.response.MarketplaceProductProjection;
 import com.alexistdev.geolicense.dto.response.MarketplaceProductResponse;
+import com.alexistdev.geolicense.dto.response.ProductDetailResponse;
+import com.alexistdev.geolicense.dto.response.ProductPlanResponse;
+import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.MarketplaceMapper;
+import com.alexistdev.geolicense.models.entity.LicensePlan;
+import com.alexistdev.geolicense.models.entity.Product;
+import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.MarketplaceRepo;
+import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,22 +28,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true)
 public class MarketplaceService {
 
     private final MarketplaceRepo marketplaceRepo;
+    private final ProductRepo productRepo;
+    private final LicensePlanRepo licensePlanRepo;
     private final MessagesUtils messagesUtils;
     private final MarketplaceMapper marketplaceMapper;
 
-    public MarketplaceService(MarketplaceRepo marketplaceRepo, MessagesUtils messagesUtils, MarketplaceMapper marketplaceMapper) {
+    public MarketplaceService(MarketplaceRepo marketplaceRepo, ProductRepo productRepo, LicensePlanRepo licensePlanRepo, MessagesUtils messagesUtils, MarketplaceMapper marketplaceMapper) {
         this.marketplaceRepo = marketplaceRepo;
+        this.productRepo = productRepo;
+        this.licensePlanRepo = licensePlanRepo;
         this.messagesUtils = messagesUtils;
         this.marketplaceMapper = marketplaceMapper;
     }
 
-    @Transactional(readOnly = true)
     public Page<MarketplaceProductResponse> getAllMarketplaceProducts(Pageable pageable){
         if (log.isDebugEnabled()) {
             log.debug(messagesUtils.getMessage("marketplace.fetch.products", String.valueOf(pageable.getPageNumber())));
@@ -52,6 +65,50 @@ public class MarketplaceService {
                 .toList();
 
         return new PageImpl<>(result, pageResult.getPageable(), pageResult.getTotalElements());
+    }
+
+    public ProductDetailResponse getProductDetail(String productId){
+        if (log.isDebugEnabled()) {
+            log.debug(messagesUtils.getMessage("marketplace.fetch.product-detail", productId));
+        }
+        UUID productUUID = UUID.fromString(productId);
+        Product product = productRepo.findByProductId(productUUID)
+                .orElseThrow(()->{
+                    String messageError = messagesUtils.getMessage("marketplace.product.notfound", productId);
+                    log.warn(messageError);
+                    return new NotFoundException(messageError);
+                });
+
+        List<LicensePlan> plans = licensePlanRepo.findAllActivePlansByProductId(productUUID);
+        List<ProductPlanResponse> productPlans = plans.stream()
+                .map(this::mapToPlanResponse)
+                .toList();
+
+        return ProductDetailResponse.builder()
+            .productId(product.getId().toString())
+                .name(product.getName())
+                .version(product.getVersion())
+                .description(product.getDescription())
+                .plans(productPlans)
+                .build();
+
+    }
+
+    private ProductPlanResponse mapToPlanResponse(
+            LicensePlan plan
+    ) {
+
+        return ProductPlanResponse.builder()
+                .planId(plan.getId().toString())
+                .planName(plan.getName())
+                .licenseType(plan.getLicenseType().getName())
+                .price(plan.getPrice())
+                .currency(plan.getCurrency())
+                .billingCycle(plan.getBillingCycle())
+                .durationDays(plan.getDuration_days())
+                .maxSeats(plan.getMax_seats())
+                .trial(plan.getLicenseType().is_trial())
+                .build();
     }
 
 }
