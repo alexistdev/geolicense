@@ -1,27 +1,20 @@
 
-export interface LicenseTypeItem {
+export interface LicensePlanItem {
   id: string
+  productId: string
   name: string
-  description: string
+  billingCycle: string
   durationDays: number
   maxSeats: number
-  isTrial: boolean
-}
-
-export interface ProductItem {
-  id: string
-  name: string
-  version: string
-  description: string
-  sku: string
+  price: number
+  currency: string
   isActive: boolean
 }
 
 export interface LicenseItem {
   id: string
   userId: string
-  licenseType: LicenseTypeItem
-  product: ProductItem
+  licensePlan: LicensePlanItem
   licenseKey: string
   issuedAt: string
   expiresAt: string

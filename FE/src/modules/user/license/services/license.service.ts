@@ -7,6 +7,7 @@ const BASE_PATH = '/licenses'
 export interface LicensePageParams {
   page: number
   size: number
+
   sortBy: string
   direction: 'asc' | 'desc'
 }

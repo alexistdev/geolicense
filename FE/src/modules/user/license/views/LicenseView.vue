@@ -85,7 +85,7 @@ function isExpired(expiresAt: string): boolean {
 
 function licenseStatus(item: LicenseItem): { label: string; cls: string } {
   if (isExpired(item.expiresAt)) return { label: 'Expired', cls: 'bg-error/10 text-error' }
-  if (item.licenseType.isTrial) return { label: 'Trial', cls: 'bg-secondary-container/30 text-secondary' }
+  if (item.licensePlan.billingCycle?.toUpperCase() === 'TRIAL') return { label: 'Trial', cls: 'bg-secondary-container/30 text-secondary' }
   return { label: 'Active', cls: 'bg-primary/10 text-primary' }
 }
 
@@ -157,8 +157,8 @@ onMounted(() => fetchLicenses(0))
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-surface-container-lowest/30">
-                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Product</th>
-                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">License Type</th>
+                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Plan</th>
+                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Pricing</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">License Key</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant text-right">Expiration</th>
@@ -199,17 +199,17 @@ onMounted(() => fetchLicenses(0))
                 <td class="px-6 py-5">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center text-primary font-bold uppercase">
-                      {{ item.product.name.charAt(0) }}
+                      {{ item.licensePlan.name.charAt(0) }}
                     </div>
                     <div>
-                      <p class="text-sm font-bold text-white">{{ item.product.name }}</p>
-                      <p class="text-[0.65rem] text-on-surface-variant uppercase tracking-tighter">v{{ item.product.version }}</p>
+                      <p class="text-sm font-bold text-white">{{ item.licensePlan.name }}</p>
+                      <p class="text-[0.65rem] text-on-surface-variant uppercase tracking-tighter">{{ item.licensePlan.billingCycle }}</p>
                     </div>
                   </div>
                 </td>
                 <td class="px-6 py-5">
-                  <span class="text-sm text-on-surface">{{ item.licenseType.name }}</span>
-                  <p class="text-[0.65rem] text-on-surface-variant mt-0.5">{{ item.licenseType.maxSeats }} unit · {{ item.licenseType.durationDays }}d</p>
+                  <span class="text-sm text-on-surface">{{ item.licensePlan.currency }} {{ item.licensePlan.price.toLocaleString() }}</span>
+                  <p class="text-[0.65rem] text-on-surface-variant mt-0.5">{{ item.licensePlan.maxSeats }} seat · {{ item.licensePlan.durationDays }}d</p>
                 </td>
                 <td class="px-6 py-5 font-mono text-[0.7rem] text-on-surface-variant">
                   <div class="flex items-center gap-2">

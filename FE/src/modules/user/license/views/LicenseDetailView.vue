@@ -60,7 +60,7 @@ const daysRemaining = computed(() => {
 
 const progressPercent = computed(() => {
   if (!license.value) return 0
-  const total = license.value.licenseType.durationDays
+  const total = license.value.licensePlan.durationDays
   if (total <= 0) return 100
   const elapsed = total - daysRemaining.value
   return Math.min(100, Math.round((elapsed / total) * 100))
@@ -71,19 +71,19 @@ const isExpired = computed(() => daysRemaining.value === 0)
 const statusLabel = computed(() => {
   if (!license.value) return ''
   if (isExpired.value) return 'EXPIRED'
-  if (license.value.licenseType.isTrial) return 'TRIAL'
+  if (license.value.licensePlan.billingCycle?.toUpperCase() === 'TRIAL') return 'TRIAL'
   return 'ACTIVE'
 })
 
 const statusCls = computed(() => {
   if (isExpired.value) return 'bg-error/10 text-error border border-error/20'
-  if (license.value?.licenseType.isTrial) return 'bg-secondary-container text-on-secondary-container'
+  if (license.value?.licensePlan.billingCycle?.toUpperCase() === 'TRIAL') return 'bg-secondary-container text-on-secondary-container'
   return 'bg-primary/10 text-primary border border-primary/20'
 })
 
 const instanceLimit = computed(() => {
   if (!license.value) return '—'
-  return license.value.licenseType.maxSeats === 0 ? 'Unlimited' : String(license.value.licenseType.maxSeats)
+  return license.value.licensePlan.maxSeats === 0 ? 'Unlimited' : String(license.value.licensePlan.maxSeats)
 })
 
 async function copyKey() {
@@ -146,7 +146,7 @@ onMounted(() => fetchDetail())
               :class="statusCls"
             >{{ statusLabel }}</span>
             <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[0.6875rem] font-bold tracking-widest">
-              {{ license.licenseType.name.toUpperCase() }}
+              {{ license.licensePlan.name.toUpperCase() }}
             </span>
           </div>
         </div>
@@ -219,16 +219,16 @@ onMounted(() => fetchDetail())
           <div class="grid grid-cols-2 gap-y-10">
             <div>
               <p class="text-[0.625rem] text-on-surface-variant font-bold uppercase tracking-widest mb-1">
-                Product Name
+                Plan Name
               </p>
-              <p class="text-lg font-bold text-on-surface">{{ license.product.name }}</p>
-              <p class="text-xs text-on-surface-variant">v{{ license.product.version }}</p>
+              <p class="text-lg font-bold text-on-surface">{{ license.licensePlan.name }}</p>
+              <p class="text-xs text-on-surface-variant">{{ license.licensePlan.billingCycle }}</p>
             </div>
             <div>
               <p class="text-[0.625rem] text-on-surface-variant font-bold uppercase tracking-widest mb-1">
-                License Type
+                Price
               </p>
-              <p class="text-lg font-bold text-on-surface">{{ license.licenseType.name }}</p>
+              <p class="text-lg font-bold text-on-surface">{{ license.licensePlan.currency }} {{ license.licensePlan.price.toLocaleString() }}</p>
             </div>
             <div>
               <p class="text-[0.625rem] text-on-surface-variant font-bold uppercase tracking-widest mb-1">
@@ -250,14 +250,14 @@ onMounted(() => fetchDetail())
               </p>
               <div class="flex items-center gap-2">
                 <p class="text-lg font-bold text-on-surface">{{ instanceLimit }}</p>
-                <span v-if="license.licenseType.maxSeats === 0" class="material-symbols-outlined text-primary text-sm">all_inclusive</span>
+                <span v-if="license.licensePlan.maxSeats === 0" class="material-symbols-outlined text-primary text-sm">all_inclusive</span>
               </div>
             </div>
             <div>
               <p class="text-[0.625rem] text-on-surface-variant font-bold uppercase tracking-widest mb-1">
-                Description
+                Duration
               </p>
-              <p class="text-sm font-medium text-on-surface">{{ license.licenseType.description || '—' }}</p>
+              <p class="text-sm font-medium text-on-surface">{{ license.licensePlan.durationDays }} days</p>
             </div>
           </div>
         </div>

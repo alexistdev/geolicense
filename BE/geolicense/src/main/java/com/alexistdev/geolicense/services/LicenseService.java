@@ -23,7 +23,6 @@ import com.alexistdev.geolicense.models.entity.LicensePlan;
 import com.alexistdev.geolicense.models.entity.OrderItem;
 import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.entity.User;
-import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -42,7 +41,6 @@ import java.util.logging.Logger;
 public class LicenseService {
 
     private final LicenseRepo licenseRepo;
-    private final LicensePlanRepo licensePlanRepo;
     private final OrderItemRepo orderItemRepo;
     private final UserService userService;
     private final LicensePlanService licensePlanService;
@@ -53,7 +51,6 @@ public class LicenseService {
     private static final String SYSTEM_USER = "System";
 
     public LicenseService(LicenseRepo licenseRepo,
-                          LicensePlanRepo licensePlanRepo,
                           OrderItemRepo orderItemRepo,
                           MessagesUtils messagesUtils,
                           UserService userService,
@@ -61,7 +58,6 @@ public class LicenseService {
                           LicenseTokenService licenseTokenService,
                           LicensePlanMapper licensePlanMapper) {
         this.licenseRepo = licenseRepo;
-        this.licensePlanRepo = licensePlanRepo;
         this.orderItemRepo = orderItemRepo;
         this.messagesUtils = messagesUtils;
         this.userService = userService;

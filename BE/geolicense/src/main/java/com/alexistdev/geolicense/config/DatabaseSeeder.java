@@ -61,11 +61,11 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedProducts();
         seedLicensePlans();
         seedOrderFlow();
-//        seedMenuAdmin();
-//        seedMenuUser();
-//        seedChildAdmin();
-//        seedChildUser();
-//        seedRoleMenus();
+        seedMenuAdmin();
+        seedMenuUser();
+        seedChildAdmin();
+        seedChildUser();
+        seedRoleMenus();
         log.info("END: Database seeded");
     }
 

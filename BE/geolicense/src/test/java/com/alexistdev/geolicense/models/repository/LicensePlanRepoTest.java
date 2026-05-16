@@ -79,24 +79,27 @@ public class LicensePlanRepoTest {
     }
 
     private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted) {
+        return createLicensePlan(name, licenseType, product, deleted, true, 9.99);
+    }
+
+    private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted, boolean active, double price) {
         LicensePlan lp = new LicensePlan();
         lp.setName(name);
         lp.setBillingCycle("MONTHLY");
         lp.setDuration_days(30);
         lp.setMax_seats(100);
-        lp.setPrice(9.99);
+        lp.setPrice(price);
         lp.setCurrency("USD");
         lp.setProduct(product);
         lp.setLicenseType(licenseType);
         lp.setCreatedBy(SYSTEM_USER);
         lp.setModifiedBy(SYSTEM_USER);
         lp.setDeleted(deleted);
+        lp.setActive(active);
         lp.setCreatedDate(new Date());
         lp.setModifiedDate(new Date());
         return lp;
     }
-
-    // ── save ───────────────────────────────────────────────────────────────────
 
     @Test
     @Order(1)
@@ -118,8 +121,6 @@ public class LicensePlanRepoTest {
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
-
-    // ── findById ───────────────────────────────────────────────────────────────
 
     @Test
     @Order(2)
@@ -177,8 +178,6 @@ public class LicensePlanRepoTest {
         Assertions.assertTrue(result.stream().anyMatch(lp -> lp.getName().equals("Premium Plan")));
         Assertions.assertTrue(result.stream().anyMatch(lp -> lp.getName().equals("Starter Plan")));
     }
-
-    // ── soft delete ────────────────────────────────────────────────────────────
 
     @Test
     @Order(7)
@@ -265,5 +264,74 @@ public class LicensePlanRepoTest {
     @DisplayName("14. Should return false for a non-existent ID")
     void testExistsById_notFound() {
         Assertions.assertFalse(licensePlanRepo.existsById(UUID.randomUUID()));
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Should return only active plans for a given product")
+    void testFindAllActivePlansByProductId_returnsActivePlans() {
+        entityManager.persist(createLicensePlan("Inactive Plan", testLicenseType, testProduct, false, false, 5.00));
+        entityManager.persist(createLicensePlan("Active Cheap Plan", testLicenseType, testProduct, false, true, 4.99));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<LicensePlan> result = licensePlanRepo.findAllActivePlansByProductId(testProduct.getId());
+
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertTrue(result.stream().allMatch(LicensePlan::isActive));
+        Assertions.assertFalse(result.stream().anyMatch(lp -> lp.getName().equals("Inactive Plan")));
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Should return plans ordered by price ascending")
+    void testFindAllActivePlansByProductId_orderedByPriceAsc() {
+        entityManager.persist(createLicensePlan("Expensive Plan", testLicenseType, testProduct, false, true, 99.99));
+        entityManager.persist(createLicensePlan("Cheap Plan", testLicenseType, testProduct, false, true, 1.99));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<LicensePlan> result = licensePlanRepo.findAllActivePlansByProductId(testProduct.getId());
+
+        Assertions.assertTrue(result.size() >= 2);
+        for (int i = 0; i < result.size() - 1; i++) {
+            Assertions.assertTrue(result.get(i).getPrice() <= result.get(i + 1).getPrice());
+        }
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Should exclude soft-deleted plans from active plans query")
+    void testFindAllActivePlansByProductId_excludesDeleted() {
+        entityManager.persist(createLicensePlan("Deleted Active Plan", testLicenseType, testProduct, true, true, 3.00));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<LicensePlan> result = licensePlanRepo.findAllActivePlansByProductId(testProduct.getId());
+
+        Assertions.assertFalse(result.stream().anyMatch(lp -> lp.getName().equals("Deleted Active Plan")));
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. Should return empty list when product has no active plans")
+    void testFindAllActivePlansByProductId_noActivePlans() {
+        Product otherProduct = entityManager.persist(createProduct());
+        entityManager.persist(createLicensePlan("Inactive Only", testLicenseType, otherProduct, false, false, 9.99));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<LicensePlan> result = licensePlanRepo.findAllActivePlansByProductId(otherProduct.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. Should return empty list for a non-existent product ID")
+    void testFindAllActivePlansByProductId_unknownProductId() {
+        List<LicensePlan> result = licensePlanRepo.findAllActivePlansByProductId(UUID.randomUUID());
+
+        Assertions.assertTrue(result.isEmpty());
     }
 }
