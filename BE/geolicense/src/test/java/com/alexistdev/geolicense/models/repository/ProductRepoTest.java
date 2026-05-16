@@ -34,18 +34,19 @@ public class ProductRepoTest {
     private static final String SYSTEM_USER = "System";
 
     private Product product1;
+    private Product deletedProduct;
 
     @BeforeEach
     void setUp() {
         product1 = createProduct("Product 1", "SKU-1", "1.0", "Description 1");
         Product product2 = createProduct("Product 2", "SKU-2", "2.0", "Description 2");
 
-        Product product3 = createProduct("Product 3", "SKU-3", "1.5", "Description 3");
-        product3.setDeleted(true);
+        deletedProduct = createProduct("Product 3", "SKU-3", "1.5", "Description 3");
+        deletedProduct.setDeleted(true);
 
         entityManager.persist(product1);
         entityManager.persist(product2);
-        entityManager.persist(product3);
+        entityManager.persist(deletedProduct);
         entityManager.flush();
     }
 
@@ -121,12 +122,10 @@ public class ProductRepoTest {
     @Order(4)
     @DisplayName("4. Should find a product by its ID")
     void testFindByProductId() {
-        Pageable pageable = PageRequest.of(0, 10);
+        Optional<Product> result = productRepo.findByProductId(product1.getId());
 
-        Page<Product> result = productRepo.findByProductId(product1.getId(), pageable);
-
-        Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(product1.getId(), result.getContent().getFirst().getId());
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals(product1.getId(), result.get().getId());
     }
 
     @Test
@@ -146,5 +145,36 @@ public class ProductRepoTest {
         Optional<Product> notFound = productRepo.findByNameIncludingDeleted("NonExistentProduct");
 
         Assertions.assertFalse(notFound.isPresent());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Should return empty when finding a deleted product by ID")
+    void testFindByProductId_WhenDeleted_ShouldReturnEmpty() {
+        Optional<Product> result = productRepo.findByProductId(deletedProduct.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Should exclude deleted products from filter results")
+    void testFindByFilter_ShouldExcludeDeleted() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<Product> results = productRepo.findByFilter("Product 3", pageable);
+
+        Assertions.assertTrue(results.isEmpty());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Should match multiple products with a partial keyword")
+    void testFindByFilter_PartialKeyword() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<Product> results = productRepo.findByFilter("Product", pageable);
+
+        Assertions.assertEquals(2, results.getTotalElements());
     }
 }
