@@ -21,13 +21,13 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MarketplaceProductResponse {
 
-    private UUID productId;
+    private String productId;
 
     private String productName;
 
-    private String version;
-
     private String description;
+
+    private String version;
 
     private double startingPrice;
 
