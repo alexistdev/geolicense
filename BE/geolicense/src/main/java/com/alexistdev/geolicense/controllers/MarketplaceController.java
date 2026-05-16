@@ -10,8 +10,10 @@ package com.alexistdev.geolicense.controllers;
 
 import com.alexistdev.geolicense.dto.ResponseData;
 import com.alexistdev.geolicense.dto.response.MarketplaceProductResponse;
+import com.alexistdev.geolicense.dto.response.ProductDetailResponse;
 import com.alexistdev.geolicense.services.MarketplaceService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,10 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -37,10 +36,21 @@ public class MarketplaceController {
         this.messagesUtils = messagesUtils;
     }
 
+    @GetMapping("/products/{productId}")
+    public ResponseEntity<ResponseData<ProductDetailResponse>> getProductDetail(
+            @PathVariable String productId
+    ) {
+        ResponseData<ProductDetailResponse> responseData = new ResponseData<>();
+        responseData.setPayload(marketplaceService.getProductDetail(productId));
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("marketplace.controller.product.found"));
+        return ResponseEntity.ok(responseData);
+    }
+
     @GetMapping("/products")
     public ResponseEntity<ResponseData<Page<MarketplaceProductResponse>>> getAllMarketplaceProducts(
             @RequestParam(defaultValue = "0") @PositiveOrZero int page,
-            @RequestParam(defaultValue = "12") @PositiveOrZero int size,
+            @RequestParam(defaultValue = "12") @Min(1) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
@@ -61,27 +71,20 @@ public class MarketplaceController {
             productResponsePage = marketplaceService.getAllMarketplaceProducts(fallbackPageable);
         }
 
-        String msgNoProduct = messagesUtils.getMessage("marketplace.controller.noproduct");
-        responseData.getMessages().add(msgNoProduct);
-        log.info("{}", msgNoProduct);
-        responseData.setStatus(false);
-
-        handleNonEmptyPage(responseData, productResponsePage, page + 1);
-        responseData.setPayload(productResponsePage);
-
-        String msgResult = messagesUtils.getMessage("marketplace.found.products");
-        log.info("{} total={}, page={}/{}", msgResult, productResponsePage.getNumberOfElements(), page + 1, productResponsePage.getTotalPages());
-        return ResponseEntity.ok(responseData);
-    }
-
-    private <T> void handleNonEmptyPage(ResponseData<Page<T>> responseData, Page<?> pageResult, int pageNumber) {
-        if (!pageResult.isEmpty()) {
+        if (productResponsePage.isEmpty()) {
+            String msgNoProduct = messagesUtils.getMessage("marketplace.controller.noproduct");
+            responseData.getMessages().add(msgNoProduct);
+            responseData.setStatus(false);
+            log.info("{}", msgNoProduct);
+        } else {
+            String msgFound = messagesUtils.getMessage("marketplace.found.products", String.valueOf(productResponsePage.getTotalElements()));
+            responseData.getMessages().add(msgFound);
             responseData.setStatus(true);
-            if (!responseData.getMessages().isEmpty()) {
-                responseData.getMessages().removeFirst();
-            }
-            responseData.getMessages().add("Retrieved page " + pageNumber + " of products");
+            log.info("{} total={}, page={}/{}", msgFound, productResponsePage.getNumberOfElements(), page + 1, productResponsePage.getTotalPages());
         }
+
+        responseData.setPayload(productResponsePage);
+        return ResponseEntity.ok(responseData);
     }
 
 }

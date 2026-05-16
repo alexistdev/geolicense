@@ -23,12 +23,13 @@ import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -55,8 +56,19 @@ public class MarketplaceService {
             log.debug(messagesUtils.getMessage("marketplace.fetch.products", String.valueOf(pageable.getPageNumber())));
         }
 
-        Page<MarketplaceProductProjection> pageResult =
-                marketplaceRepo.findMarketplaceProducts(pageable);
+        Page<MarketplaceProductProjection> pageResult;
+        try {
+            pageResult = marketplaceRepo.findMarketplaceProducts(pageable);
+        } catch (RuntimeException e) {
+            log.warn("{} sortBy={}, reason={}",
+                    messagesUtils.getMessage("marketplace.controller.sort.fallback"),
+                    pageable.getSort(), e.getMessage());
+            Sort.Direction direction = pageable.getSort().isSorted()
+                    ? pageable.getSort().iterator().next().getDirection()
+                    : Sort.Direction.ASC;
+            pageResult = marketplaceRepo.findMarketplaceProducts(
+                    PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, "id")));
+        }
         log.info(messagesUtils.getMessage("marketplace.found.products", String.valueOf(pageResult.getTotalElements())));
 
         List<MarketplaceProductResponse> result = pageResult.getContent()
