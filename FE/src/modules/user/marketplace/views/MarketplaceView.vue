@@ -13,8 +13,8 @@ onMounted(async () => {
   try {
     const response = await marketplaceService.getAll({
       page: 0,
-      size: 20,
-      sortBy: 'name',
+      size: 12,
+      sortBy: 'createdAt',
       direction: 'asc',
     })
     items.value = response.payload.content
@@ -73,7 +73,7 @@ onMounted(async () => {
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="item in items"
-          :key="item.id"
+          :key="item.productId"
           class="bg-surface rounded-xl p-6 flex flex-col h-full group relative overflow-hidden transition-all duration-300 hover:bg-surface-container"
         >
           <div
@@ -92,27 +92,35 @@ onMounted(async () => {
 
           <!-- Name -->
           <h3 class="font-display text-2xl font-bold text-on-surface mb-3 tracking-tight">
-            {{ item.name }}
+            {{ item.productName }}
           </h3>
 
           <!-- Badges -->
           <div class="flex items-center gap-2 mb-4 flex-wrap">
             <span
-              v-if="!item.active"
-              class="font-label text-label-sm uppercase tracking-widest text-error bg-error/10 px-2 py-1 rounded"
-            >Inactive</span>
-            <span
               class="font-label text-label-sm uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded"
             >v{{ item.version }}</span>
             <span
+              v-if="item.hasTrial"
+              class="font-label text-label-sm uppercase tracking-widest text-tertiary bg-tertiary/10 px-2 py-1 rounded"
+            >Trial</span>
+            <span
               class="font-label text-label-sm uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded"
-            >{{ item.sku }}</span>
+            >{{ item.totalPlans }} plan{{ item.totalPlans !== 1 ? 's' : '' }}</span>
           </div>
 
           <!-- Description -->
-          <p class="font-body text-body-md text-on-surface-variant mb-8 flex-1">
+          <p class="font-body text-body-md text-on-surface-variant mb-6 flex-1">
             {{ item.description }}
           </p>
+
+          <!-- Pricing -->
+          <div class="mb-6">
+            <span class="font-display text-2xl font-bold text-on-surface">
+              {{ item.currency }} {{ item.startingPrice.toLocaleString() }}
+            </span>
+            <span class="font-body text-body-sm text-on-surface-variant ml-1">starting price</span>
+          </div>
 
           <button
             class="w-full py-3 px-4 rounded-lg border border-outline-variant/20 text-primary font-bold hover:bg-surface-container-high transition-colors mt-auto flex items-center justify-center gap-2"

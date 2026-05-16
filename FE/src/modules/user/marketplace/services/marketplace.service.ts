@@ -3,7 +3,7 @@ import type { PageResponse } from '@/modules/shared/models/page.response.ts'
 import type { ProductItem } from '@/modules/user/marketplace/models/marketplace.response.ts'
 import apiClient from '@/modules/shared/api/api.client.ts'
 
-const BASE_PATH = '/products'
+const BASE_PATH = '/marketplace/products'
 
 export interface CatalogPageParams {
   id?: string

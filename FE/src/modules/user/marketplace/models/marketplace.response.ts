@@ -1,8 +1,10 @@
 export interface ProductItem {
-  id: string
-  name: string
-  version: string
+  productId: string
+  productName: string
   description: string
-  sku: string
-  active: boolean
+  version: string
+  startingPrice: number
+  currency: string
+  totalPlans: number
+  hasTrial: boolean
 }
