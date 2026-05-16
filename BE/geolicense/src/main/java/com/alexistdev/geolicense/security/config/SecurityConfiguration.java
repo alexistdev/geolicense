@@ -59,6 +59,8 @@ public class SecurityConfiguration {
                                 "/api/v1/licenses/user/*").hasAuthority(Role.USER.toString())
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/licenses/*/user/*").hasAuthority(Role.USER.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/marketplace/products").hasAuthority(Role.USER.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
