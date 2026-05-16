@@ -30,7 +30,7 @@ public class ProductService {
 
     private final ProductRepo productRepo;
     private final MessagesUtils messagesUtils;
-    private static final Logger logger = Logger.getLogger(LicenseTypeService.class.getName());
+    private static final Logger logger = Logger.getLogger(ProductService.class.getName());
     private static final String SYSTEM_USER = "System";
 
     public ProductService(ProductRepo productRepo, MessagesUtils messagesUtils) {
@@ -73,7 +73,7 @@ public class ProductService {
 
     public ProductResponse updateProduct(ProductRequest request, String id) {
         UUID productId = UUID.fromString(id);
-        Product existingProduct = productRepo.findByProductIdAndIsDeletedFalse(productId)
+        Product existingProduct = productRepo.findByProductId(productId)
                 .orElseThrow(() -> new NotFoundException(
                         messagesUtils.getMessage("product.not.found", id)));
 

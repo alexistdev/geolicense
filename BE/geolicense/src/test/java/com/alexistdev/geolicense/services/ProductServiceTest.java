@@ -258,7 +258,7 @@ public class ProductServiceTest {
     @Order(11)
     @DisplayName("11. updateProduct should update and return response when product exists and name is unique")
     void updateProduct_WhenProductExistsAndNameIsUnique_ShouldUpdateAndReturnResponse() {
-        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
         when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.empty());
         when(productRepo.save(any(Product.class))).thenReturn(entity);
 
@@ -271,7 +271,7 @@ public class ProductServiceTest {
         Assertions.assertEquals(request.getVersion(), response.getVersion());
         Assertions.assertEquals(request.getDescription(), response.getDescription());
 
-        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByProductId(productId);
         verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(productRepo, times(1)).save(any(Product.class));
     }
@@ -283,7 +283,7 @@ public class ProductServiceTest {
         String idStr = productId.toString();
         String expectedMessage = "Product " + idStr + " not found";
 
-        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.empty());
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.empty());
         when(messagesUtils.getMessage("product.not.found", idStr)).thenReturn(expectedMessage);
 
         NotFoundException exception = assertThrows(NotFoundException.class,
@@ -291,7 +291,7 @@ public class ProductServiceTest {
 
         Assertions.assertEquals(expectedMessage, exception.getMessage());
 
-        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByProductId(productId);
         verify(productRepo, never()).save(any(Product.class));
     }
 
@@ -304,7 +304,7 @@ public class ProductServiceTest {
         conflictingProduct.setName(request.getName());
         conflictingProduct.setDeleted(false);
 
-        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
         when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.of(conflictingProduct));
 
         String errorMessage = "Product already exists.";
@@ -315,7 +315,7 @@ public class ProductServiceTest {
 
         Assertions.assertEquals(errorMessage, exception.getMessage());
 
-        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByProductId(productId);
         verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(productRepo, never()).save(any(Product.class));
     }
@@ -329,7 +329,7 @@ public class ProductServiceTest {
         deletedConflictingProduct.setName(request.getName());
         deletedConflictingProduct.setDeleted(true);
 
-        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
         when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.of(deletedConflictingProduct));
         when(productRepo.save(any(Product.class))).thenReturn(entity);
 
@@ -339,7 +339,7 @@ public class ProductServiceTest {
         Assertions.assertEquals(productId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
 
-        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByProductId(productId);
         verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(productRepo, times(1)).save(any(Product.class));
     }
@@ -356,7 +356,7 @@ public class ProductServiceTest {
     @Order(16)
     @DisplayName("16. updateProduct should succeed when the name conflict belongs to the same product being updated")
     void updateProduct_WhenNameConflictIsSameProduct_ShouldUpdateAndReturnResponse() {
-        when(productRepo.findByProductIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
         when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.of(entity));
         when(productRepo.save(any(Product.class))).thenReturn(entity);
 
@@ -366,7 +366,7 @@ public class ProductServiceTest {
         Assertions.assertEquals(productId.toString(), response.getId());
         Assertions.assertEquals(request.getName(), response.getName());
 
-        verify(productRepo, times(1)).findByProductIdAndIsDeletedFalse(productId);
+        verify(productRepo, times(1)).findByProductId(productId);
         verify(productRepo, times(1)).findByNameIncludingDeleted(request.getName());
         verify(productRepo, times(1)).save(any(Product.class));
     }
