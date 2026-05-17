@@ -70,6 +70,13 @@ Geolicense is a Java Springboot and Vue Js based software, which is used to mana
 
 With these steps, you'll have the Geolicense application up and running, ready for customization and use.
 
+## Integration Client Guide
+
+| Client | Setup Guide |
+|--------|-------------|
+| Spring Boot | [SETUP.md](CLIENT/SPRINGBOOT%20PLUGIN/SETUP.md) |
+| Laravel | [SETUP.md](CLIENT/LARAVEL/SETUP.md) |
+
 ## Screenshots
 
 #### Administrator Page:
