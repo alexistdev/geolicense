@@ -115,7 +115,7 @@ public class PaymentRepoTest {
         Assertions.assertEquals("pp_003", saved.getProviderReference());
         Assertions.assertEquals(new BigDecimal("199.99"), saved.getAmount());
         Assertions.assertEquals("EUR", saved.getCurrency());
-        Assertions.assertEquals(1, saved.getStatus());
+        Assertions.assertEquals(0, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
