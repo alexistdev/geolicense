@@ -222,8 +222,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         List<LicensePlan> plans = List.of(
-                buildLicensePlan(product, licenseType, "Monthly Premium", "MONTHLY", 30, 5, new BigDecimal("99999.99"), "IDR"),
-                buildLicensePlan(product, licenseType, "Yearly Premium",  "YEARLY",  365, 5, new BigDecimal("999999.99"), "IDR")
+                buildLicensePlan(product, licenseType, "Monthly Premium", "MONTHLY", 30, 5, new BigDecimal("100000"), "IDR"),
+                buildLicensePlan(product, licenseType, "Yearly Premium",  "YEARLY",  365, 5, new BigDecimal("1000000"), "IDR")
         );
         licensePlanRepo.saveAll(plans);
         log.info("END: Seeding license plans");
