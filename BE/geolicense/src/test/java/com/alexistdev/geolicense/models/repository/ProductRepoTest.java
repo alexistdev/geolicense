@@ -158,7 +158,21 @@ public class ProductRepoTest {
 
     @Test
     @Order(7)
-    @DisplayName("7. Should exclude deleted products from filter results")
+    @DisplayName("7. Should return empty when finding an inactive product by ID")
+    void testFindByProductId_WhenInactive_ShouldReturnEmpty() {
+        Product inactiveProduct = createProduct("Product Inactive", "SKU-5", "1.0", "Description Inactive");
+        inactiveProduct.setActive(false);
+        entityManager.persist(inactiveProduct);
+        entityManager.flush();
+
+        Optional<Product> result = productRepo.findByProductId(inactiveProduct.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Should exclude deleted products from filter results")
     void testFindByFilter_ShouldExcludeDeleted() {
         Pageable pageable = PageRequest.of(0, 10);
 
@@ -168,8 +182,8 @@ public class ProductRepoTest {
     }
 
     @Test
-    @Order(8)
-    @DisplayName("8. Should match multiple products with a partial keyword")
+    @Order(10)
+    @DisplayName("10. Should match multiple products with a partial keyword")
     void testFindByFilter_PartialKeyword() {
         Pageable pageable = PageRequest.of(0, 10);
 

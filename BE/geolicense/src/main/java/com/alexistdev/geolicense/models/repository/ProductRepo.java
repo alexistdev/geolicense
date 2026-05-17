@@ -26,7 +26,7 @@ public interface ProductRepo extends JpaRepository<Product, UUID> {
     @Query("SELECT p FROM Product p WHERE p.name LIKE %:keyword% AND p.isDeleted = false")
     Page<Product> findByFilter(@Param("keyword") String keyword, Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.id = :productId AND p.isDeleted = false")
+    @Query("SELECT p FROM Product p WHERE p.id = :productId AND p.isDeleted = false AND p.isActive= true")
     Optional<Product> findByProductId(@Param("productId") UUID productId);
 
     @Query(value = "SELECT * FROM glo_products p WHERE p.name = :name", nativeQuery = true)
