@@ -86,8 +86,8 @@ public class AuthService {
     public AuthLoginResponse authenticate(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
+                        request.email(),
+                        request.password()
                 )
         );
         User user = (User) authentication.getPrincipal();
@@ -96,17 +96,17 @@ public class AuthService {
 
         redisTemplate.opsForValue().set(sessionId, jwtToken, Duration.ofHours(1));
 
-        AuthLoginResponse response = new AuthLoginResponse();
         assert user != null;
-        response.setId(user.getId().toString());
         assert user.getRole() != null;
-        response.setRole(user.getRole().toString());
-        response.setSessionToken(sessionId);
-        response.setFullName(user.getFullName());
         List<MenuResponse> menus = menuService.getMenusByRole(user.getRole());
-        response.setMenus(menus);
-        response.setHomeURL(this.getDefaultHomeURL(user.getRole()));
-        return response;
+        return new AuthLoginResponse(
+                user.getId().toString(),
+                sessionId,
+                user.getFullName(),
+                user.getRole().toString(),
+                menus,
+                this.getDefaultHomeURL(user.getRole())
+        );
     }
 
     private String getDefaultHomeURL(Role role){

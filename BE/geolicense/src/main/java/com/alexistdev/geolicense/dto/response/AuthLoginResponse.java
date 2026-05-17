@@ -1,21 +1,12 @@
 package com.alexistdev.geolicense.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class AuthLoginResponse {
-    private String id;
-    private String sessionToken;
-    private String fullName;
-    private String role;
-    private List<MenuResponse> menus;
-    private String homeURL;
-}
+public record AuthLoginResponse(
+        String id,
+        String sessionToken,
+        String fullName,
+        String role,
+        List<MenuResponse> menus,
+        String homeURL
+) {}
