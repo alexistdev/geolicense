@@ -15,6 +15,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class MenuRepoTest {

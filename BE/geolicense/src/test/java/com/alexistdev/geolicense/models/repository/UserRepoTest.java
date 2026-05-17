@@ -9,6 +9,8 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class UserRepoTest {

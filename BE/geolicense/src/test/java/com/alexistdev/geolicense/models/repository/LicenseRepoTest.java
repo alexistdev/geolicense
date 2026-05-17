@@ -16,6 +16,8 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class LicenseRepoTest {

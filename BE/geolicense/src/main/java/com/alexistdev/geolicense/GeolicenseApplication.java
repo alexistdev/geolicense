@@ -6,12 +6,14 @@ import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
 @SpringBootApplication
+@EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 public class GeolicenseApplication {
 
 	public static void main(String[] args) {
