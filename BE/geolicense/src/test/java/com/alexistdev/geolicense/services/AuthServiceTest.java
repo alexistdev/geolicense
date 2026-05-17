@@ -229,11 +229,11 @@ class AuthServiceTest {
         verify(menuService).getMenusByRole(Role.USER);
 
         Assertions.assertNotNull(response);
-        Assertions.assertNotNull(response.getSessionToken());
-        Assertions.assertEquals(user.getId().toString(), response.getId());
-        Assertions.assertEquals("Alexsander Hendra Wijaya", response.getFullName());
-        Assertions.assertEquals(expectedMenus, response.getMenus());
-        Assertions.assertEquals("/user/dashboard", response.getHomeURL());
+        Assertions.assertNotNull(response.sessionToken());
+        Assertions.assertEquals(user.getId().toString(), response.id());
+        Assertions.assertEquals("Alexsander Hendra Wijaya", response.fullName());
+        Assertions.assertEquals(expectedMenus, response.menus());
+        Assertions.assertEquals("/user/dashboard", response.homeURL());
     }
 
     @Test
@@ -331,11 +331,11 @@ class AuthServiceTest {
         Assertions.assertEquals(generatedJwt, jwtTokenCaptor.getValue());
         Assertions.assertEquals(Duration.ofHours(1), durationCaptor.getValue());
         Assertions.assertNotNull(response);
-        Assertions.assertEquals(sessionIdCaptor.getValue(), response.getSessionToken());
-        Assertions.assertEquals(user.getId().toString(), response.getId());
-        Assertions.assertEquals("Test User", response.getFullName());
-        Assertions.assertEquals(expectedMenus, response.getMenus());
-        Assertions.assertEquals("/user/dashboard", response.getHomeURL());
+        Assertions.assertEquals(sessionIdCaptor.getValue(), response.sessionToken());
+        Assertions.assertEquals(user.getId().toString(), response.id());
+        Assertions.assertEquals("Test User", response.fullName());
+        Assertions.assertEquals(expectedMenus, response.menus());
+        Assertions.assertEquals("/user/dashboard", response.homeURL());
     }
 
     @Test
@@ -364,7 +364,7 @@ class AuthServiceTest {
 
         AuthLoginResponse response = authService.authenticate(loginRequest);
 
-        Assertions.assertEquals("Admin User", response.getFullName());
-        Assertions.assertEquals("/admin/dashboard", response.getHomeURL());
+        Assertions.assertEquals("Admin User", response.fullName());
+        Assertions.assertEquals("/admin/dashboard", response.homeURL());
     }
 }

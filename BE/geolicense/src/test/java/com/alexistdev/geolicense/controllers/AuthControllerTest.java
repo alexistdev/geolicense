@@ -88,11 +88,7 @@ class AuthControllerTest {
 
         validLoginRequest = new LoginRequest("john@example.com", "securePassword123");
 
-        authLoginResponse = AuthLoginResponse.builder()
-                .id("some-uuid")
-                .sessionToken("login-jwt-token")
-                .fullName("John Doe")
-                .build();
+        authLoginResponse = new AuthLoginResponse("some-uuid", "login-jwt-token", "John Doe", null, null, null);
     }
 
     @Test
