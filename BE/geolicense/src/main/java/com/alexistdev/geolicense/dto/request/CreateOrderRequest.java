@@ -17,6 +17,7 @@ public record CreateOrderRequest (
     @NotNull(message = "License plan id is required")
     UUID licensePlanId,
 
+    @NotNull(message = "Quantity is required")
     @Positive(message = "Quantity must be greater than zero")
-    int quantity
+    Integer quantity
 ){}
