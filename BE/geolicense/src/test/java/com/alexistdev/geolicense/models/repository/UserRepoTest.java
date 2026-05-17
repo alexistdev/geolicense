@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.Optional;
+import java.util.UUID;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
@@ -114,5 +115,69 @@ public class UserRepoTest {
         Assertions.assertEquals(3, firstPage.getTotalElements());
         Assertions.assertEquals(2, firstPage.getNumberOfElements());
         Assertions.assertEquals(1, secondPage.getNumberOfElements());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. FindByIdByRoleNotAdminNotSuspended returns user when active non-admin")
+    void findByIdByRoleNotAdminNotSuspendedReturnsActiveNonAdminUser() {
+        User user = createUser("Active User", "activeuser@gmail.com", Role.USER);
+        User saved = persistAndClear(user);
+
+        Optional<User> result = userRepo.findByIdByRoleNotAdminNotSuspended(saved.getId());
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals(saved.getId(), result.get().getId());
+        Assertions.assertFalse(result.get().isSuspended());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. FindByIdByRoleNotAdminNotSuspended returns empty when user is admin")
+    void findByIdByRoleNotAdminNotSuspendedReturnsEmptyForAdmin() {
+        User admin = createUser("Admin User", "adminonly@gmail.com", Role.ADMIN);
+        User saved = persistAndClear(admin);
+
+        Optional<User> result = userRepo.findByIdByRoleNotAdminNotSuspended(saved.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. FindByIdByRoleNotAdminNotSuspended returns empty when user is suspended")
+    void findByIdByRoleNotAdminNotSuspendedReturnsEmptyForSuspended() {
+        User user = createUser("Suspended User", "suspended@gmail.com", Role.USER);
+        user.setSuspended(true);
+        User saved = persistAndClear(user);
+
+        Optional<User> result = userRepo.findByIdByRoleNotAdminNotSuspended(saved.getId());
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. FindByIdByRoleNotAdminNotSuspended returns empty when user is soft deleted")
+    void findByIdByRoleNotAdminNotSuspendedReturnsEmptyForSoftDeleted() {
+        User user = createUser("Deleted Active User", "deletedactive@gmail.com", Role.USER);
+        user.setDeleted(true);
+        entityManager.persist(user);
+        entityManager.flush();
+        UUID savedId = user.getId();
+        entityManager.clear();
+
+        Optional<User> result = userRepo.findByIdByRoleNotAdminNotSuspended(savedId);
+
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. FindByIdByRoleNotAdminNotSuspended returns empty when id does not exist")
+    void findByIdByRoleNotAdminNotSuspendedReturnsEmptyForUnknownId() {
+        Optional<User> result = userRepo.findByIdByRoleNotAdminNotSuspended(UUID.randomUUID());
+
+        Assertions.assertTrue(result.isEmpty());
     }
 }
