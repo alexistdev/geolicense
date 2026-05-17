@@ -195,14 +195,12 @@ class AuthServiceTest {
     @Order(6)
     @DisplayName("6. Test authenticate method returns token for valid credentials")
     void authenticate_shouldReturnToken_whenCredentialsAreValid() {
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("alexistdev@gmail.com");
-        loginRequest.setPassword("password");
+        LoginRequest loginRequest = new LoginRequest("alexistdev@gmail.com", "password");
 
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setFullName("Alexsander Hendra Wijaya");
-        user.setEmail(loginRequest.getEmail());
+        user.setEmail(loginRequest.email());
         user.setPassword("encodedPassword");
         user.setRole(Role.USER);
 
@@ -224,7 +222,7 @@ class AuthServiceTest {
 
         AuthLoginResponse response = authService.authenticate(loginRequest);
         verify(authenticationManager).authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
         );
 
         verify(jwtService).generateToken(user);
@@ -242,9 +240,7 @@ class AuthServiceTest {
     @Order(7)
     @DisplayName("7. Test authenticate method throws exception for invalid credentials")
     void authenticate_shouldThrowException_whenCredentialsAreInvalid() {
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("nonexistent@example.com");
-        loginRequest.setPassword("wrongPassword");
+        LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "wrongPassword");
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Invalid email or password"));
@@ -294,14 +290,12 @@ class AuthServiceTest {
     @Order(10)
     @DisplayName("10. Test authenticate stores JWT in Redis")
     void authenticate_shouldStoreJwtInRedisWhenPresent() {
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("test@gmail.com");
-        loginRequest.setPassword("password");
+        LoginRequest loginRequest = new LoginRequest("test@gmail.com", "password");
 
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setFullName("Test User");
-        user.setEmail(loginRequest.getEmail());
+        user.setEmail(loginRequest.email());
         user.setPassword("encodedPassword");
         user.setRole(Role.USER);
 
@@ -348,14 +342,12 @@ class AuthServiceTest {
     @Order(11)
     @DisplayName("11. Test authenticate sets homeURL based on role")
     void authenticate_shouldSetHomeURLBasedOnRole() {
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("admin@example.com");
-        loginRequest.setPassword("password");
+        LoginRequest loginRequest = new LoginRequest("admin@example.com", "password");
 
         User adminUser = new User();
         adminUser.setId(UUID.randomUUID());
         adminUser.setFullName("Admin User");
-        adminUser.setEmail(loginRequest.getEmail());
+        adminUser.setEmail(loginRequest.email());
         adminUser.setRole(Role.ADMIN);
 
         org.springframework.security.core.Authentication mockAuthentication =
