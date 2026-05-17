@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.dto.response;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record CreateOrderResponse(
@@ -15,7 +16,7 @@ public record CreateOrderResponse(
 
         String orderNumber,
 
-        double totalAmount,
+        BigDecimal totalAmount,
 
         String currency,
 

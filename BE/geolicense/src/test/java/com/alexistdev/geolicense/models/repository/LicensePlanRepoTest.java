@@ -19,6 +19,7 @@ import com.alexistdev.geolicense.config.TestAuditingConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -82,10 +83,10 @@ public class LicensePlanRepoTest {
     }
 
     private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted) {
-        return createLicensePlan(name, licenseType, product, deleted, true, 9.99);
+        return createLicensePlan(name, licenseType, product, deleted, true, new BigDecimal("9.99"));
     }
 
-    private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted, boolean active, double price) {
+    private LicensePlan createLicensePlan(String name, LicenseType licenseType, Product product, boolean deleted, boolean active, BigDecimal price) {
         LicensePlan lp = new LicensePlan();
         lp.setName(name);
         lp.setBillingCycle("MONTHLY");
@@ -118,7 +119,7 @@ public class LicensePlanRepoTest {
         Assertions.assertEquals("MONTHLY", saved.getBillingCycle());
         Assertions.assertEquals(30, saved.getDuration_days());
         Assertions.assertEquals(100, saved.getMax_seats());
-        Assertions.assertEquals(9.99, saved.getPrice());
+        Assertions.assertEquals(new BigDecimal("9.99"), saved.getPrice());
         Assertions.assertEquals("USD", saved.getCurrency());
         Assertions.assertTrue(saved.isActive());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
@@ -236,7 +237,7 @@ public class LicensePlanRepoTest {
     @DisplayName("11. Should persist updated fields on an existing license plan")
     void testUpdate_persistsChanges() {
         testPlan.setName("Updated Plan");
-        testPlan.setPrice(20.0);
+        testPlan.setPrice(new BigDecimal("20.0"));
         licensePlanRepo.save(testPlan);
         entityManager.flush();
         entityManager.clear();
@@ -245,7 +246,7 @@ public class LicensePlanRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals("Updated Plan", result.get().getName());
-        Assertions.assertEquals(20.0, result.get().getPrice());
+        Assertions.assertEquals(0, new BigDecimal("20.0").compareTo(result.get().getPrice()));
     }
 
     @Test
@@ -273,8 +274,8 @@ public class LicensePlanRepoTest {
     @Order(15)
     @DisplayName("15. Should return only active plans for a given product")
     void testFindAllActivePlansByProductId_returnsActivePlans() {
-        entityManager.persist(createLicensePlan("Inactive Plan", testLicenseType, testProduct, false, false, 5.00));
-        entityManager.persist(createLicensePlan("Active Cheap Plan", testLicenseType, testProduct, false, true, 4.99));
+        entityManager.persist(createLicensePlan("Inactive Plan", testLicenseType, testProduct, false, false, new BigDecimal("5.00")));
+        entityManager.persist(createLicensePlan("Active Cheap Plan", testLicenseType, testProduct, false, true, new BigDecimal("4.99")));
         entityManager.flush();
         entityManager.clear();
 
@@ -289,8 +290,8 @@ public class LicensePlanRepoTest {
     @Order(16)
     @DisplayName("16. Should return plans ordered by price ascending")
     void testFindAllActivePlansByProductId_orderedByPriceAsc() {
-        entityManager.persist(createLicensePlan("Expensive Plan", testLicenseType, testProduct, false, true, 99.99));
-        entityManager.persist(createLicensePlan("Cheap Plan", testLicenseType, testProduct, false, true, 1.99));
+        entityManager.persist(createLicensePlan("Expensive Plan", testLicenseType, testProduct, false, true, new BigDecimal("99.99")));
+        entityManager.persist(createLicensePlan("Cheap Plan", testLicenseType, testProduct, false, true, new BigDecimal("1.99")));
         entityManager.flush();
         entityManager.clear();
 
@@ -298,7 +299,7 @@ public class LicensePlanRepoTest {
 
         Assertions.assertTrue(result.size() >= 2);
         for (int i = 0; i < result.size() - 1; i++) {
-            Assertions.assertTrue(result.get(i).getPrice() <= result.get(i + 1).getPrice());
+            Assertions.assertTrue(result.get(i).getPrice().compareTo(result.get(i + 1).getPrice()) <= 0);
         }
     }
 
@@ -306,7 +307,7 @@ public class LicensePlanRepoTest {
     @Order(17)
     @DisplayName("17. Should exclude soft-deleted plans from active plans query")
     void testFindAllActivePlansByProductId_excludesDeleted() {
-        entityManager.persist(createLicensePlan("Deleted Active Plan", testLicenseType, testProduct, true, true, 3.00));
+        entityManager.persist(createLicensePlan("Deleted Active Plan", testLicenseType, testProduct, true, true, new BigDecimal("3.00")));
         entityManager.flush();
         entityManager.clear();
 
@@ -320,7 +321,7 @@ public class LicensePlanRepoTest {
     @DisplayName("18. Should return empty list when product has no active plans")
     void testFindAllActivePlansByProductId_noActivePlans() {
         Product otherProduct = entityManager.persist(createProduct());
-        entityManager.persist(createLicensePlan("Inactive Only", testLicenseType, otherProduct, false, false, 9.99));
+        entityManager.persist(createLicensePlan("Inactive Only", testLicenseType, otherProduct, false, false, new BigDecimal("9.99")));
         entityManager.flush();
         entityManager.clear();
 

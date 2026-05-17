@@ -15,7 +15,6 @@ import com.alexistdev.geolicense.dto.response.UserResponse;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.LicensePlanMapper;
 import com.alexistdev.geolicense.models.entity.*;
-import com.alexistdev.geolicense.models.repository.LicensePlanRepo;
 import com.alexistdev.geolicense.models.repository.LicenseRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
@@ -31,6 +30,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -96,7 +96,7 @@ public class LicenseServiceTest {
         activeLicensePlan.setBillingCycle("MONTHLY");
         activeLicensePlan.setDurationDays(365);
         activeLicensePlan.setMaxSeats(10);
-        activeLicensePlan.setPrice(9.99);
+        activeLicensePlan.setPrice(new BigDecimal("9.99"));
         activeLicensePlan.setCurrency("USD");
         activeLicensePlan.setActive(true);
     }

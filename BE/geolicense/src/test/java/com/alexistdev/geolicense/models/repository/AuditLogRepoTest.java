@@ -17,6 +17,7 @@ import com.alexistdev.geolicense.config.TestAuditingConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
@@ -138,7 +139,7 @@ public class AuditLogRepoTest {
         licensePlan.setBillingCycle("MONTHLY");
         licensePlan.setDuration_days(30);
         licensePlan.setMax_seats(5);
-        licensePlan.setPrice(9.99);
+        licensePlan.setPrice(new BigDecimal("9.99"));
         licensePlan.setCurrency("USD");
         licensePlan.setProduct(product);
         licensePlan.setLicenseType(licenseType);
@@ -163,8 +164,8 @@ public class AuditLogRepoTest {
         orderItem.setOrders(orders);
         orderItem.setLicensePlan(licensePlan);
         orderItem.setQuantity(1);
-        orderItem.setUnitPrice(9.99);
-        orderItem.setTotalPrice(9.99);
+        orderItem.setUnitPrice(new BigDecimal("9.99"));
+        orderItem.setTotalPrice(new BigDecimal("9.99"));
         orderItem.setCreatedBy(SYSTEM_USER);
         orderItem.setModifiedBy(SYSTEM_USER);
         orderItem.setCreatedDate(new Date());

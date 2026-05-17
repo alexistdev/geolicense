@@ -6,6 +6,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
@@ -63,7 +64,7 @@ public class LicenseTest {
         licensePlan.setBillingCycle("MONTHLY");
         licensePlan.setDuration_days(30);
         licensePlan.setMax_seats(5);
-        licensePlan.setPrice(9.99);
+        licensePlan.setPrice(new BigDecimal("9.99"));
         licensePlan.setCurrency("USD");
         licensePlan.setProduct(product);
         licensePlan.setLicenseType(licenseType);

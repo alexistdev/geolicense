@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -74,7 +75,7 @@ public class MarketplaceServiceTest {
                 .productName("Test Product")
                 .description("A test product description")
                 .version("1.0.0")
-                .startingPrice(99.99)
+                .startingPrice(new BigDecimal("99.99"))
                 .currency("USD")
                 .totalPlans(2)
                 .hasTrial(true)
@@ -178,7 +179,7 @@ public class MarketplaceServiceTest {
         when(mockPlan.getId()).thenReturn(planUUID);
         when(mockPlan.getName()).thenReturn("Monthly");
         when(mockPlan.getLicenseType()).thenReturn(mockLicenseType);
-        when(mockPlan.getPrice()).thenReturn(9.99);
+        when(mockPlan.getPrice()).thenReturn(new BigDecimal("9.99"));
         when(mockPlan.getCurrency()).thenReturn("USD");
         when(mockPlan.getBillingCycle()).thenReturn("MONTHLY");
         when(mockPlan.getDuration_days()).thenReturn(30);
@@ -206,7 +207,7 @@ public class MarketplaceServiceTest {
         Assertions.assertEquals(planUUID.toString(), plan.getPlanId());
         Assertions.assertEquals("Monthly", plan.getPlanName());
         Assertions.assertEquals("STANDARD", plan.getLicenseType());
-        Assertions.assertEquals(9.99, plan.getPrice(), 0.001);
+        Assertions.assertEquals(new BigDecimal("9.99"), plan.getPrice());
         Assertions.assertEquals("USD", plan.getCurrency());
         Assertions.assertEquals("MONTHLY", plan.getBillingCycle());
         Assertions.assertEquals(30, plan.getDurationDays());

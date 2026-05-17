@@ -13,6 +13,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -24,7 +26,7 @@ public class LicensePlanResponse {
     private String billingCycle;
     private int durationDays;
     private int maxSeats;
-    private double price;
+    private BigDecimal price;
     private String currency;
     private boolean isActive;
 }

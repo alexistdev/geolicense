@@ -14,6 +14,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
@@ -54,7 +55,7 @@ public class PaymentTest {
         payment.setOrders(orders);
         payment.setProvider("Stripe");
         payment.setProviderReference("pi_3N0x");
-        payment.setAmount(99.99);
+        payment.setAmount(new BigDecimal("99.99"));
         payment.setCurrency("USD");
         payment.setStatus(0);
         payment.setPaidAt(LocalDateTime.now());
@@ -74,7 +75,7 @@ public class PaymentTest {
         Assertions.assertEquals(orders, payment.getOrders());
         Assertions.assertEquals("Stripe", payment.getProvider());
         Assertions.assertEquals("pi_3N0x", payment.getProviderReference());
-        Assertions.assertEquals(99.99, payment.getAmount());
+        Assertions.assertEquals(new BigDecimal("99.99"), payment.getAmount());
         Assertions.assertEquals("USD", payment.getCurrency());
         Assertions.assertEquals(0, payment.getStatus());
         Assertions.assertNotNull(payment.getPaidAt());
@@ -99,7 +100,7 @@ public class PaymentTest {
         newPayment.setOrders(newOrders);
         newPayment.setProvider("PayPal");
         newPayment.setProviderReference("PAYID-XYZ");
-        newPayment.setAmount(199.50);
+        newPayment.setAmount(new BigDecimal("199.50"));
         newPayment.setCurrency("EUR");
         newPayment.setStatus(1);
         newPayment.setPaidAt(newPaidAt);
@@ -108,7 +109,7 @@ public class PaymentTest {
         Assertions.assertEquals(newOrders, newPayment.getOrders());
         Assertions.assertEquals("PayPal", newPayment.getProvider());
         Assertions.assertEquals("PAYID-XYZ", newPayment.getProviderReference());
-        Assertions.assertEquals(199.50, newPayment.getAmount());
+        Assertions.assertEquals(new BigDecimal("199.50"), newPayment.getAmount());
         Assertions.assertEquals("EUR", newPayment.getCurrency());
         Assertions.assertEquals(1, newPayment.getStatus());
         Assertions.assertEquals(newPaidAt, newPayment.getPaidAt());
@@ -266,7 +267,7 @@ public class PaymentTest {
     @DisplayName("15. Test amount defaults to 0")
     void testAmountDefaultsToZero() {
         Payment newPayment = new Payment();
-        Assertions.assertEquals(0.0, newPayment.getAmount(), "amount should default to 0");
+        Assertions.assertNull(newPayment.getAmount(), "amount should default to null");
     }
 
     @Test

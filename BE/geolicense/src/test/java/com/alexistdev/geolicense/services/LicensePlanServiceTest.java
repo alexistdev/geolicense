@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,7 +64,7 @@ public class LicensePlanServiceTest {
         licensePlan.setBillingCycle("MONTHLY");
         licensePlan.setDuration_days(30);
         licensePlan.setMax_seats(5);
-        licensePlan.setPrice(9.99);
+        licensePlan.setPrice(new BigDecimal("9.99"));
         licensePlan.setCurrency("USD");
         licensePlan.setActive(true);
 
@@ -74,7 +75,7 @@ public class LicensePlanServiceTest {
                 .billingCycle("MONTHLY")
                 .durationDays(30)
                 .maxSeats(5)
-                .price(9.99)
+                .price(new BigDecimal("9.99"))
                 .currency("USD")
                 .isActive(true)
                 .build();
@@ -95,7 +96,7 @@ public class LicensePlanServiceTest {
         assertEquals("MONTHLY", result.getBillingCycle());
         assertEquals(30, result.getDurationDays());
         assertEquals(5, result.getMaxSeats());
-        assertEquals(9.99, result.getPrice());
+        assertEquals(new BigDecimal("9.99"), result.getPrice());
         assertEquals("USD", result.getCurrency());
         assertTrue(result.isActive());
 

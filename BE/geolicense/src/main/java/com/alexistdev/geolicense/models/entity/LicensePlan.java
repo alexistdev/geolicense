@@ -19,6 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -64,8 +65,8 @@ public class LicensePlan extends BaseEntity<String> implements Serializable {
     @Column(nullable = false, columnDefinition = "INT DEFAULT 5")
     private int max_seats;
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
-    private double price;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal price;
 
     @NotBlank
     @Size(max = 3)

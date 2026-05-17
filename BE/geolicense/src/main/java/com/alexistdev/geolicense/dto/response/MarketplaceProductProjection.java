@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.dto.response;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public interface MarketplaceProductProjection {
@@ -16,7 +17,7 @@ public interface MarketplaceProductProjection {
     String getProductName();
     String getDescription();
     String getVersion();
-    double getStartingPrice();
+    BigDecimal getStartingPrice();
     String getCurrency();
     Integer getTotalPlans();
     Boolean getHasTrial();

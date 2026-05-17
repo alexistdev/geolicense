@@ -14,6 +14,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,7 +29,7 @@ public class LicensePlanTest {
     private String billingCycle;
     private int durationDays;
     private int maxSeats;
-    private double price;
+    private BigDecimal price;
     private String currency;
     private static Validator validator;
 
@@ -45,7 +46,7 @@ public class LicensePlanTest {
         billingCycle = "MONTHLY";
         durationDays = 30;
         maxSeats = 5;
-        price = 9.99;
+        price = new BigDecimal("9.99");
         currency = "USD";
 
         product = new Product();
@@ -104,7 +105,7 @@ public class LicensePlanTest {
         String newBillingCycle = "ANNUAL";
         int newDurationDays = 365;
         int newMaxSeats = 50;
-        double newPrice = 99.99;
+        BigDecimal newPrice = new BigDecimal("99.99");
         String newCurrency = "EUR";
 
         Product newProduct = new Product();
@@ -295,7 +296,7 @@ public class LicensePlanTest {
         LicensePlan plan2 = new LicensePlan();
         plan2.setId(id);
         plan2.setName("Different Name");
-        plan2.setPrice(999.0);
+        plan2.setPrice(new BigDecimal("999.0"));
 
         Assertions.assertEquals(licensePlan, plan2, "LicensePlans with the same id should be equal");
         Assertions.assertEquals(licensePlan.hashCode(), plan2.hashCode(),

@@ -19,6 +19,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -221,8 +222,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         List<LicensePlan> plans = List.of(
-                buildLicensePlan(product, licenseType, "Monthly Premium", "MONTHLY", 30, 5, 99999.99, "IDR"),
-                buildLicensePlan(product, licenseType, "Yearly Premium",  "YEARLY",  365, 5, 999999.99, "IDR")
+                buildLicensePlan(product, licenseType, "Monthly Premium", "MONTHLY", 30, 5, new BigDecimal("99999.99"), "IDR"),
+                buildLicensePlan(product, licenseType, "Yearly Premium",  "YEARLY",  365, 5, new BigDecimal("999999.99"), "IDR")
         );
         licensePlanRepo.saveAll(plans);
         log.info("END: Seeding license plans");
@@ -231,7 +232,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private LicensePlan buildLicensePlan(
             Product product, LicenseType licenseType,
             String name, String billingCycle,
-            int durationDays, int maxSeats, double price, String currency
+            int durationDays, int maxSeats, BigDecimal price, String currency
     ) {
         LicensePlan plan = new LicensePlan();
         plan.setProduct(product);
@@ -298,7 +299,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         item.setLicensePlan(plan);
         item.setQuantity(quantity);
         item.setUnitPrice(plan.getPrice());
-        item.setTotalPrice(plan.getPrice() * quantity);
+        item.setTotalPrice(plan.getPrice().multiply(BigDecimal.valueOf(quantity)));
         item.setCreatedBy(SYSTEM_USER);
         item.setModifiedBy(SYSTEM_USER);
         item.setCreatedDate(new java.util.Date());
@@ -307,7 +308,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         return item;
     }
 
-    private Payment buildPayment(Orders order, double amount, String currency, String provider, String ref) {
+    private Payment buildPayment(Orders order, BigDecimal amount, String currency, String provider, String ref) {
         Payment payment = new Payment();
         payment.setOrders(order);
         payment.setProvider(provider);
@@ -324,7 +325,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         return payment;
     }
 
-    private Invoice buildInvoice(Orders order, double amount, String currency, String invoiceNumber) {
+    private Invoice buildInvoice(Orders order, BigDecimal amount, String currency, String invoiceNumber) {
         Invoice invoice = new Invoice();
         invoice.setOrders(order);
         invoice.setInvoiceNumber(invoiceNumber);

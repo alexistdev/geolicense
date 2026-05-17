@@ -19,6 +19,7 @@ import com.alexistdev.geolicense.config.TestAuditingConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -51,8 +52,8 @@ public class PaymentRepoTest {
         testOrders = createOrders(testUser);
         entityManager.persist(testOrders);
 
-        testPayment = entityManager.persist(createPayment(testOrders, "Stripe", "pi_001", 99.99, "USD", 1, false));
-        testPaymentDeleted = entityManager.persist(createPayment(testOrders, "Stripe", "pi_002", 49.99, "USD", 1, true));
+        testPayment = entityManager.persist(createPayment(testOrders, "Stripe", "pi_001", new BigDecimal("99.99"), "USD", false));
+        testPaymentDeleted = entityManager.persist(createPayment(testOrders, "Stripe", "pi_002", new BigDecimal("49.99"), "USD", true));
         entityManager.flush();
     }
 
@@ -83,14 +84,14 @@ public class PaymentRepoTest {
     }
 
     private Payment createPayment(Orders orders, String provider, String providerReference,
-                                  double amount, String currency, int status, boolean deleted) {
+                                  BigDecimal amount, String currency, boolean deleted) {
         Payment payment = new Payment();
         payment.setOrders(orders);
         payment.setProvider(provider);
         payment.setProviderReference(providerReference);
         payment.setAmount(amount);
         payment.setCurrency(currency);
-        payment.setStatus(status);
+        payment.setStatus(0);
         payment.setPaidAt(LocalDateTime.now());
         payment.setCreatedBy(SYSTEM_USER);
         payment.setModifiedBy(SYSTEM_USER);
@@ -104,7 +105,7 @@ public class PaymentRepoTest {
     @Order(1)
     @DisplayName("1. Should save a new payment successfully")
     void testSavePayment() {
-        Payment newPayment = createPayment(testOrders, "PayPal", "pp_003", 199.99, "EUR", 1, false);
+        Payment newPayment = createPayment(testOrders, "PayPal", "pp_003", new BigDecimal("199.99"), "EUR", false);
 
         Payment saved = paymentRepo.save(newPayment);
 
@@ -112,7 +113,7 @@ public class PaymentRepoTest {
         Assertions.assertNotNull(saved.getId());
         Assertions.assertEquals("PayPal", saved.getProvider());
         Assertions.assertEquals("pp_003", saved.getProviderReference());
-        Assertions.assertEquals(199.99, saved.getAmount());
+        Assertions.assertEquals(new BigDecimal("199.99"), saved.getAmount());
         Assertions.assertEquals("EUR", saved.getCurrency());
         Assertions.assertEquals(1, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
@@ -128,7 +129,7 @@ public class PaymentRepoTest {
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals("Stripe", result.get().getProvider());
         Assertions.assertEquals("pi_001", result.get().getProviderReference());
-        Assertions.assertEquals(99.99, result.get().getAmount());
+        Assertions.assertEquals(new BigDecimal("99.99"), result.get().getAmount());
         Assertions.assertEquals("USD", result.get().getCurrency());
         Assertions.assertFalse(result.get().getDeleted());
     }
@@ -169,7 +170,7 @@ public class PaymentRepoTest {
     @Order(6)
     @DisplayName("6. Should return all active payments including newly added ones")
     void testFindAll_multipleActivePayments() {
-        entityManager.persist(createPayment(testOrders, "Midtrans", "mt_004", 299.99, "IDR", 1, false));
+        entityManager.persist(createPayment(testOrders, "Midtrans", "mt_004", new BigDecimal("299.99"), "IDR", false));
         entityManager.flush();
 
         List<Payment> result = paymentRepo.findAll();
@@ -220,7 +221,7 @@ public class PaymentRepoTest {
     @Order(10)
     @DisplayName("10. Should reflect updated count after saving a new payment")
     void testCount_afterSave() {
-        paymentRepo.save(createPayment(testOrders, "Stripe", "pi_count", 59.99, "USD", 1, false));
+        paymentRepo.save(createPayment(testOrders, "Stripe", "pi_count", new BigDecimal("59.99"), "USD", false));
         entityManager.flush();
 
         long count = paymentRepo.count();
@@ -232,7 +233,7 @@ public class PaymentRepoTest {
     @Order(11)
     @DisplayName("11. Should persist updated fields on an existing payment")
     void testUpdate_persistsChanges() {
-        testPayment.setAmount(150.00);
+        testPayment.setAmount(new BigDecimal("150.00"));
         testPayment.setStatus(2);
         paymentRepo.save(testPayment);
         entityManager.flush();
@@ -241,7 +242,7 @@ public class PaymentRepoTest {
         Optional<Payment> result = paymentRepo.findById(testPayment.getId());
 
         Assertions.assertTrue(result.isPresent());
-        Assertions.assertEquals(150.00, result.get().getAmount());
+        Assertions.assertEquals(0, new BigDecimal("150.00").compareTo(result.get().getAmount()));
         Assertions.assertEquals(2, result.get().getStatus());
     }
 
