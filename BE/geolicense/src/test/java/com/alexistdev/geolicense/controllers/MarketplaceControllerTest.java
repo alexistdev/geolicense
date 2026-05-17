@@ -32,6 +32,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -68,7 +69,7 @@ public class MarketplaceControllerTest {
                 .planId(UUID.randomUUID().toString())
                 .planName("Monthly Plan")
                 .licenseType("Standard")
-                .price(9.99)
+                .price(new BigDecimal("9.99"))
                 .currency("USD")
                 .billingCycle("MONTHLY")
                 .durationDays(30)
@@ -91,7 +92,7 @@ public class MarketplaceControllerTest {
                 .productName("Test Product")
                 .description("A test product")
                 .version("1.0.0")
-                .startingPrice(9.99)
+                .startingPrice(new BigDecimal("9.99"))
                 .currency("USD")
                 .totalPlans(2)
                 .hasTrial(false)

@@ -14,6 +14,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
@@ -25,8 +26,8 @@ public class OrderItemTest {
     private Orders orders;
     private LicensePlan licensePlan;
     private int quantity;
-    private double unitPrice;
-    private double totalPrice;
+    private BigDecimal unitPrice;
+    private BigDecimal totalPrice;
     private static Validator validator;
 
     @BeforeAll
@@ -39,8 +40,8 @@ public class OrderItemTest {
     void setUp() {
         id = UUID.randomUUID();
         quantity = 2;
-        unitPrice = 9.99;
-        totalPrice = 19.98;
+        unitPrice = new BigDecimal("9.99");
+        totalPrice = new BigDecimal("19.98");
 
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -73,7 +74,7 @@ public class OrderItemTest {
         licensePlan.setBillingCycle("MONTHLY");
         licensePlan.setDuration_days(30);
         licensePlan.setMax_seats(5);
-        licensePlan.setPrice(9.99);
+        licensePlan.setPrice(new BigDecimal("9.99"));
         licensePlan.setCurrency("USD");
 
         orderItem = new OrderItem();
@@ -112,8 +113,8 @@ public class OrderItemTest {
     void testSetData() {
         UUID newId = UUID.randomUUID();
         int newQuantity = 5;
-        double newUnitPrice = 19.99;
-        double newTotalPrice = 99.95;
+        BigDecimal newUnitPrice = new BigDecimal("19.99");
+        BigDecimal newTotalPrice = new BigDecimal("99.95");
 
         Orders newOrders = new Orders();
         newOrders.setId(UUID.randomUUID());
@@ -207,7 +208,7 @@ public class OrderItemTest {
     @DisplayName("9. Test unitPrice defaults to 0.0")
     void testUnitPriceDefaultsToZero() {
         OrderItem newItem = new OrderItem();
-        Assertions.assertEquals(0.0, newItem.getUnitPrice(), "unitPrice should default to 0.0");
+        Assertions.assertNull(newItem.getUnitPrice(), "unitPrice should default to null");
     }
 
     @Test
@@ -215,7 +216,7 @@ public class OrderItemTest {
     @DisplayName("10. Test totalPrice defaults to 0.0")
     void testTotalPriceDefaultsToZero() {
         OrderItem newItem = new OrderItem();
-        Assertions.assertEquals(0.0, newItem.getTotalPrice(), "totalPrice should default to 0.0");
+        Assertions.assertNull(newItem.getTotalPrice(), "totalPrice should default to null");
     }
 
     @Test
@@ -225,7 +226,7 @@ public class OrderItemTest {
         OrderItem item2 = new OrderItem();
         item2.setId(id);
         item2.setQuantity(99);
-        item2.setUnitPrice(999.0);
+        item2.setUnitPrice(new BigDecimal("999.0"));
 
         Assertions.assertEquals(orderItem, item2, "OrderItems with the same id should be equal");
         Assertions.assertEquals(orderItem.hashCode(), item2.hashCode(),
@@ -295,27 +296,27 @@ public class OrderItemTest {
 
     @Test
     @Order(18)
-    @DisplayName("18. Test unitPrice field type is double")
+    @DisplayName("18. Test unitPrice field type is BigDecimal")
     void testUnitPriceFieldType() {
         try {
             Field field = OrderItem.class.getDeclaredField("unitPrice");
             field.setAccessible(true);
-            Assertions.assertEquals(double.class, field.getType());
+            Assertions.assertEquals(BigDecimal.class, field.getType());
         } catch (Exception e) {
-            Assertions.fail("unitPrice should be of type double");
+            Assertions.fail("unitPrice should be of type BigDecimal");
         }
     }
 
     @Test
     @Order(19)
-    @DisplayName("19. Test totalPrice field type is double")
+    @DisplayName("19. Test totalPrice field type is BigDecimal")
     void testTotalPriceFieldType() {
         try {
             Field field = OrderItem.class.getDeclaredField("totalPrice");
             field.setAccessible(true);
-            Assertions.assertEquals(double.class, field.getType());
+            Assertions.assertEquals(BigDecimal.class, field.getType());
         } catch (Exception e) {
-            Assertions.fail("totalPrice should be of type double");
+            Assertions.fail("totalPrice should be of type BigDecimal");
         }
     }
 

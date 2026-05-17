@@ -13,14 +13,18 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class OrderItemRepoTest {
@@ -55,8 +59,8 @@ public class OrderItemRepoTest {
         testOrders = createOrders(testUser);
         entityManager.persist(testOrders);
 
-        testOrderItem = entityManager.persist(createOrderItem(testOrders, testLicensePlan, 1, 9.99, false));
-        testOrderItemDeleted = entityManager.persist(createOrderItem(testOrders, testLicensePlan, 2, 19.98, true));
+        testOrderItem = entityManager.persist(createOrderItem(testOrders, testLicensePlan, 1, new BigDecimal("9.99"), false));
+        testOrderItemDeleted = entityManager.persist(createOrderItem(testOrders, testLicensePlan, 2, new BigDecimal("19.98"), true));
         entityManager.flush();
     }
 
@@ -104,7 +108,7 @@ public class OrderItemRepoTest {
         lp.setBillingCycle("MONTHLY");
         lp.setDuration_days(30);
         lp.setMax_seats(100);
-        lp.setPrice(9.99);
+        lp.setPrice(new BigDecimal("9.99"));
         lp.setCurrency("USD");
         lp.setProduct(product);
         lp.setLicenseType(licenseType);
@@ -129,12 +133,12 @@ public class OrderItemRepoTest {
         return orders;
     }
 
-    private OrderItem createOrderItem(Orders orders, LicensePlan licensePlan, int quantity, double totalPrice, boolean deleted) {
+    private OrderItem createOrderItem(Orders orders, LicensePlan licensePlan, int quantity, BigDecimal totalPrice, boolean deleted) {
         OrderItem oi = new OrderItem();
         oi.setOrders(orders);
         oi.setLicensePlan(licensePlan);
         oi.setQuantity(quantity);
-        oi.setUnitPrice(9.99);
+        oi.setUnitPrice(new BigDecimal("9.99"));
         oi.setTotalPrice(totalPrice);
         oi.setCreatedBy(SYSTEM_USER);
         oi.setModifiedBy(SYSTEM_USER);
@@ -148,15 +152,15 @@ public class OrderItemRepoTest {
     @Order(1)
     @DisplayName("1. Should save a new order item successfully")
     void testSaveOrderItem() {
-        OrderItem newItem = createOrderItem(testOrders, testLicensePlan, 3, 29.97, false);
+        OrderItem newItem = createOrderItem(testOrders, testLicensePlan, 3, new BigDecimal("29.97"), false);
 
         OrderItem saved = orderItemRepo.save(newItem);
 
         Assertions.assertNotNull(saved);
         Assertions.assertNotNull(saved.getId());
         Assertions.assertEquals(3, saved.getQuantity());
-        Assertions.assertEquals(9.99, saved.getUnitPrice());
-        Assertions.assertEquals(29.97, saved.getTotalPrice());
+        Assertions.assertEquals(new BigDecimal("9.99"), saved.getUnitPrice());
+        Assertions.assertEquals(new BigDecimal("29.97"), saved.getTotalPrice());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
@@ -169,7 +173,7 @@ public class OrderItemRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals(1, result.get().getQuantity());
-        Assertions.assertEquals(9.99, result.get().getUnitPrice());
+        Assertions.assertEquals(new BigDecimal("9.99"), result.get().getUnitPrice());
         Assertions.assertFalse(result.get().getDeleted());
     }
 
@@ -202,14 +206,14 @@ public class OrderItemRepoTest {
 
         Assertions.assertEquals(1, result.size());
         Assertions.assertEquals(1, result.getFirst().getQuantity());
-        Assertions.assertFalse(result.stream().anyMatch(oi -> oi.getQuantity() == 2 && oi.getTotalPrice() == 19.98));
+        Assertions.assertFalse(result.stream().anyMatch(oi -> oi.getQuantity() == 2 && oi.getTotalPrice().compareTo(new BigDecimal("19.98")) == 0));
     }
 
     @Test
     @Order(6)
     @DisplayName("6. Should return all active order items including newly added ones")
     void testFindAll_multipleActiveItems() {
-        entityManager.persist(createOrderItem(testOrders, testLicensePlan, 5, 49.95, false));
+        entityManager.persist(createOrderItem(testOrders, testLicensePlan, 5, new BigDecimal("49.95"), false));
         entityManager.flush();
 
         List<OrderItem> result = orderItemRepo.findAll();
@@ -260,7 +264,7 @@ public class OrderItemRepoTest {
     @Order(10)
     @DisplayName("10. Should reflect updated count after saving a new order item")
     void testCount_afterSave() {
-        orderItemRepo.save(createOrderItem(testOrders, testLicensePlan, 4, 39.96, false));
+        orderItemRepo.save(createOrderItem(testOrders, testLicensePlan, 4, new BigDecimal("39.96"), false));
         entityManager.flush();
 
         long count = orderItemRepo.count();
@@ -273,7 +277,7 @@ public class OrderItemRepoTest {
     @DisplayName("11. Should persist updated fields on an existing order item")
     void testUpdate_persistsChanges() {
         testOrderItem.setQuantity(10);
-        testOrderItem.setTotalPrice(100.0);
+        testOrderItem.setTotalPrice(new BigDecimal("100.0"));
         orderItemRepo.save(testOrderItem);
         entityManager.flush();
         entityManager.clear();
@@ -282,7 +286,7 @@ public class OrderItemRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals(10, result.get().getQuantity());
-        Assertions.assertEquals(100.0, result.get().getTotalPrice());
+        Assertions.assertEquals(0, new BigDecimal("100.0").compareTo(result.get().getTotalPrice()));
     }
 
     @Test

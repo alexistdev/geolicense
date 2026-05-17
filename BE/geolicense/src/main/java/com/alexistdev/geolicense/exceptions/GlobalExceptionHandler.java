@@ -31,6 +31,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ResponseData<Void>> handleBadRequest(BadRequestException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        ResponseData<Void> response = new ResponseData<>();
+        response.setStatus(false);
+        response.getMessages().add(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(ExistingException.class)
     public ResponseEntity<ResponseData<Void>> handleConflict(ExistingException ex) {
         log.error("Conflict: {}", ex.getMessage());

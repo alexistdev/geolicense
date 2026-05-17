@@ -15,8 +15,11 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class InvoiceRepoTest {
@@ -48,8 +52,8 @@ public class InvoiceRepoTest {
         testOrders = createOrders(testUser);
         entityManager.persist(testOrders);
 
-        testInvoice = entityManager.persist(createInvoice(testOrders, "INV-001", 99.99, false));
-        testInvoiceDeleted = entityManager.persist(createInvoice(testOrders, "INV-002", 49.99, true));
+        testInvoice = entityManager.persist(createInvoice(testOrders, "INV-001", new BigDecimal("99.99"), false));
+        testInvoiceDeleted = entityManager.persist(createInvoice(testOrders, "INV-002", new BigDecimal("49.99"), true));
         entityManager.flush();
     }
 
@@ -79,7 +83,7 @@ public class InvoiceRepoTest {
         return orders;
     }
 
-    private Invoice createInvoice(Orders orders, String invoiceNumber, double amount, boolean deleted) {
+    private Invoice createInvoice(Orders orders, String invoiceNumber, BigDecimal amount, boolean deleted) {
         Invoice invoice = new Invoice();
         invoice.setOrders(orders);
         invoice.setInvoiceNumber(invoiceNumber);
@@ -99,14 +103,14 @@ public class InvoiceRepoTest {
     @Order(1)
     @DisplayName("1. Should save a new invoice successfully")
     void testSaveInvoice() {
-        Invoice newInvoice = createInvoice(testOrders, "INV-003", 199.99, false);
+        Invoice newInvoice = createInvoice(testOrders, "INV-003", new BigDecimal("199.99"), false);
 
         Invoice saved = invoiceRepo.save(newInvoice);
 
         Assertions.assertNotNull(saved);
         Assertions.assertNotNull(saved.getId());
         Assertions.assertEquals("INV-003", saved.getInvoiceNumber());
-        Assertions.assertEquals(199.99, saved.getAmount());
+        Assertions.assertEquals(new BigDecimal("199.99"), saved.getAmount());
         Assertions.assertEquals("USD", saved.getCurrency());
         Assertions.assertEquals(0, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
@@ -121,7 +125,7 @@ public class InvoiceRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals("INV-001", result.get().getInvoiceNumber());
-        Assertions.assertEquals(99.99, result.get().getAmount());
+        Assertions.assertEquals(new BigDecimal("99.99"), result.get().getAmount());
         Assertions.assertFalse(result.get().getDeleted());
     }
 
@@ -161,7 +165,7 @@ public class InvoiceRepoTest {
     @Order(6)
     @DisplayName("6. Should return all active invoices including newly added ones")
     void testFindAll_multipleActiveInvoices() {
-        entityManager.persist(createInvoice(testOrders, "INV-004", 299.99, false));
+        entityManager.persist(createInvoice(testOrders, "INV-004", new BigDecimal("299.99"), false));
         entityManager.flush();
 
         List<Invoice> result = invoiceRepo.findAll();
@@ -212,7 +216,7 @@ public class InvoiceRepoTest {
     @Order(10)
     @DisplayName("10. Should reflect updated count after saving a new invoice")
     void testCount_afterSave() {
-        invoiceRepo.save(createInvoice(testOrders, "INV-005", 59.99, false));
+        invoiceRepo.save(createInvoice(testOrders, "INV-005", new BigDecimal("59.99"), false));
         entityManager.flush();
 
         long count = invoiceRepo.count();
@@ -224,7 +228,7 @@ public class InvoiceRepoTest {
     @Order(11)
     @DisplayName("11. Should persist updated fields on an existing invoice")
     void testUpdate_persistsChanges() {
-        testInvoice.setAmount(150.00);
+        testInvoice.setAmount(new BigDecimal("150.00"));
         testInvoice.setStatus(1);
         invoiceRepo.save(testInvoice);
         entityManager.flush();
@@ -233,7 +237,7 @@ public class InvoiceRepoTest {
         Optional<Invoice> result = invoiceRepo.findById(testInvoice.getId());
 
         Assertions.assertTrue(result.isPresent());
-        Assertions.assertEquals(150.00, result.get().getAmount());
+        Assertions.assertEquals(0, new BigDecimal("150.00").compareTo(result.get().getAmount()));
         Assertions.assertEquals(1, result.get().getStatus());
     }
 

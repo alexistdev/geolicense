@@ -19,11 +19,15 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class MarketplaceRepoTest {
@@ -46,8 +50,8 @@ public class MarketplaceRepoTest {
 
         activeProduct = persistProduct("Product Alpha", "SKU-A", "1.0", true);
 
-        persistLicensePlan("Basic",    activeProduct, standardType, 10.00, true);
-        persistLicensePlan("Pro",      activeProduct, trialType,    20.00, true);
+        persistLicensePlan("Basic",    activeProduct, standardType, new BigDecimal("10.00"), true);
+        persistLicensePlan("Pro",      activeProduct, trialType,    new BigDecimal("20.00"), true);
 
         entityManager.flush();
         entityManager.clear();
@@ -81,7 +85,7 @@ public class MarketplaceRepoTest {
     }
 
     private void persistLicensePlan(String name, Product product, LicenseType licenseType,
-                                    double price, boolean isActive) {
+                                    BigDecimal price, boolean isActive) {
         LicensePlan lp = new LicensePlan();
         lp.setName(name);
         lp.setBillingCycle("MONTHLY");
@@ -127,7 +131,7 @@ public class MarketplaceRepoTest {
         Page<MarketplaceProductProjection> result = marketplaceRepo.findMarketplaceProducts(pageable);
 
         MarketplaceProductProjection projection = result.getContent().getFirst();
-        Assertions.assertEquals(10.0, projection.getStartingPrice(), 0.001);
+        Assertions.assertEquals(0, new BigDecimal("10.00").compareTo(projection.getStartingPrice()));
         Assertions.assertEquals("USD", projection.getCurrency());
     }
 
@@ -159,7 +163,7 @@ public class MarketplaceRepoTest {
     @DisplayName("5. Should return hasTrial=false when no active plans have a trial license type")
     void testFindMarketplaceProducts_hasTrialFalse() {
         Product noTrialProduct = persistProduct("Product Beta", "SKU-B", "2.0", true);
-        persistLicensePlan("Starter", noTrialProduct, standardType, 5.99, true);
+        persistLicensePlan("Starter", noTrialProduct, standardType, new BigDecimal("5.99"), true);
         entityManager.flush();
         entityManager.clear();
 
@@ -179,7 +183,7 @@ public class MarketplaceRepoTest {
     @DisplayName("6. Should exclude products where isActive=false")
     void testFindMarketplaceProducts_excludesInactiveProduct() {
         Product inactiveProduct = persistProduct("Inactive Product", "SKU-C", "1.0", false);
-        persistLicensePlan("Basic", inactiveProduct, standardType, 4.99, true);
+        persistLicensePlan("Basic", inactiveProduct, standardType, new BigDecimal("4.99"), true);
         entityManager.flush();
         entityManager.clear();
 
@@ -196,7 +200,7 @@ public class MarketplaceRepoTest {
     @DisplayName("7. Should exclude a product when all its plans are inactive")
     void testFindMarketplaceProducts_excludesProductWithNoActivePlans() {
         Product noActivePlansProduct = persistProduct("No Plans Product", "SKU-D", "1.0", true);
-        persistLicensePlan("Disabled", noActivePlansProduct, standardType, 7.99, false);
+        persistLicensePlan("Disabled", noActivePlansProduct, standardType, new BigDecimal("7.99"), false);
         entityManager.flush();
         entityManager.clear();
 
@@ -213,7 +217,7 @@ public class MarketplaceRepoTest {
     @DisplayName("8. Should exclude soft-deleted products")
     void testFindMarketplaceProducts_excludesSoftDeletedProduct() {
         Product deletedProduct = persistProduct("Deleted Product", "SKU-E", "1.0", true);
-        persistLicensePlan("Basic", deletedProduct, standardType, 3.99, true);
+        persistLicensePlan("Basic", deletedProduct, standardType, new BigDecimal("3.99"), true);
         entityManager.flush();
 
         deletedProduct.setDeleted(true);
@@ -233,7 +237,7 @@ public class MarketplaceRepoTest {
     @Order(9)
     @DisplayName("9. Should count only active plans and exclude inactive ones per product")
     void testFindMarketplaceProducts_totalPlansCountExcludesInactivePlans() {
-        persistLicensePlan("Disabled Plan", activeProduct, standardType, 29.99, false);
+        persistLicensePlan("Disabled Plan", activeProduct, standardType, new BigDecimal("29.99"), false);
         entityManager.flush();
         entityManager.clear();
 
@@ -250,8 +254,8 @@ public class MarketplaceRepoTest {
     void testFindMarketplaceProducts_pagination() {
         Product productB = persistProduct("Product B", "SKU-PB", "1.0", true);
         Product productC = persistProduct("Product C", "SKU-PC", "1.0", true);
-        persistLicensePlan("Plan B", productB, standardType, 5.00, true);
-        persistLicensePlan("Plan C", productC, standardType, 8.00, true);
+        persistLicensePlan("Plan B", productB, standardType, new BigDecimal("5.00"), true);
+        persistLicensePlan("Plan C", productC, standardType, new BigDecimal("8.00"), true);
         entityManager.flush();
         entityManager.clear();
 

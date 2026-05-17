@@ -16,14 +16,18 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.alexistdev.geolicense.config.TestAuditingConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
 @DataJpaTest
+@Import(TestAuditingConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 public class LicenseRepoTest {
@@ -115,7 +119,7 @@ public class LicenseRepoTest {
         lp.setBillingCycle("MONTHLY");
         lp.setDuration_days(30);
         lp.setMax_seats(100);
-        lp.setPrice(9.99);
+        lp.setPrice(new BigDecimal("9.99"));
         lp.setCurrency("USD");
         lp.setProduct(product);
         lp.setLicenseType(licenseType);
@@ -145,8 +149,8 @@ public class LicenseRepoTest {
         oi.setOrders(orders);
         oi.setLicensePlan(licensePlan);
         oi.setQuantity(1);
-        oi.setUnitPrice(9.99);
-        oi.setTotalPrice(9.99);
+        oi.setUnitPrice(new BigDecimal("9.99"));
+        oi.setTotalPrice(new BigDecimal("9.99"));
         oi.setCreatedBy(SYSTEM_USER);
         oi.setModifiedBy(SYSTEM_USER);
         oi.setDeleted(false);

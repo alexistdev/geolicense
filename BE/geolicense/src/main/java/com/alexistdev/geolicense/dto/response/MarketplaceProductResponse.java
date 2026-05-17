@@ -13,7 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -29,7 +29,7 @@ public class MarketplaceProductResponse {
 
     private String version;
 
-    private double startingPrice;
+    private BigDecimal startingPrice;
 
     private String currency;
 

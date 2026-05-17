@@ -17,6 +17,7 @@ import lombok.Setter;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -51,10 +52,10 @@ public class OrderItem extends BaseEntity<String> implements Serializable {
     @Column(name="quantity", nullable = false, columnDefinition = "INT DEFAULT 0")
     private int quantity;
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
-    private double unitPrice;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal unitPrice;
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
-    private double totalPrice;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal totalPrice;
 
 }

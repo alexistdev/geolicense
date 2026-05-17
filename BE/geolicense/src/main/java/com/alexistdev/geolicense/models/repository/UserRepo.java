@@ -15,9 +15,16 @@ public interface UserRepo extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
 
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.role != Role.ADMIN AND u.isSuspended = false")
+    Optional<User> findByIdByRoleNotAdminNotSuspended(@Param("id") UUID id);
+
+    @Query("SELECT u FROM User u WHERE u.email = :email AND u.role != Role.ADMIN AND u.isSuspended = false")
+    Optional<User> findByEmailByRoleNotAdminNotSuspended(@Param("email") String email);
+
     @Query("SELECT u FROM User u WHERE u.role != :role")
     Page<User> findByRoleNot(@Param("role") Role role, Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE (LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND u.role != com.alexistdev.geolicense.models.entity.Role.ADMIN")
     Page<User> findByFilter(@Param("keyword") String keyword, Pageable pageable);
+
 }

@@ -14,6 +14,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
@@ -53,7 +54,7 @@ public class InvoiceTest {
         invoice.setId(id);
         invoice.setOrders(orders);
         invoice.setInvoiceNumber("INV-2026-001");
-        invoice.setAmount(99.99);
+        invoice.setAmount(new BigDecimal("99.99"));
         invoice.setCurrency("USD");
         invoice.setStatus(0);
         invoice.setIssuedAt(LocalDateTime.now());
@@ -72,7 +73,7 @@ public class InvoiceTest {
         Assertions.assertEquals(id, invoice.getId());
         Assertions.assertEquals(orders, invoice.getOrders());
         Assertions.assertEquals("INV-2026-001", invoice.getInvoiceNumber());
-        Assertions.assertEquals(99.99, invoice.getAmount());
+        Assertions.assertEquals(new BigDecimal("99.99"), invoice.getAmount());
         Assertions.assertEquals("USD", invoice.getCurrency());
         Assertions.assertEquals(0, invoice.getStatus());
         Assertions.assertNotNull(invoice.getIssuedAt());
@@ -96,7 +97,7 @@ public class InvoiceTest {
         newInvoice.setId(newId);
         newInvoice.setOrders(newOrders);
         newInvoice.setInvoiceNumber("INV-2026-999");
-        newInvoice.setAmount(299.00);
+        newInvoice.setAmount(new BigDecimal("299.00"));
         newInvoice.setCurrency("EUR");
         newInvoice.setStatus(1);
         newInvoice.setIssuedAt(newIssuedAt);
@@ -104,7 +105,7 @@ public class InvoiceTest {
         Assertions.assertEquals(newId, newInvoice.getId());
         Assertions.assertEquals(newOrders, newInvoice.getOrders());
         Assertions.assertEquals("INV-2026-999", newInvoice.getInvoiceNumber());
-        Assertions.assertEquals(299.00, newInvoice.getAmount());
+        Assertions.assertEquals(new BigDecimal("299.00"), newInvoice.getAmount());
         Assertions.assertEquals("EUR", newInvoice.getCurrency());
         Assertions.assertEquals(1, newInvoice.getStatus());
         Assertions.assertEquals(newIssuedAt, newInvoice.getIssuedAt());
@@ -234,7 +235,7 @@ public class InvoiceTest {
     @DisplayName("13. Test amount defaults to 0")
     void testAmountDefaultsToZero() {
         Invoice newInvoice = new Invoice();
-        Assertions.assertEquals(0.0, newInvoice.getAmount(), "amount should default to 0");
+        Assertions.assertNull(newInvoice.getAmount(), "amount should default to null");
     }
 
     @Test

@@ -12,7 +12,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -21,7 +21,7 @@ public class ProductPlanResponse {
     public String planId;
     public String planName;
     public String licenseType;
-    public double price;
+    public BigDecimal price;
     public String currency;
     public String billingCycle;
     public int durationDays;

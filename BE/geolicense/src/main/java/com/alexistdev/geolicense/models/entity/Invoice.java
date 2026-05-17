@@ -19,6 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -48,8 +49,8 @@ public class Invoice extends BaseEntity<String> implements Serializable {
     @Column(name="invoice_number", nullable = false)
     private String invoiceNumber;
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
-    private double amount;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal amount;
 
     @NotBlank
     @Size(max = 3)
