@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 
 @Slf4j
@@ -114,12 +115,15 @@ public class OrderService {
     private Invoice createInvoice(Orders order, OrderItem item){
         Invoice inv = new Invoice();
         LocalDateTime now = LocalDateTime.now();
+        int uniqueCode = 100 + new Random().nextInt(900);
         inv.setOrders(order);
         inv.setInvoiceNumber(this.generateOrderNumber(PREFIX_INVOICE));
         inv.setAmount(item.getTotalPrice());
         inv.setCurrency(order.getCurrency());
         inv.setStatus(0);
         inv.setIssuedAt(now);
+        inv.setUniqueCode(uniqueCode);
+        inv.setTotalAmount(item.getTotalPrice().add(new BigDecimal(uniqueCode)));
         return inv;
     }
 

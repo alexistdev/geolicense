@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import invoiceService from '@/modules/user/invoice/services/invoice.service.ts'
 import type { InvoiceItem } from '@/modules/user/invoice/models/invoice.response.ts'
 
+const router = useRouter()
 const invoices = ref<InvoiceItem[]>([])
 const loading = ref(false)
 const totalElements = ref(0)
@@ -71,6 +73,10 @@ function formatAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
 }
 
+function formatDate(dateStr: string): string {
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+}
+
 const visiblePages = computed<number[]>(() => {
   const total = totalPages.value
   if (total <= 5) return Array.from({ length: total }, (_, i) => i)
@@ -124,8 +130,9 @@ onMounted(() => fetchInvoices(0))
             <thead>
               <tr class="bg-surface-container-lowest/30">
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Invoice No.</th>
-                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Order ID</th>
+                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Order No.</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Amount</th>
+                <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Issued At</th>
                 <th class="px-6 py-4 text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
               </tr>
             </thead>
@@ -136,28 +143,32 @@ onMounted(() => fetchInvoices(0))
                   <td class="px-6 py-5"><div class="h-3 w-36 rounded bg-surface-variant"></div></td>
                   <td class="px-6 py-5"><div class="h-3 w-48 rounded bg-surface-variant"></div></td>
                   <td class="px-6 py-5"><div class="h-3 w-24 rounded bg-surface-variant"></div></td>
+                  <td class="px-6 py-5"><div class="h-3 w-24 rounded bg-surface-variant"></div></td>
                   <td class="px-6 py-5"><div class="h-5 w-16 rounded-full bg-surface-variant"></div></td>
                 </tr>
               </template>
 
               <!-- Empty state -->
               <tr v-else-if="invoices.length === 0">
-                <td colspan="4" class="px-6 py-16 text-center text-on-surface-variant text-sm">
+                <td colspan="5" class="px-6 py-16 text-center text-on-surface-variant text-sm">
                   <span class="material-symbols-outlined text-4xl block mb-2 opacity-40">receipt_long</span>
                   No invoices found.
                 </td>
               </tr>
 
               <!-- Data rows -->
-              <tr v-else v-for="item in invoices" :key="item.id" class="hover:bg-surface-container-low transition-colors">
+              <tr v-else v-for="item in invoices" :key="item.id" class="hover:bg-surface-container-low transition-colors cursor-pointer" @click="router.push({ name: 'user-invoice-detail', params: { id: item.id } })">
                 <td class="px-6 py-5">
                   <span class="font-mono text-[0.75rem] text-on-surface font-semibold">{{ item.invoiceNumber }}</span>
                 </td>
                 <td class="px-6 py-5">
-                  <span class="font-mono text-[0.7rem] text-on-surface-variant">{{ item.orderId }}</span>
+                  <span class="font-mono text-[0.7rem] text-on-surface-variant">{{ item.orderNumber }}</span>
                 </td>
                 <td class="px-6 py-5">
-                  <span class="text-sm font-bold text-white">{{ formatAmount(item.amount, item.currency) }}</span>
+                  <span class="text-sm font-bold text-white">{{ formatAmount(item.totalAmount, item.currency) }}</span>
+                </td>
+                <td class="px-6 py-5">
+                  <span class="text-sm text-on-surface-variant">{{ formatDate(item.issuedAt) }}</span>
                 </td>
                 <td class="px-6 py-5">
                   <span

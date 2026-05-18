@@ -8,13 +8,17 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
+import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.InvoiceMapper;
 import com.alexistdev.geolicense.models.entity.Invoice;
+import com.alexistdev.geolicense.models.entity.OrderItem;
 import com.alexistdev.geolicense.models.entity.Orders;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.InvoiceRepo;
+import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.models.repository.UserRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
@@ -28,7 +32,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +56,9 @@ public class InvoiceServiceTest {
     private UserRepo userRepo;
 
     @Mock
+    private OrderItemRepo orderItemRepo;
+
+    @Mock
     private MessagesUtils messagesUtils;
 
     @InjectMocks
@@ -58,7 +67,9 @@ public class InvoiceServiceTest {
     private Pageable pageable;
     private Invoice invoice;
     private InvoiceResponse invoiceResponse;
+    private InvoiceDetailResponse invoiceDetailResponse;
     private User user;
+    private Orders orders;
 
     @BeforeEach
     void setUp() {
@@ -68,24 +79,46 @@ public class InvoiceServiceTest {
         user.setId(UUID.randomUUID());
         user.setEmail("user@example.com");
 
-        Orders orders = new Orders();
+        orders = new Orders();
         orders.setId(UUID.randomUUID());
+        orders.setOrderNumber("ORD-2026-001");
 
         invoice = new Invoice();
         invoice.setId(UUID.randomUUID());
         invoice.setOrders(orders);
         invoice.setInvoiceNumber("INV-2026-001");
         invoice.setAmount(new BigDecimal("99.9900"));
+        invoice.setUniqueCode(523);
+        invoice.setTotalAmount(new BigDecimal("622.9900"));
         invoice.setCurrency("USD");
         invoice.setStatus(1);
+        invoice.setIssuedAt(LocalDateTime.now());
 
         invoiceResponse = new InvoiceResponse(
                 invoice.getId(),
-                orders.getId(),
+                orders.getOrderNumber(),
                 "INV-2026-001",
                 new BigDecimal("99.9900"),
+                523,
+                new BigDecimal("622.9900"),
                 "USD",
-                1
+                1,
+                new Date()
+        );
+
+        invoiceDetailResponse = new InvoiceDetailResponse(
+                invoice.getId(),
+                "INV-2026-001",
+                orders.getOrderNumber(),
+                new BigDecimal("99.9900"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                523,
+                new BigDecimal("622.9900"),
+                "USD",
+                1,
+                new Date(),
+                Collections.emptyList()
         );
     }
 
@@ -216,6 +249,79 @@ public class InvoiceServiceTest {
 
         verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(email);
         verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. getInvoiceDetailById - returns invoice detail when user and invoice exist")
+    void getInvoiceDetailById_WhenUserAndInvoiceExist_ShouldReturnInvoiceDetailResponse() {
+        String invoiceId = invoice.getId().toString();
+        List<OrderItem> items = Collections.emptyList();
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId())).thenReturn(Optional.of(invoice));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(items);
+        when(invoiceMapper.toDetailResponse(invoice, items)).thenReturn(invoiceDetailResponse);
+
+        InvoiceDetailResponse result = invoiceService.getInvoiceDetailById(invoiceId, user.getEmail());
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
+        Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
+        Assertions.assertEquals("USD", result.currency());
+        Assertions.assertEquals(1, result.status());
+        Assertions.assertTrue(result.items().isEmpty());
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
+        verify(invoiceRepo, times(1)).findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId());
+        verify(orderItemRepo, times(1)).findByOrdersId(orders.getId());
+        verify(invoiceMapper, times(1)).toDetailResponse(invoice, items);
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. getInvoiceDetailById - throws NotFoundException when user is not found")
+    void getInvoiceDetailById_WhenUserNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        String email = "unknown@example.com";
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(email)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("User not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailById(invoiceId, email));
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(email);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(orderItemRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. getInvoiceDetailById - throws BadRequestException when invoice ID is not a valid UUID")
+    void getInvoiceDetailById_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.getInvoiceDetailById("not-a-uuid", user.getEmail()));
+
+        verifyNoInteractions(userRepo);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("12. getInvoiceDetailById - throws NotFoundException when invoice is not found")
+    void getInvoiceDetailById_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailById(invoiceId, user.getEmail()));
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
+        verify(invoiceRepo, times(1)).findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId());
+        verifyNoInteractions(orderItemRepo);
         verifyNoInteractions(invoiceMapper);
     }
 }

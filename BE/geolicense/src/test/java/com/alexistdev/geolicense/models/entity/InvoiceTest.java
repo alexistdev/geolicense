@@ -55,6 +55,8 @@ public class InvoiceTest {
         invoice.setOrders(orders);
         invoice.setInvoiceNumber("INV-2026-001");
         invoice.setAmount(new BigDecimal("99.99"));
+        invoice.setUniqueCode(523);
+        invoice.setTotalAmount(new BigDecimal("622.99"));
         invoice.setCurrency("USD");
         invoice.setStatus(0);
         invoice.setIssuedAt(LocalDateTime.now());
@@ -74,6 +76,8 @@ public class InvoiceTest {
         Assertions.assertEquals(orders, invoice.getOrders());
         Assertions.assertEquals("INV-2026-001", invoice.getInvoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.99"), invoice.getAmount());
+        Assertions.assertEquals(523, invoice.getUniqueCode());
+        Assertions.assertEquals(new BigDecimal("622.99"), invoice.getTotalAmount());
         Assertions.assertEquals("USD", invoice.getCurrency());
         Assertions.assertEquals(0, invoice.getStatus());
         Assertions.assertNotNull(invoice.getIssuedAt());
@@ -98,6 +102,8 @@ public class InvoiceTest {
         newInvoice.setOrders(newOrders);
         newInvoice.setInvoiceNumber("INV-2026-999");
         newInvoice.setAmount(new BigDecimal("299.00"));
+        newInvoice.setUniqueCode(123);
+        newInvoice.setTotalAmount(new BigDecimal("422.00"));
         newInvoice.setCurrency("EUR");
         newInvoice.setStatus(1);
         newInvoice.setIssuedAt(newIssuedAt);
@@ -106,6 +112,8 @@ public class InvoiceTest {
         Assertions.assertEquals(newOrders, newInvoice.getOrders());
         Assertions.assertEquals("INV-2026-999", newInvoice.getInvoiceNumber());
         Assertions.assertEquals(new BigDecimal("299.00"), newInvoice.getAmount());
+        Assertions.assertEquals(123, newInvoice.getUniqueCode());
+        Assertions.assertEquals(new BigDecimal("422.00"), newInvoice.getTotalAmount());
         Assertions.assertEquals("EUR", newInvoice.getCurrency());
         Assertions.assertEquals(1, newInvoice.getStatus());
         Assertions.assertEquals(newIssuedAt, newInvoice.getIssuedAt());
@@ -224,23 +232,59 @@ public class InvoiceTest {
 
     @Test
     @Order(12)
-    @DisplayName("12. Test status defaults to 0")
+    @DisplayName("12. Test uniqueCode not null validation")
+    void testUniqueCodeNotNullValidation() {
+        invoice.setUniqueCode(null);
+
+        var violations = validator.validate(invoice);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when uniqueCode is null");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("uniqueCode")),
+                "Violation should be on the uniqueCode field"
+        );
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Test totalAmount not null validation")
+    void testTotalAmountNotNullValidation() {
+        invoice.setTotalAmount(null);
+
+        var violations = validator.validate(invoice);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when totalAmount is null");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("totalAmount")),
+                "Violation should be on the totalAmount field"
+        );
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Test status defaults to 0")
     void testStatusDefaultsToZero() {
         Invoice newInvoice = new Invoice();
         Assertions.assertEquals(0, newInvoice.getStatus(), "status should default to 0");
     }
 
     @Test
-    @Order(13)
-    @DisplayName("13. Test amount defaults to 0")
-    void testAmountDefaultsToZero() {
+    @Order(15)
+    @DisplayName("15. Test discount defaults to BigDecimal.ZERO")
+    void testDiscountDefaultsToZero() {
         Invoice newInvoice = new Invoice();
-        Assertions.assertNull(newInvoice.getAmount(), "amount should default to null");
+        Assertions.assertEquals(BigDecimal.ZERO, newInvoice.getDiscount(), "discount should default to ZERO");
     }
 
     @Test
-    @Order(14)
-    @DisplayName("14. Test equals and hashCode based on id")
+    @Order(16)
+    @DisplayName("16. Test tax defaults to BigDecimal.ZERO")
+    void testTaxDefaultsToZero() {
+        Invoice newInvoice = new Invoice();
+        Assertions.assertEquals(BigDecimal.ZERO, newInvoice.getTax(), "tax should default to ZERO");
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Test equals and hashCode based on id")
     void testEqualsAndHashCode() {
         Invoice invoice2 = new Invoice();
         invoice2.setId(id);
@@ -253,8 +297,8 @@ public class InvoiceTest {
     }
 
     @Test
-    @Order(15)
-    @DisplayName("15. Test two Invoices with different ids are not equal")
+    @Order(18)
+    @DisplayName("18. Test two Invoices with different ids are not equal")
     void testNotEqualWithDifferentIds() {
         Invoice invoice2 = new Invoice();
         invoice2.setId(UUID.randomUUID());
@@ -265,8 +309,8 @@ public class InvoiceTest {
     }
 
     @Test
-    @Order(16)
-    @DisplayName("16. Test isDeleted defaults to false")
+    @Order(19)
+    @DisplayName("19. Test isDeleted defaults to false")
     void testIsDeletedDefaultsFalse() {
         Invoice newInvoice = new Invoice();
         Assertions.assertFalse(newInvoice.getDeleted(), "isDeleted should default to false");

@@ -81,11 +81,11 @@ class OrderServiceTest {
 
     // --- helpers ---
 
-    private Orders buildSavedOrder(String orderNumber, String currency) {
+    private Orders buildSavedOrder(String orderNumber) {
         Orders o = new Orders();
         o.setId(UUID.randomUUID());
         o.setOrderNumber(orderNumber);
-        o.setCurrency(currency);
+        o.setCurrency("USD");
         o.setStatus(0);
         return o;
     }
@@ -110,7 +110,7 @@ class OrderServiceTest {
     @Order(1)
     @DisplayName("1. createOrder - should return response with correct fields when request is valid")
     void createOrder_shouldReturnResponse_whenRequestIsValid() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -178,7 +178,7 @@ class OrderServiceTest {
     @Order(5)
     @DisplayName("5. createOrder - should save order with correct user, currency, and pending status")
     void createOrder_shouldSaveOrderWithCorrectFields() {
-        Orders savedOrder = buildSavedOrder("ORD-TESTXX00", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-TESTXX00");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -200,7 +200,7 @@ class OrderServiceTest {
     @Order(6)
     @DisplayName("6. createOrder - should save order item with correct quantity, unit price, and total price")
     void createOrder_shouldSaveOrderItemWithCorrectFields() {
-        Orders savedOrder = buildSavedOrder("ORD-TESTXX00", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-TESTXX00");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -224,7 +224,7 @@ class OrderServiceTest {
         licensePlan.setPrice(new BigDecimal("30.00"));
         CreateOrderRequest threeItemRequest = new CreateOrderRequest(licensePlan.getId(), 3);
 
-        Orders savedOrder = buildSavedOrder("ORD-CALC1200", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-CALC1200");
         OrderItem savedItem = buildSavedItem(new BigDecimal("90.00"));
 
         when(userRepo.findByEmailByRoleNotAdminNotSuspended("test@example.com")).thenReturn(Optional.of(user));
@@ -245,7 +245,7 @@ class OrderServiceTest {
     @Order(8)
     @DisplayName("8. createOrder - should generate unique order numbers on each call")
     void createOrder_shouldGenerateUniqueOrderNumbers() {
-        Orders savedOrder = buildSavedOrder("ORD-UNIQUE01", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-UNIQUE01");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -263,7 +263,7 @@ class OrderServiceTest {
     @Order(9)
     @DisplayName("9. createOrder - should save invoice linked to the created order")
     void createOrder_shouldSaveInvoiceLinkedToOrder() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -277,9 +277,9 @@ class OrderServiceTest {
 
     @Test
     @Order(10)
-    @DisplayName("10. createOrder - should save invoice with correct amount, currency, and pending status")
+    @DisplayName("10. createOrder - should save invoice with correct amount, currency, status, uniqueCode, and totalAmount")
     void createOrder_shouldSaveInvoiceWithCorrectFields() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -293,13 +293,19 @@ class OrderServiceTest {
         assertEquals("USD", capturedInvoice.getCurrency());
         assertEquals(0, capturedInvoice.getStatus());
         assertNotNull(capturedInvoice.getIssuedAt());
+        assertNotNull(capturedInvoice.getUniqueCode());
+        assertTrue(capturedInvoice.getUniqueCode() >= 100 && capturedInvoice.getUniqueCode() <= 999);
+        assertEquals(
+                capturedInvoice.getAmount().add(new BigDecimal(capturedInvoice.getUniqueCode())),
+                capturedInvoice.getTotalAmount()
+        );
     }
 
     @Test
     @Order(11)
     @DisplayName("11. createOrder - should save invoice with INV-prefixed number of correct format")
     void createOrder_shouldSaveInvoiceWithCorrectNumberFormat() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -318,7 +324,7 @@ class OrderServiceTest {
     @Order(12)
     @DisplayName("12. createOrder - should generate unique invoice numbers on each call")
     void createOrder_shouldGenerateUniqueInvoiceNumbers() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -336,7 +342,7 @@ class OrderServiceTest {
     @Order(13)
     @DisplayName("13. createOrder - should persist order, order item, and invoice exactly once per call")
     void createOrder_shouldPersistAllEntitiesExactlyOnce() {
-        Orders savedOrder = buildSavedOrder("ORD-ABCD1234", "USD");
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
         OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
         stubHappyPath(savedOrder, savedItem);
 
@@ -345,5 +351,44 @@ class OrderServiceTest {
         verify(ordersRepo, times(1)).save(any(Orders.class));
         verify(orderItemRepo, times(1)).save(any(OrderItem.class));
         verify(invoiceRepo, times(1)).save(any(Invoice.class));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. createOrder - uniqueCode is always a 3-digit number (100–999)")
+    void createOrder_shouldAlwaysGenerateUniqueCodeInValidRange() {
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
+        OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
+        stubHappyPath(savedOrder, savedItem);
+
+        for (int i = 0; i < 10; i++) {
+            orderService.createOrder(request);
+        }
+
+        ArgumentCaptor<Invoice> invoiceCaptor = ArgumentCaptor.forClass(Invoice.class);
+        verify(invoiceRepo, times(10)).save(invoiceCaptor.capture());
+
+        invoiceCaptor.getAllValues().forEach(inv ->
+                assertTrue(inv.getUniqueCode() >= 100 && inv.getUniqueCode() <= 999,
+                        "uniqueCode should be between 100 and 999, was: " + inv.getUniqueCode())
+        );
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. createOrder - totalAmount equals amount plus uniqueCode")
+    void createOrder_shouldSetTotalAmountAsAmountPlusUniqueCode() {
+        Orders savedOrder = buildSavedOrder("ORD-ABCD1234");
+        OrderItem savedItem = buildSavedItem(new BigDecimal("100.00"));
+        stubHappyPath(savedOrder, savedItem);
+
+        orderService.createOrder(request);
+
+        ArgumentCaptor<Invoice> invoiceCaptor = ArgumentCaptor.forClass(Invoice.class);
+        verify(invoiceRepo).save(invoiceCaptor.capture());
+
+        Invoice capturedInvoice = invoiceCaptor.getValue();
+        BigDecimal expected = capturedInvoice.getAmount().add(new BigDecimal(capturedInvoice.getUniqueCode()));
+        assertEquals(expected, capturedInvoice.getTotalAmount());
     }
 }

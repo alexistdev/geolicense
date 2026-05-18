@@ -9,7 +9,9 @@
 package com.alexistdev.geolicense.controllers;
 
 import com.alexistdev.geolicense.dto.ResponseData;
+import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
+import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.services.InvoiceService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -95,6 +97,22 @@ public class InvoiceController {
         handleNonEmptyPage(responseData, invoicePage, page + 1);
 
         responseData.setPayload(invoicePage);
+        return ResponseEntity.ok(responseData);
+    }
+
+    @GetMapping("/me/")
+    public ResponseEntity<ResponseData<InvoiceResponse>> getMyInvoiceWithEmptyId() {
+        throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", ""));
+    }
+
+    @GetMapping("/me/{invoiceId}")
+    public ResponseEntity<ResponseData<InvoiceDetailResponse>> getMyInvoice(@PathVariable String invoiceId) {
+        String email = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        ResponseData<InvoiceDetailResponse> responseData = new ResponseData<>();
+        responseData.setPayload(invoiceService.getInvoiceDetailById(invoiceId, email));
+        String msgSuccess = messagesUtils.getMessage("invoice.controller.found");
+        responseData.getMessages().add(msgSuccess);
+        responseData.setStatus(true);
         return ResponseEntity.ok(responseData);
     }
 

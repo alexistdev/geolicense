@@ -14,7 +14,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
+import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.services.InvoiceService;
@@ -37,6 +39,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,8 +58,9 @@ public class InvoiceControllerTest {
 
     private MockMvc mockMvc;
 
-    private static final String NO_INVOICE_MESSAGE = "No invoices found";
-    private static final String TEST_USER_EMAIL   = "user@example.com";
+    private static final String NO_INVOICE_MESSAGE    = "No invoices found";
+    private static final String INVOICE_FOUND_MESSAGE = "Invoice retrieved successfully";
+    private static final String TEST_USER_EMAIL       = "user@example.com";
 
     @BeforeEach
     public void setUp() {
@@ -71,9 +75,9 @@ public class InvoiceControllerTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void setUpSecurityContext(String email) {
+    private void setUpSecurityContext() {
         SecurityContext ctx = SecurityContextHolder.createEmptyContext();
-        Authentication auth = new UsernamePasswordAuthenticationToken(email, null);
+        Authentication auth = new UsernamePasswordAuthenticationToken(InvoiceControllerTest.TEST_USER_EMAIL, null);
         ctx.setAuthentication(auth);
         SecurityContextHolder.setContext(ctx);
     }
@@ -81,11 +85,14 @@ public class InvoiceControllerTest {
     private InvoiceResponse buildInvoiceResponse() {
         return new InvoiceResponse(
                 UUID.randomUUID(),
-                UUID.randomUUID(),
+                "ORD-2026-001",
                 "INV-2026-001",
                 new BigDecimal("99.99"),
+                523,
+                new BigDecimal("622.99"),
                 "USD",
-                1
+                1,
+                new Date()
         );
     }
 
@@ -275,8 +282,8 @@ public class InvoiceControllerTest {
     @DisplayName("11. GET /invoices returns correctly mapped response fields")
     public void testGetAllInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-002", new BigDecimal("149.99"), "USD", 1);
+        String orderNumber = "ORD-2026-001";
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), 523, new BigDecimal("672.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoices(any(Pageable.class))).thenReturn(page);
@@ -285,7 +292,7 @@ public class InvoiceControllerTest {
         mockMvc.perform(get("/api/v1/invoices"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.payload.content[0].id").value(invoiceId.toString()))
-                .andExpect(jsonPath("$.payload.content[0].orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.payload.content[0].orderNumber").value(orderNumber))
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-002"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(149.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
@@ -411,8 +418,7 @@ public class InvoiceControllerTest {
     @DisplayName("18. GET /invoices/search returns correctly mapped response fields")
     public void testSearchInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-001", new BigDecimal("99.99"), "USD", 1);
+        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), 523, new BigDecimal("622.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"))).thenReturn(page);
@@ -435,7 +441,7 @@ public class InvoiceControllerTest {
     @Order(19)
     @DisplayName("19. GET /invoices/me with invoices present returns 200 with status true")
     public void testGetMyInvoices_withData_returns200WithStatusTrue() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         InvoiceResponse response = buildInvoiceResponse();
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
@@ -455,7 +461,7 @@ public class InvoiceControllerTest {
     @Order(20)
     @DisplayName("20. GET /invoices/me with empty page returns 200 with status false")
     public void testGetMyInvoices_emptyPage_returns200WithStatusFalse() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         Page<InvoiceResponse> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
 
         when(invoiceService.getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class))).thenReturn(emptyPage);
@@ -473,7 +479,7 @@ public class InvoiceControllerTest {
     @Order(21)
     @DisplayName("21. GET /invoices/me supports pagination and sort params")
     public void testGetMyInvoices_withPaginationParams_passesPageableToService() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         InvoiceResponse response = buildInvoiceResponse();
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 5), 1);
 
@@ -495,7 +501,7 @@ public class InvoiceControllerTest {
     @Order(22)
     @DisplayName("22. GET /invoices/me falls back to id sort when invalid sortBy triggers RuntimeException")
     public void testGetMyInvoices_invalidSortBy_fallsBackToIdSort() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         InvoiceResponse response = buildInvoiceResponse();
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
@@ -515,7 +521,7 @@ public class InvoiceControllerTest {
     @Order(23)
     @DisplayName("23. GET /invoices/me success message contains page number")
     public void testGetMyInvoices_withData_successMessageContainsPageNumber() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         InvoiceResponse response = buildInvoiceResponse();
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
@@ -531,10 +537,10 @@ public class InvoiceControllerTest {
     @Order(24)
     @DisplayName("24. GET /invoices/me returns correctly mapped response fields")
     public void testGetMyInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId   = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-ME-001", new BigDecimal("199.99"), "USD", 1);
+        String orderNumber = "ORD-2026-ME-001";
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), 523, new BigDecimal("722.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class))).thenReturn(page);
@@ -543,7 +549,7 @@ public class InvoiceControllerTest {
         mockMvc.perform(get("/api/v1/invoices/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.payload.content[0].id").value(invoiceId.toString()))
-                .andExpect(jsonPath("$.payload.content[0].orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.payload.content[0].orderNumber").value(orderNumber))
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-ME-001"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(199.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
@@ -554,7 +560,7 @@ public class InvoiceControllerTest {
     @Order(25)
     @DisplayName("25. GET /invoices/me returns 404 when user is not found")
     public void testGetMyInvoices_userNotFound_returns404() throws Exception {
-        setUpSecurityContext(TEST_USER_EMAIL);
+        setUpSecurityContext();
 
         // NotFoundException is a RuntimeException, so the controller's catch block fires and retries
         // with the fallback pageable — both calls throw, giving the handler the 404 to return.
@@ -565,5 +571,107 @@ public class InvoiceControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(invoiceService, times(2)).getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class));
+    }
+
+    // ─── GET /api/v1/invoices/me/{invoiceId} ─────────────────────────────────
+
+    @Test
+    @Order(26)
+    @DisplayName("26. GET /invoices/me/{invoiceId} returns 200 with invoice detail when found")
+    public void testGetMyInvoice_found_returns200WithInvoiceDetail() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+        InvoiceDetailResponse response = new InvoiceDetailResponse(
+                invoiceId, "INV-2026-001", "ORD-2026-001",
+                new BigDecimal("99.99"), BigDecimal.ZERO, BigDecimal.ZERO,
+                523, new BigDecimal("622.99"),
+                "USD", 1, new Date(),
+                Collections.emptyList()
+        );
+
+        when(invoiceService.getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL)).thenReturn(response);
+        when(messagesUtils.getMessage("invoice.controller.found")).thenReturn(INVOICE_FOUND_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/invoices/me/{invoiceId}", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(INVOICE_FOUND_MESSAGE))
+                .andExpect(jsonPath("$.payload.id").value(invoiceId.toString()))
+                .andExpect(jsonPath("$.payload.orderNumber").value("ORD-2026-001"))
+                .andExpect(jsonPath("$.payload.invoiceNumber").value("INV-2026-001"))
+                .andExpect(jsonPath("$.payload.amount").value(99.99))
+                .andExpect(jsonPath("$.payload.discount").value(0))
+                .andExpect(jsonPath("$.payload.tax").value(0))
+                .andExpect(jsonPath("$.payload.uniqueCode").value(523))
+                .andExpect(jsonPath("$.payload.totalAmount").value(622.99))
+                .andExpect(jsonPath("$.payload.currency").value("USD"))
+                .andExpect(jsonPath("$.payload.status").value(1))
+                .andExpect(jsonPath("$.payload.items").isArray());
+
+        verify(invoiceService, times(1)).getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL);
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. GET /invoices/me/{invoiceId} returns 404 when invoice is not found")
+    public void testGetMyInvoice_invoiceNotFound_returns404() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+
+        when(invoiceService.getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL))
+                .thenThrow(new NotFoundException("Invoice " + invoiceId + " not found"));
+
+        mockMvc.perform(get("/api/v1/invoices/me/{invoiceId}", invoiceId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL);
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("28. GET /invoices/me/{invoiceId} returns 404 when user is not found")
+    public void testGetMyInvoice_userNotFound_returns404() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+
+        when(invoiceService.getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL))
+                .thenThrow(new NotFoundException("User not found"));
+
+        mockMvc.perform(get("/api/v1/invoices/me/{invoiceId}", invoiceId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL);
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. GET /invoices/me/ with trailing slash and empty segment returns 400")
+    public void testGetMyInvoice_emptySegment_returns400() throws Exception {
+        setUpSecurityContext();
+        when(messagesUtils.getMessage("invoice.service.invalidid", "")).thenReturn("Invalid invoice ID format: ");
+
+        mockMvc.perform(get("/api/v1/invoices/me/"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verifyNoInteractions(invoiceService);
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. GET /invoices/me/{invoiceId} returns 400 when invoiceId is not a valid UUID")
+    public void testGetMyInvoice_invalidUUID_returns400() throws Exception {
+        setUpSecurityContext();
+
+        when(invoiceService.getInvoiceDetailById("not-a-uuid", TEST_USER_EMAIL))
+                .thenThrow(new BadRequestException("Invalid invoice ID format: not-a-uuid"));
+
+        mockMvc.perform(get("/api/v1/invoices/me/{invoiceId}", "not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).getInvoiceDetailById("not-a-uuid", TEST_USER_EMAIL);
     }
 }
