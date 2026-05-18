@@ -406,4 +406,80 @@ public class InvoiceRepoTest {
 
         Assertions.assertFalse(result.isPresent());
     }
+
+    // ── findByUserId ──────────────────────────────────────────────────────────
+
+    @Test
+    @Order(26)
+    @DisplayName("26. Should return active invoices for the given user ID")
+    void testFindByUserId_returnsActiveInvoices() {
+        UUID userId = testOrders.getUser().getId();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(userId, PageRequest.of(0, 10));
+
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals("INV-001", result.getContent().getFirst().getInvoiceNumber());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. Should exclude soft-deleted invoices when searching by user ID")
+    void testFindByUserId_excludesSoftDeleted() {
+        UUID userId = testOrders.getUser().getId();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(userId, PageRequest.of(0, 10));
+
+        Assertions.assertFalse(result.getContent().stream()
+                .anyMatch(i -> i.getInvoiceNumber().equals("INV-002")));
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("28. Should return empty page for a user with no invoices")
+    void testFindByUserId_noInvoicesForUser() {
+        User anotherUser = new User();
+        anotherUser.setFullName("Other User");
+        anotherUser.setEmail("other@example.com");
+        anotherUser.setPassword("password");
+        anotherUser.setCreatedBy(SYSTEM_USER);
+        anotherUser.setModifiedBy(SYSTEM_USER);
+        anotherUser.setDeleted(false);
+        anotherUser.setCreatedDate(new Date());
+        anotherUser.setModifiedDate(new Date());
+        entityManager.persist(anotherUser);
+        entityManager.flush();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(anotherUser.getId(), PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. Should return empty page for a non-existent user ID")
+    void testFindByUserId_nonExistentUser() {
+        Page<Invoice> result = invoiceRepo.findByUserId(UUID.randomUUID(), PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. Should paginate results correctly in findByUserId")
+    void testFindByUserId_pagination() {
+        UUID userId = testOrders.getUser().getId();
+        entityManager.persist(createInvoice(testOrders, "INV-030", new BigDecimal("10.00"), false));
+        entityManager.persist(createInvoice(testOrders, "INV-031", new BigDecimal("20.00"), false));
+        entityManager.flush();
+
+        Page<Invoice> firstPage  = invoiceRepo.findByUserId(userId, PageRequest.of(0, 2));
+        Page<Invoice> secondPage = invoiceRepo.findByUserId(userId, PageRequest.of(1, 2));
+
+        Assertions.assertEquals(3, firstPage.getTotalElements());
+        Assertions.assertEquals(2, firstPage.getTotalPages());
+        Assertions.assertEquals(2, firstPage.getContent().size());
+        Assertions.assertEquals(1, secondPage.getContent().size());
+    }
 }

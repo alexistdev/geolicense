@@ -26,6 +26,9 @@ public interface InvoiceRepo extends JpaRepository<Invoice, UUID> {
     @Query("SELECT inv FROM Invoice inv WHERE inv.invoiceNumber LIKE %:keyword% AND inv.isDeleted = false")
     Page<Invoice> findByInvoiceNumber(@Param("keyword") String invoiceNumber, Pageable pageable);
 
+    @Query("SELECT inv FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.isDeleted = false")
+    Page<Invoice> findByUserId(@Param("userId") UUID userId, Pageable pageable);
+
     @Query(value = "SELECT * FROM glo_invoices inv WHERE inv.invoice_number = :invoiceNumber", nativeQuery = true)
     Optional<Invoice> findByNameIncludingDeleted(@Param("invoiceNumber") String invoiceNumber);
 
