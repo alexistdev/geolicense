@@ -74,7 +74,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
           Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5","ad6"),
-          Role.USER, List.of("us1", "us2","us3","us4","us5","uc1")
+          Role.USER, List.of("us1", "us2","us3","us4","us5")
         );
 
         List<RoleMenu> roleMenus = roleMenuCode.entrySet().stream().flatMap(
