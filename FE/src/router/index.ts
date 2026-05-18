@@ -10,6 +10,7 @@ import LicenseDetailView from '@/modules/user/license/views/LicenseDetailView.vu
 import MarketplaceView from '@/modules/user/marketplace/views/MarketplaceView.vue'
 import MarketplaceDetailView from '@/modules/user/marketplace/views/MarketplaceDetailView.vue'
 import InvoiceView from '@/modules/user/invoice/views/InvoiceView.vue'
+import InvoiceDetailView from '@/modules/user/invoice/views/InvoiceDetailView.vue'
 
 
 const router = createRouter({
@@ -53,6 +54,11 @@ const router = createRouter({
       path: '/user/invoice',
       name: 'user-invoice',
       component: InvoiceView,
+    },
+    {
+      path: '/user/invoice/:id',
+      name: 'user-invoice-detail',
+      component: InvoiceDetailView,
     },
     {
       path: '/user/marketplace/:productId',

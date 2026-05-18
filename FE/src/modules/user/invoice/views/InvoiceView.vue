@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import invoiceService from '@/modules/user/invoice/services/invoice.service.ts'
 import type { InvoiceItem } from '@/modules/user/invoice/models/invoice.response.ts'
 
+const router = useRouter()
 const invoices = ref<InvoiceItem[]>([])
 const loading = ref(false)
 const totalElements = ref(0)
@@ -155,7 +157,7 @@ onMounted(() => fetchInvoices(0))
               </tr>
 
               <!-- Data rows -->
-              <tr v-else v-for="item in invoices" :key="item.id" class="hover:bg-surface-container-low transition-colors">
+              <tr v-else v-for="item in invoices" :key="item.id" class="hover:bg-surface-container-low transition-colors cursor-pointer" @click="router.push({ name: 'user-invoice-detail', params: { id: item.id } })">
                 <td class="px-6 py-5">
                   <span class="font-mono text-[0.75rem] text-on-surface font-semibold">{{ item.invoiceNumber }}</span>
                 </td>
