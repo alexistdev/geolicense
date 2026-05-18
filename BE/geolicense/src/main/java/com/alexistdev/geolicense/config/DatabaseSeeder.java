@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -327,12 +328,15 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private Invoice buildInvoice(Orders order, BigDecimal amount, String currency, String invoiceNumber) {
         Invoice invoice = new Invoice();
+        int uniqueCode = 100 + new Random().nextInt(900);
         invoice.setOrders(order);
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setAmount(amount);
         invoice.setCurrency(currency);
         invoice.setStatus(1);
         invoice.setIssuedAt(LocalDateTime.now());
+        invoice.setUniqueCode(uniqueCode);
+        invoice.setTotalAmount(amount.add(new BigDecimal(uniqueCode)));
         invoice.setCreatedBy(SYSTEM_USER);
         invoice.setModifiedBy(SYSTEM_USER);
         invoice.setCreatedDate(new java.util.Date());
