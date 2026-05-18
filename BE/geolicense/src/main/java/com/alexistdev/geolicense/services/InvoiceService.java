@@ -20,6 +20,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Slf4j
 @Service
 public class InvoiceService {
@@ -49,5 +51,17 @@ public class InvoiceService {
                 .orElseThrow(() -> new NotFoundException(
                         messagesUtils.getMessage("order.service.usernotfound", email)));
         return invoiceRepo.findByUserId(user.getId(), pageable).map(invoiceMapper::toResponse);
+    }
+
+    public InvoiceResponse getInvoiceDetailById(String InvoiceId, String email) {
+        UUID invoiceId = UUID.fromString(InvoiceId);
+        User user = userRepo.findByEmailByRoleNotAdminNotSuspended(email)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("order.service.usernotfound", email)));
+
+        return invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoiceId)
+                .map(invoiceMapper::toResponse)
+                .orElseThrow(() -> new NotFoundException(
+                        messagesUtils.getMessage("invoice.service.notfound", InvoiceId)));
     }
 }

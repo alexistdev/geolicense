@@ -223,4 +223,58 @@ public class InvoiceServiceTest {
         verifyNoInteractions(invoiceRepo);
         verifyNoInteractions(invoiceMapper);
     }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. getInvoiceDetailById - returns invoice when user and invoice exist")
+    void getInvoiceDetailById_WhenUserAndInvoiceExist_ShouldReturnInvoiceResponse() {
+        String invoiceId = invoice.getId().toString();
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId())).thenReturn(Optional.of(invoice));
+        when(invoiceMapper.toResponse(invoice)).thenReturn(invoiceResponse);
+
+        InvoiceResponse result = invoiceService.getInvoiceDetailById(invoiceId, user.getEmail());
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
+        Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
+        Assertions.assertEquals("USD", result.currency());
+        Assertions.assertEquals(1, result.status());
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
+        verify(invoiceRepo, times(1)).findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId());
+        verify(invoiceMapper, times(1)).toResponse(invoice);
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. getInvoiceDetailById - throws NotFoundException when user is not found")
+    void getInvoiceDetailById_WhenUserNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        String email = "unknown@example.com";
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(email)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("User not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailById(invoiceId, email));
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(email);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("10. getInvoiceDetailById - throws NotFoundException when invoice is not found")
+    void getInvoiceDetailById_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailById(invoiceId, user.getEmail()));
+
+        verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
+        verify(invoiceRepo, times(1)).findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId());
+        verifyNoInteractions(invoiceMapper);
+    }
 }

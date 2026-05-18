@@ -482,4 +482,78 @@ public class InvoiceRepoTest {
         Assertions.assertEquals(2, firstPage.getContent().size());
         Assertions.assertEquals(1, secondPage.getContent().size());
     }
+
+    // ── findByUserIdAndInvoiceIdAndIsDeletedFalse ─────────────────────────────
+
+    @Test
+    @Order(31)
+    @DisplayName("31. Should return invoice when user ID and invoice ID both match an active invoice")
+    void testFindByUserIdAndInvoiceId_found() {
+        UUID userId    = testOrders.getUser().getId();
+        UUID invoiceId = testInvoice.getId();
+
+        Optional<Invoice> result = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(userId, invoiceId);
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("INV-001", result.get().getInvoiceNumber());
+        Assertions.assertFalse(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("32. Should return empty when invoice ID belongs to a different user")
+    void testFindByUserIdAndInvoiceId_wrongUser() {
+        User anotherUser = new User();
+        anotherUser.setFullName("Other User");
+        anotherUser.setEmail("other2@example.com");
+        anotherUser.setPassword("password");
+        anotherUser.setCreatedBy(SYSTEM_USER);
+        anotherUser.setModifiedBy(SYSTEM_USER);
+        anotherUser.setDeleted(false);
+        anotherUser.setCreatedDate(new Date());
+        anotherUser.setModifiedDate(new Date());
+        entityManager.persist(anotherUser);
+        entityManager.flush();
+
+        Optional<Invoice> result = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(
+                anotherUser.getId(), testInvoice.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("33. Should return empty when the matched invoice is soft-deleted")
+    void testFindByUserIdAndInvoiceId_softDeleted() {
+        UUID userId    = testOrders.getUser().getId();
+        UUID invoiceId = testInvoiceDeleted.getId();
+
+        Optional<Invoice> result = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(userId, invoiceId);
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("34. Should return empty for a non-existent invoice ID")
+    void testFindByUserIdAndInvoiceId_nonExistentInvoice() {
+        UUID userId = testOrders.getUser().getId();
+
+        Optional<Invoice> result = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(
+                userId, UUID.randomUUID());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("35. Should return empty for a non-existent user ID")
+    void testFindByUserIdAndInvoiceId_nonExistentUser() {
+        UUID invoiceId = testInvoice.getId();
+
+        Optional<Invoice> result = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(
+                UUID.randomUUID(), invoiceId);
+
+        Assertions.assertFalse(result.isPresent());
+    }
 }

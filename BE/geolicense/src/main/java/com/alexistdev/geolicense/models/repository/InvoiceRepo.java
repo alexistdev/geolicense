@@ -32,4 +32,7 @@ public interface InvoiceRepo extends JpaRepository<Invoice, UUID> {
     @Query(value = "SELECT * FROM glo_invoices inv WHERE inv.invoice_number = :invoiceNumber", nativeQuery = true)
     Optional<Invoice> findByNameIncludingDeleted(@Param("invoiceNumber") String invoiceNumber);
 
+    @Query("SELECT inv FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.id = :invoiceId AND inv.isDeleted = false")
+    Optional<Invoice> findByUserIdAndInvoiceIdAndIsDeletedFalse(@Param("userId") UUID userId, @Param("invoiceId") UUID invoiceId);
+
 }
