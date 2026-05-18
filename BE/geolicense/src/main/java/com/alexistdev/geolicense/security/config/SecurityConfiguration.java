@@ -67,6 +67,10 @@ public class SecurityConfiguration {
                                 "/api/v1/orders").hasAuthority(Role.USER.toString())
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/orders").hasAuthority(Role.USER.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/invoices").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/invoices/me").hasAuthority(Role.USER.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
