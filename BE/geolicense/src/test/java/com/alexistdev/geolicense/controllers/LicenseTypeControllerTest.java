@@ -525,8 +525,8 @@ public class LicenseTypeControllerTest {
 
     @Test
     @Order(24)
-    @DisplayName("24. PATCH /licenses_type with valid payload and id returns 201 CREATED")
-    public void testUpdateLicenseType_validPayload_returns201() throws Exception {
+    @DisplayName("24. PATCH /licenses_type with valid payload and id returns 200 OK")
+    public void testUpdateLicenseType_validPayload_returns200() throws Exception {
         LicenseTypeResponse updatedResponse = LicenseTypeResponse.builder()
                 .id("test-uuid")
                 .name("Standard License")
@@ -540,7 +540,7 @@ public class LicenseTypeControllerTest {
         mockMvc.perform(patch("/api/v1/licenses_type")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_UPDATE_JSON))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(true))
                 .andExpect(jsonPath("$.messages[0]").value(UPDATE_SUCCESS_MESSAGE))
                 .andExpect(jsonPath("$.payload.name").value("Standard License"));
@@ -700,5 +700,188 @@ public class LicenseTypeControllerTest {
                 .andExpect(jsonPath("$.status").value(false));
 
         verify(licenseTypeService, never()).deleteLicenseType(any());
+    }
+
+    // ─── Success message content ─────────────────────────────────────────────
+
+    @Test
+    @Order(34)
+    @DisplayName("34. GET /licenses_type success message contains page number")
+    public void testGetAllLicenseTypes_withData_successMessageContainsPageNumber() throws Exception {
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
+
+        when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
+        when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/licenses_type"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages[0]").value("Retrieved page 1 of license types"));
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("35. GET /licenses_type on page 2 success message shows page 2")
+    public void testGetAllLicenseTypes_page2_successMessageShowsPage2() throws Exception {
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(1, 10), 11);
+
+        when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
+        when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/licenses_type").param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages[0]").value("Retrieved page 2 of license types"));
+    }
+
+    @Test
+    @Order(36)
+    @DisplayName("36. GET /licenses_type/search success message contains page number")
+    public void testSearchLicenseTypes_withData_successMessageContainsPageNumber() throws Exception {
+        LicenseTypeResponse response = buildLicenseTypeResponse();
+        Page<LicenseTypeResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
+
+        when(licenseTypeService.getAllLicenseTypesByFilter(any(Pageable.class), eq("Standard"))).thenReturn(page);
+        when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/licenses_type/search").param("filter", "Standard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages[0]").value("Retrieved page 1 of license types"));
+    }
+
+    // ─── Additional GET coverage ──────────────────────────────────────────────
+
+    @Test
+    @Order(37)
+    @DisplayName("37. GET /licenses_type with multiple items returns correct content count")
+    public void testGetAllLicenseTypes_multipleItems_returnsCorrectCount() throws Exception {
+        List<LicenseTypeResponse> items = List.of(buildLicenseTypeResponse(), buildLicenseTypeResponse(), buildLicenseTypeResponse());
+        Page<LicenseTypeResponse> page = new PageImpl<>(items, PageRequest.of(0, 10), 3);
+
+        when(licenseTypeService.getAllLicenseTypes(any(Pageable.class))).thenReturn(page);
+        when(messagesUtils.getMessage("license_type.controller.nolicensetype")).thenReturn(NO_LICENSE_TYPE_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/licenses_type"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload.content").isArray())
+                .andExpect(jsonPath("$.payload.content.length()").value(3))
+                .andExpect(jsonPath("$.payload.totalElements").value(3));
+    }
+
+    // ─── Additional POST coverage ─────────────────────────────────────────────
+
+    @Test
+    @Order(38)
+    @DisplayName("38. POST /licenses_type with isTrial true returns 201 CREATED")
+    public void testAddLicenseType_withIsTrialTrue_returns201() throws Exception {
+        LicenseTypeResponse trialResponse = LicenseTypeResponse.builder()
+                .id(UUID.randomUUID().toString())
+                .name("Trial License")
+                .description("Trial license type")
+                .isTrial(true)
+                .build();
+
+        when(licenseTypeService.addLicenseType(any(LicenseTypeRequest.class))).thenReturn(trialResponse);
+        when(messagesUtils.getMessage("license_type.add.success")).thenReturn(ADD_SUCCESS_MESSAGE);
+
+        String json = """
+                {
+                    "name": "Trial License",
+                    "description": "Trial license type",
+                    "isTrial": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.payload.trial").value(true));
+
+        verify(licenseTypeService, times(1)).addLicenseType(any(LicenseTypeRequest.class));
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("39. POST /licenses_type response payload includes generated id")
+    public void testAddLicenseType_responsePayloadIncludesGeneratedId() throws Exception {
+        String generatedId = UUID.randomUUID().toString();
+        LicenseTypeResponse responseWithId = LicenseTypeResponse.builder()
+                .id(generatedId)
+                .name("Standard License")
+                .description("Standard license type")
+                .isTrial(false)
+                .build();
+
+        when(licenseTypeService.addLicenseType(any(LicenseTypeRequest.class))).thenReturn(responseWithId);
+        when(messagesUtils.getMessage("license_type.add.success")).thenReturn(ADD_SUCCESS_MESSAGE);
+
+        mockMvc.perform(post("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.payload.id").value(generatedId));
+    }
+
+    // ─── Additional PATCH coverage ────────────────────────────────────────────
+
+    @Test
+    @Order(40)
+    @DisplayName("40. PATCH /licenses_type with blank name returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_blankName_returns400() throws Exception {
+        String json = """
+                {
+                    "id": "test-uuid",
+                    "name": "",
+                    "isTrial": false
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.messages[0]").value("License Type name is required"));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("41. PATCH /licenses_type malformed JSON returns 400 BAD_REQUEST")
+    public void testUpdateLicenseType_malformedJson_returns400() throws Exception {
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ invalid json }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(licenseTypeService, never()).updateLicenseType(any(), any());
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("42. PATCH /licenses_type response payload reflects updated fields")
+    public void testUpdateLicenseType_responsePayloadReflectsUpdatedFields() throws Exception {
+        LicenseTypeResponse updatedResponse = LicenseTypeResponse.builder()
+                .id("test-uuid")
+                .name("Standard License")
+                .description("Standard license type")
+                .isTrial(false)
+                .build();
+
+        when(licenseTypeService.updateLicenseType(any(LicenseTypeRequest.class), eq("test-uuid"))).thenReturn(updatedResponse);
+        when(messagesUtils.getMessage("license_type.edit.success")).thenReturn(UPDATE_SUCCESS_MESSAGE);
+
+        mockMvc.perform(patch("/api/v1/licenses_type")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload.id").value("test-uuid"))
+                .andExpect(jsonPath("$.payload.name").value("Standard License"))
+                .andExpect(jsonPath("$.payload.description").value("Standard license type"))
+                .andExpect(jsonPath("$.payload.trial").value(false));
     }
 }
