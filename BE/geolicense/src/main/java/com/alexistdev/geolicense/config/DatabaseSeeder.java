@@ -65,7 +65,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedMenuAdmin();
         seedMenuUser();
         seedChildAdmin();
-        seedChildUser();
+//        seedChildUser();
         seedRoleMenus();
         log.info("END: Database seeded");
     }
@@ -141,7 +141,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Menu User");
         MenuRequest menuUser1 = createMenu("Dashboard", "/user/dashboard", 1, null,2,"us1","bx bx-home-alt");
         MenuRequest menuUser2 = createMenu("License", "/user/license", 2, null,2,"us2","bx bx-collection");
-        MenuRequest menuUser3 = createMenu("Billing", "#", 2, null,2,"us3","bx bx-money");
+        MenuRequest menuUser3 = createMenu("Invoices", "/user/invoice", 2, null,2,"us3","bx bx-money");
         MenuRequest menuUser4 = createMenu("Support", "#", 2, null,2,"us4","bx bx-headphone");
         MenuRequest menuUser5 = createMenu("Marketplace", "/user/marketplace", 2, null,2,"us5","bx bx-store");
         menuService.addMenu(menuUser1);
