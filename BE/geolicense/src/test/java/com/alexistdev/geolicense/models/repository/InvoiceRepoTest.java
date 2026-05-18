@@ -19,6 +19,10 @@ import com.alexistdev.geolicense.config.TestAuditingConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -260,5 +264,222 @@ public class InvoiceRepoTest {
     @DisplayName("14. Should return false for a non-existent ID")
     void testExistsById_notFound() {
         Assertions.assertFalse(invoiceRepo.existsById(UUID.randomUUID()));
+    }
+
+    // ── findByIsDeletedFalse ──────────────────────────────────────────────────
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Should return only non-deleted invoices via findByIsDeletedFalse")
+    void testFindByIsDeletedFalse_returnsOnlyActive() {
+        Page<Invoice> result = invoiceRepo.findByIsDeletedFalse(PageRequest.of(0, 10));
+
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals("INV-001", result.getContent().getFirst().getInvoiceNumber());
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Should exclude soft-deleted invoices in findByIsDeletedFalse")
+    void testFindByIsDeletedFalse_excludesSoftDeleted() {
+        Page<Invoice> result = invoiceRepo.findByIsDeletedFalse(PageRequest.of(0, 10));
+
+        Assertions.assertFalse(result.getContent().stream()
+                .anyMatch(i -> i.getInvoiceNumber().equals("INV-002")));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Should paginate results correctly in findByIsDeletedFalse")
+    void testFindByIsDeletedFalse_pagination() {
+        entityManager.persist(createInvoice(testOrders, "INV-006", new BigDecimal("79.99"), false));
+        entityManager.persist(createInvoice(testOrders, "INV-007", new BigDecimal("89.99"), false));
+        entityManager.flush();
+
+        Page<Invoice> firstPage  = invoiceRepo.findByIsDeletedFalse(PageRequest.of(0, 2));
+        Page<Invoice> secondPage = invoiceRepo.findByIsDeletedFalse(PageRequest.of(1, 2));
+
+        Assertions.assertEquals(3, firstPage.getTotalElements());
+        Assertions.assertEquals(2, firstPage.getTotalPages());
+        Assertions.assertEquals(2, firstPage.getContent().size());
+        Assertions.assertEquals(1, secondPage.getContent().size());
+    }
+
+    // ── findByInvoiceNumber ───────────────────────────────────────────────────
+
+    @Test
+    @Order(18)
+    @DisplayName("18. Should find invoice by exact invoice number keyword")
+    void testFindByInvoiceNumber_exactMatch() {
+        Page<Invoice> result = invoiceRepo.findByInvoiceNumber("INV-001", PageRequest.of(0, 10));
+
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals("INV-001", result.getContent().getFirst().getInvoiceNumber());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. Should find invoices by partial invoice number keyword")
+    void testFindByInvoiceNumber_partialMatch() {
+        entityManager.persist(createInvoice(testOrders, "INV-010", new BigDecimal("50.00"), false));
+        entityManager.persist(createInvoice(testOrders, "INV-011", new BigDecimal("60.00"), false));
+        entityManager.flush();
+
+        Page<Invoice> result = invoiceRepo.findByInvoiceNumber("INV-01", PageRequest.of(0, 10));
+
+        Assertions.assertEquals(2, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().stream()
+                .allMatch(i -> i.getInvoiceNumber().contains("INV-01")));
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. Should exclude soft-deleted invoices when searching by invoice number")
+    void testFindByInvoiceNumber_excludesSoftDeleted() {
+        Page<Invoice> result = invoiceRepo.findByInvoiceNumber("INV-002", PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. Should return empty page for non-matching invoice number keyword")
+    void testFindByInvoiceNumber_noMatch() {
+        Page<Invoice> result = invoiceRepo.findByInvoiceNumber("NONEXISTENT", PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. Should support sorting in findByInvoiceNumber results")
+    void testFindByInvoiceNumber_withSorting() {
+        entityManager.persist(createInvoice(testOrders, "INV-020", new BigDecimal("30.00"), false));
+        entityManager.persist(createInvoice(testOrders, "INV-021", new BigDecimal("40.00"), false));
+        entityManager.flush();
+
+        Page<Invoice> result = invoiceRepo.findByInvoiceNumber(
+                "INV-02", PageRequest.of(0, 10, Sort.by("invoiceNumber").ascending()));
+
+        Assertions.assertEquals(2, result.getTotalElements());
+        Assertions.assertEquals("INV-020", result.getContent().get(0).getInvoiceNumber());
+        Assertions.assertEquals("INV-021", result.getContent().get(1).getInvoiceNumber());
+    }
+
+    // ── findByNameIncludingDeleted ────────────────────────────────────────────
+
+    @Test
+    @Order(23)
+    @DisplayName("23. Should find an active invoice by invoice number including deleted scope")
+    void testFindByNameIncludingDeleted_active() {
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<Invoice> result = invoiceRepo.findByNameIncludingDeleted("INV-001");
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("INV-001", result.get().getInvoiceNumber());
+        Assertions.assertFalse(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. Should find a soft-deleted invoice that standard queries would hide")
+    void testFindByNameIncludingDeleted_softDeleted() {
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<Invoice> result = invoiceRepo.findByNameIncludingDeleted("INV-002");
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("INV-002", result.get().getInvoiceNumber());
+        Assertions.assertTrue(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("25. Should return empty for a non-existent invoice number in findByNameIncludingDeleted")
+    void testFindByNameIncludingDeleted_notFound() {
+        Optional<Invoice> result = invoiceRepo.findByNameIncludingDeleted("NON-EXISTENT");
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    // ── findByUserId ──────────────────────────────────────────────────────────
+
+    @Test
+    @Order(26)
+    @DisplayName("26. Should return active invoices for the given user ID")
+    void testFindByUserId_returnsActiveInvoices() {
+        UUID userId = testOrders.getUser().getId();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(userId, PageRequest.of(0, 10));
+
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals("INV-001", result.getContent().getFirst().getInvoiceNumber());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. Should exclude soft-deleted invoices when searching by user ID")
+    void testFindByUserId_excludesSoftDeleted() {
+        UUID userId = testOrders.getUser().getId();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(userId, PageRequest.of(0, 10));
+
+        Assertions.assertFalse(result.getContent().stream()
+                .anyMatch(i -> i.getInvoiceNumber().equals("INV-002")));
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("28. Should return empty page for a user with no invoices")
+    void testFindByUserId_noInvoicesForUser() {
+        User anotherUser = new User();
+        anotherUser.setFullName("Other User");
+        anotherUser.setEmail("other@example.com");
+        anotherUser.setPassword("password");
+        anotherUser.setCreatedBy(SYSTEM_USER);
+        anotherUser.setModifiedBy(SYSTEM_USER);
+        anotherUser.setDeleted(false);
+        anotherUser.setCreatedDate(new Date());
+        anotherUser.setModifiedDate(new Date());
+        entityManager.persist(anotherUser);
+        entityManager.flush();
+
+        Page<Invoice> result = invoiceRepo.findByUserId(anotherUser.getId(), PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. Should return empty page for a non-existent user ID")
+    void testFindByUserId_nonExistentUser() {
+        Page<Invoice> result = invoiceRepo.findByUserId(UUID.randomUUID(), PageRequest.of(0, 10));
+
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. Should paginate results correctly in findByUserId")
+    void testFindByUserId_pagination() {
+        UUID userId = testOrders.getUser().getId();
+        entityManager.persist(createInvoice(testOrders, "INV-030", new BigDecimal("10.00"), false));
+        entityManager.persist(createInvoice(testOrders, "INV-031", new BigDecimal("20.00"), false));
+        entityManager.flush();
+
+        Page<Invoice> firstPage  = invoiceRepo.findByUserId(userId, PageRequest.of(0, 2));
+        Page<Invoice> secondPage = invoiceRepo.findByUserId(userId, PageRequest.of(1, 2));
+
+        Assertions.assertEquals(3, firstPage.getTotalElements());
+        Assertions.assertEquals(2, firstPage.getTotalPages());
+        Assertions.assertEquals(2, firstPage.getContent().size());
+        Assertions.assertEquals(1, secondPage.getContent().size());
     }
 }
