@@ -92,6 +92,8 @@ public class InvoiceRepoTest {
         invoice.setOrders(orders);
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setAmount(amount);
+        invoice.setUniqueCode(523);
+        invoice.setTotalAmount(amount.add(new BigDecimal("523")));
         invoice.setCurrency("USD");
         invoice.setStatus(0);
         invoice.setIssuedAt(LocalDateTime.now());

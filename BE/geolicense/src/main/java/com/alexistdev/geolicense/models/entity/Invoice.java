@@ -64,4 +64,20 @@ public class Invoice extends BaseEntity<String> implements Serializable {
     @NotNull
     @Column(name="issued_at", nullable = false)
     protected LocalDateTime issuedAt;
+
+    @NotNull
+    @Column(name = "unique_code", nullable = false)
+    private Integer uniqueCode;
+
+    @NotNull
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 4)
+    private BigDecimal totalAmount;
+
+    @NotNull
+    @Column(name = "discount", nullable = false, precision = 19, scale = 4, columnDefinition = "DECIMAL(19,4) DEFAULT 0")
+    private BigDecimal discount = BigDecimal.ZERO;
+
+    @NotNull
+    @Column(name = "tax", nullable = false, precision = 19, scale = 4, columnDefinition = "DECIMAL(19,4) DEFAULT 0")
+    private BigDecimal tax = BigDecimal.ZERO;
 }

@@ -28,6 +28,8 @@ public class InvoiceMapper {
                 invoice.getOrders().getOrderNumber(),
                 invoice.getInvoiceNumber(),
                 invoice.getAmount(),
+                invoice.getUniqueCode(),
+                invoice.getTotalAmount(),
                 invoice.getCurrency(),
                 invoice.getStatus(),
                 Date.from(invoice.getIssuedAt().atZone(ZoneId.systemDefault()).toInstant())
@@ -43,6 +45,8 @@ public class InvoiceMapper {
                 invoice.getInvoiceNumber(),
                 invoice.getOrders().getOrderNumber(),
                 invoice.getAmount(),
+                invoice.getUniqueCode(),
+                invoice.getTotalAmount(),
                 invoice.getCurrency(),
                 invoice.getStatus(),
                 Date.from(invoice.getIssuedAt().atZone(ZoneId.systemDefault()).toInstant()),

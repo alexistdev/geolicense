@@ -88,6 +88,8 @@ public class InvoiceServiceTest {
         invoice.setOrders(orders);
         invoice.setInvoiceNumber("INV-2026-001");
         invoice.setAmount(new BigDecimal("99.9900"));
+        invoice.setUniqueCode(523);
+        invoice.setTotalAmount(new BigDecimal("622.9900"));
         invoice.setCurrency("USD");
         invoice.setStatus(1);
         invoice.setIssuedAt(LocalDateTime.now());
@@ -97,6 +99,8 @@ public class InvoiceServiceTest {
                 orders.getOrderNumber(),
                 "INV-2026-001",
                 new BigDecimal("99.9900"),
+                523,
+                new BigDecimal("622.9900"),
                 "USD",
                 1,
                 new Date()
@@ -107,6 +111,8 @@ public class InvoiceServiceTest {
                 "INV-2026-001",
                 orders.getOrderNumber(),
                 new BigDecimal("99.9900"),
+                523,
+                new BigDecimal("622.9900"),
                 "USD",
                 1,
                 new Date(),

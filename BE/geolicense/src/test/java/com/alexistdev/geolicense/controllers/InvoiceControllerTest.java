@@ -88,6 +88,8 @@ public class InvoiceControllerTest {
                 "ORD-2026-001",
                 "INV-2026-001",
                 new BigDecimal("99.99"),
+                523,
+                new BigDecimal("622.99"),
                 "USD",
                 1,
                 new Date()
@@ -281,7 +283,7 @@ public class InvoiceControllerTest {
     public void testGetAllInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
         String orderNumber = "ORD-2026-001";
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), 523, new BigDecimal("672.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoices(any(Pageable.class))).thenReturn(page);
@@ -416,7 +418,7 @@ public class InvoiceControllerTest {
     @DisplayName("18. GET /invoices/search returns correctly mapped response fields")
     public void testSearchInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), 523, new BigDecimal("622.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"))).thenReturn(page);
@@ -538,7 +540,7 @@ public class InvoiceControllerTest {
         setUpSecurityContext();
         UUID invoiceId = UUID.randomUUID();
         String orderNumber = "ORD-2026-ME-001";
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), 523, new BigDecimal("722.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class))).thenReturn(page);
@@ -581,7 +583,8 @@ public class InvoiceControllerTest {
         UUID invoiceId = UUID.randomUUID();
         InvoiceDetailResponse response = new InvoiceDetailResponse(
                 invoiceId, "INV-2026-001", "ORD-2026-001",
-                new BigDecimal("99.99"), "USD", 1, new Date(),
+                new BigDecimal("99.99"), 523, new BigDecimal("622.99"),
+                "USD", 1, new Date(),
                 Collections.emptyList()
         );
 

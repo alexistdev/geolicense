@@ -17,6 +17,8 @@ public record InvoiceResponse(
         String orderNumber,
         String invoiceNumber,
         BigDecimal amount,
+        int uniqueCode,
+        BigDecimal totalAmount,
         String currency,
         int status,
         Date issuedAt
