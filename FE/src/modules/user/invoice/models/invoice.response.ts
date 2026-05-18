@@ -1,10 +1,11 @@
 export interface InvoiceItem {
   id: string
-  orderId: string
+  orderNumber: string
   invoiceNumber: string
   amount: number
   currency: string
   status: number
+  issuedAt: string
 }
 
 export interface InvoicePagePayload {

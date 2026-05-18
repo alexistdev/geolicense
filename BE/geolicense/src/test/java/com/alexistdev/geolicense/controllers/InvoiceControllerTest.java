@@ -37,6 +37,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,11 +82,12 @@ public class InvoiceControllerTest {
     private InvoiceResponse buildInvoiceResponse() {
         return new InvoiceResponse(
                 UUID.randomUUID(),
-                UUID.randomUUID(),
+                "ORD-2026-001",
                 "INV-2026-001",
                 new BigDecimal("99.99"),
                 "USD",
-                1
+                1,
+                new Date()
         );
     }
 
@@ -275,8 +277,8 @@ public class InvoiceControllerTest {
     @DisplayName("11. GET /invoices returns correctly mapped response fields")
     public void testGetAllInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-002", new BigDecimal("149.99"), "USD", 1);
+        String orderNumber = "ORD-2026-001";
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoices(any(Pageable.class))).thenReturn(page);
@@ -285,7 +287,7 @@ public class InvoiceControllerTest {
         mockMvc.perform(get("/api/v1/invoices"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.payload.content[0].id").value(invoiceId.toString()))
-                .andExpect(jsonPath("$.payload.content[0].orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.payload.content[0].orderNumber").value(orderNumber))
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-002"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(149.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
@@ -411,8 +413,7 @@ public class InvoiceControllerTest {
     @DisplayName("18. GET /invoices/search returns correctly mapped response fields")
     public void testSearchInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-001", new BigDecimal("99.99"), "USD", 1);
+        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"))).thenReturn(page);
@@ -533,8 +534,8 @@ public class InvoiceControllerTest {
     public void testGetMyInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         setUpSecurityContext(TEST_USER_EMAIL);
         UUID invoiceId = UUID.randomUUID();
-        UUID orderId   = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderId, "INV-2026-ME-001", new BigDecimal("199.99"), "USD", 1);
+        String orderNumber = "ORD-2026-ME-001";
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), "USD", 1, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class))).thenReturn(page);
@@ -543,7 +544,7 @@ public class InvoiceControllerTest {
         mockMvc.perform(get("/api/v1/invoices/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.payload.content[0].id").value(invoiceId.toString()))
-                .andExpect(jsonPath("$.payload.content[0].orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.payload.content[0].orderNumber").value(orderNumber))
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-ME-001"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(199.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))

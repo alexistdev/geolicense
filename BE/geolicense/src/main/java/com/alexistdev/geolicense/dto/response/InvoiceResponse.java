@@ -9,14 +9,16 @@
 package com.alexistdev.geolicense.dto.response;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.UUID;
 
 public record InvoiceResponse(
         UUID id,
-        UUID orderId,
+        String orderNumber,
         String invoiceNumber,
         BigDecimal amount,
         String currency,
-        int status
+        int status,
+        Date issuedAt
 ) {
 }

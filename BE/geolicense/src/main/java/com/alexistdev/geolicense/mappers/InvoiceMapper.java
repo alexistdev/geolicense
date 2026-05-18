@@ -12,17 +12,21 @@ import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.models.entity.Invoice;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneId;
+import java.util.Date;
+
 @Component
 public class InvoiceMapper {
 
     public InvoiceResponse toResponse(Invoice invoice) {
         return new InvoiceResponse(
                 invoice.getId(),
-                invoice.getOrders().getId(),
+                invoice.getOrders().getOrderNumber(),
                 invoice.getInvoiceNumber(),
                 invoice.getAmount(),
                 invoice.getCurrency(),
-                invoice.getStatus()
+                invoice.getStatus(),
+                Date.from(invoice.getIssuedAt().atZone(ZoneId.systemDefault()).toInstant())
         );
     }
 }

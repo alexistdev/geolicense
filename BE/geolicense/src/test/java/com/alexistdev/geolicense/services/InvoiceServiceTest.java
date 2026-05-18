@@ -28,7 +28,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -70,6 +72,7 @@ public class InvoiceServiceTest {
 
         Orders orders = new Orders();
         orders.setId(UUID.randomUUID());
+        orders.setOrderNumber("ORD-2026-001");
 
         invoice = new Invoice();
         invoice.setId(UUID.randomUUID());
@@ -78,14 +81,16 @@ public class InvoiceServiceTest {
         invoice.setAmount(new BigDecimal("99.9900"));
         invoice.setCurrency("USD");
         invoice.setStatus(1);
+        invoice.setIssuedAt(LocalDateTime.now());
 
         invoiceResponse = new InvoiceResponse(
                 invoice.getId(),
-                orders.getId(),
+                orders.getOrderNumber(),
                 "INV-2026-001",
                 new BigDecimal("99.9900"),
                 "USD",
-                1
+                1,
+                new Date()
         );
     }
 
