@@ -117,7 +117,7 @@ onMounted(() => fetchDetail())
               </h3>
               <div class="mb-2">
                 <span class="text-5xl font-black text-white tracking-tight">
-                  {{ formatAmount(invoice.amount, invoice.currency) }}
+                  {{ formatAmount(invoice.totalAmount, invoice.currency) }}
                 </span>
               </div>
               <p class="text-on-surface-variant text-xs font-semibold uppercase tracking-widest">{{ invoice.currency }}</p>
@@ -151,6 +151,10 @@ onMounted(() => fetchDetail())
                 >
                   {{ invoiceStatus(invoice.status).label }}
                 </span>
+              </div>
+              <div>
+                <p class="text-[0.625rem] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Unique Code</p>
+                <p class="text-sm font-bold text-on-surface font-mono">{{ invoice.uniqueCode }}</p>
               </div>
             </div>
           </div>
@@ -220,12 +224,34 @@ onMounted(() => fetchDetail())
                   </tr>
                 </tbody>
                 <tfoot class="border-t border-white/10">
-                  <tr class="bg-surface-container-low/30">
-                    <td colspan="6" class="px-6 py-4 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                      Total
+                  <tr class="bg-surface-container-low/10">
+                    <td colspan="6" class="px-6 py-3 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Subtotal</td>
+                    <td class="px-6 py-3">
+                      <span class="text-sm text-on-surface">{{ formatAmount(invoice.amount, invoice.currency) }}</span>
                     </td>
+                  </tr>
+                  <tr class="bg-surface-container-low/10">
+                    <td colspan="6" class="px-6 py-3 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Discount</td>
+                    <td class="px-6 py-3">
+                      <span class="text-sm text-green-400">− {{ formatAmount(invoice.discount, invoice.currency) }}</span>
+                    </td>
+                  </tr>
+                  <tr class="bg-surface-container-low/10">
+                    <td colspan="6" class="px-6 py-3 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Tax</td>
+                    <td class="px-6 py-3">
+                      <span class="text-sm text-on-surface-variant">+ {{ formatAmount(invoice.tax, invoice.currency) }}</span>
+                    </td>
+                  </tr>
+                  <tr class="bg-surface-container-low/10">
+                    <td colspan="6" class="px-6 py-3 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Unique Code</td>
+                    <td class="px-6 py-3">
+                      <span class="text-sm font-mono text-on-surface-variant">+ {{ invoice.uniqueCode }}</span>
+                    </td>
+                  </tr>
+                  <tr class="bg-surface-container-low/30 border-t border-white/10">
+                    <td colspan="6" class="px-6 py-4 text-right text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Total</td>
                     <td class="px-6 py-4">
-                      <span class="text-base font-black text-primary">{{ formatAmount(invoice.amount, invoice.currency) }}</span>
+                      <span class="text-base font-black text-primary">{{ formatAmount(invoice.totalAmount, invoice.currency) }}</span>
                     </td>
                   </tr>
                 </tfoot>

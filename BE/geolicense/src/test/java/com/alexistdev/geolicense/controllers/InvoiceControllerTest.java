@@ -583,7 +583,8 @@ public class InvoiceControllerTest {
         UUID invoiceId = UUID.randomUUID();
         InvoiceDetailResponse response = new InvoiceDetailResponse(
                 invoiceId, "INV-2026-001", "ORD-2026-001",
-                new BigDecimal("99.99"), 523, new BigDecimal("622.99"),
+                new BigDecimal("99.99"), BigDecimal.ZERO, BigDecimal.ZERO,
+                523, new BigDecimal("622.99"),
                 "USD", 1, new Date(),
                 Collections.emptyList()
         );
@@ -599,6 +600,10 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.orderNumber").value("ORD-2026-001"))
                 .andExpect(jsonPath("$.payload.invoiceNumber").value("INV-2026-001"))
                 .andExpect(jsonPath("$.payload.amount").value(99.99))
+                .andExpect(jsonPath("$.payload.discount").value(0))
+                .andExpect(jsonPath("$.payload.tax").value(0))
+                .andExpect(jsonPath("$.payload.uniqueCode").value(523))
+                .andExpect(jsonPath("$.payload.totalAmount").value(622.99))
                 .andExpect(jsonPath("$.payload.currency").value("USD"))
                 .andExpect(jsonPath("$.payload.status").value(1))
                 .andExpect(jsonPath("$.payload.items").isArray());

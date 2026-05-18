@@ -111,6 +111,8 @@ public class InvoiceServiceTest {
                 "INV-2026-001",
                 orders.getOrderNumber(),
                 new BigDecimal("99.9900"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 523,
                 new BigDecimal("622.9900"),
                 "USD",

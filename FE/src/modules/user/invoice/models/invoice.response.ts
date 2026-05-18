@@ -3,6 +3,8 @@ export interface InvoiceItem {
   orderNumber: string
   invoiceNumber: string
   amount: number
+  uniqueCode: number
+  totalAmount: number
   currency: string
   status: number
   issuedAt: string
@@ -41,6 +43,10 @@ export interface InvoiceDetail {
   invoiceNumber: string
   orderNumber: string
   amount: number
+  discount: number
+  tax: number
+  uniqueCode: number
+  totalAmount: number
   currency: string
   status: number
   issuedAt: string

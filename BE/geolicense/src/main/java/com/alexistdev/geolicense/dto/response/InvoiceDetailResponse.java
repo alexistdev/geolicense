@@ -18,6 +18,8 @@ public record InvoiceDetailResponse(
         String invoiceNumber,
         String orderNumber,
         BigDecimal amount,
+        BigDecimal discount,
+        BigDecimal tax,
         int uniqueCode,
         BigDecimal totalAmount,
         String currency,

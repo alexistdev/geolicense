@@ -45,6 +45,8 @@ public class InvoiceMapper {
                 invoice.getInvoiceNumber(),
                 invoice.getOrders().getOrderNumber(),
                 invoice.getAmount(),
+                invoice.getDiscount(),
+                invoice.getTax(),
                 invoice.getUniqueCode(),
                 invoice.getTotalAmount(),
                 invoice.getCurrency(),

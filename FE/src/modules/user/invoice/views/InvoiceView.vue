@@ -165,7 +165,7 @@ onMounted(() => fetchInvoices(0))
                   <span class="font-mono text-[0.7rem] text-on-surface-variant">{{ item.orderNumber }}</span>
                 </td>
                 <td class="px-6 py-5">
-                  <span class="text-sm font-bold text-white">{{ formatAmount(item.amount, item.currency) }}</span>
+                  <span class="text-sm font-bold text-white">{{ formatAmount(item.totalAmount, item.currency) }}</span>
                 </td>
                 <td class="px-6 py-5">
                   <span class="text-sm text-on-surface-variant">{{ formatDate(item.issuedAt) }}</span>
