@@ -268,8 +268,6 @@ public class InvoiceRepoTest {
         Assertions.assertFalse(invoiceRepo.existsById(UUID.randomUUID()));
     }
 
-    // ── findByIsDeletedFalse ──────────────────────────────────────────────────
-
     @Test
     @Order(15)
     @DisplayName("15. Should return only non-deleted invoices via findByIsDeletedFalse")
@@ -306,8 +304,6 @@ public class InvoiceRepoTest {
         Assertions.assertEquals(2, firstPage.getContent().size());
         Assertions.assertEquals(1, secondPage.getContent().size());
     }
-
-    // ── findByInvoiceNumber ───────────────────────────────────────────────────
 
     @Test
     @Order(18)
@@ -370,8 +366,6 @@ public class InvoiceRepoTest {
         Assertions.assertEquals("INV-021", result.getContent().get(1).getInvoiceNumber());
     }
 
-    // ── findByNameIncludingDeleted ────────────────────────────────────────────
-
     @Test
     @Order(23)
     @DisplayName("23. Should find an active invoice by invoice number including deleted scope")
@@ -408,8 +402,6 @@ public class InvoiceRepoTest {
 
         Assertions.assertFalse(result.isPresent());
     }
-
-    // ── findByUserId ──────────────────────────────────────────────────────────
 
     @Test
     @Order(26)
@@ -485,8 +477,6 @@ public class InvoiceRepoTest {
         Assertions.assertEquals(1, secondPage.getContent().size());
     }
 
-    // ── findByUserIdAndInvoiceIdAndIsDeletedFalse ─────────────────────────────
-
     @Test
     @Order(31)
     @DisplayName("31. Should return invoice when user ID and invoice ID both match an active invoice")
@@ -557,5 +547,73 @@ public class InvoiceRepoTest {
                 UUID.randomUUID(), invoiceId);
 
         Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(36)
+    @DisplayName("36. Should return true when user has an active pending invoice (status = 0)")
+    void testExistsPendingInvoiceByUserId_returnsTrueWhenPendingExists() {
+        UUID userId = testOrders.getUser().getId();
+
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(userId);
+
+        Assertions.assertTrue(result);
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("37. Should return false when the only pending invoice is soft-deleted")
+    void testExistsPendingInvoiceByUserId_returnsFalseWhenOnlyPendingIsSoftDeleted() {
+        invoiceRepo.delete(testInvoice);
+        entityManager.flush();
+        entityManager.clear();
+
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId());
+
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    @Order(38)
+    @DisplayName("38. Should return false when user's invoice has a non-zero status (paid)")
+    void testExistsPendingInvoiceByUserId_returnsFalseWhenInvoicePaid() {
+        testInvoice.setStatus(1);
+        entityManager.persist(testInvoice);
+        entityManager.flush();
+        entityManager.clear();
+
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId());
+
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("39. Should return false for a user with no invoices at all")
+    void testExistsPendingInvoiceByUserId_returnsFalseForUserWithNoInvoices() {
+        User anotherUser = new User();
+        anotherUser.setFullName("No Invoice User");
+        anotherUser.setEmail("noinvoice@example.com");
+        anotherUser.setPassword("password");
+        anotherUser.setCreatedBy(SYSTEM_USER);
+        anotherUser.setModifiedBy(SYSTEM_USER);
+        anotherUser.setDeleted(false);
+        anotherUser.setCreatedDate(new Date());
+        anotherUser.setModifiedDate(new Date());
+        entityManager.persist(anotherUser);
+        entityManager.flush();
+
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(anotherUser.getId());
+
+        Assertions.assertFalse(result);
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("40. Should return false for a non-existent user ID")
+    void testExistsPendingInvoiceByUserId_returnsFalseForNonExistentUser() {
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(UUID.randomUUID());
+
+        Assertions.assertFalse(result);
     }
 }
