@@ -42,6 +42,8 @@ function formatBillingCycle(cycle: string): string {
   return map[cycle.toUpperCase()] ?? cycle
 }
 
+const PENDING_INVOICE_MSG = 'You have a pending invoice. Please complete your payment before placing a new order.'
+
 async function confirmOrder() {
   if (!confirmPlan.value) return
   const planId = confirmPlan.value.planId
@@ -50,8 +52,14 @@ async function confirmOrder() {
   try {
     const res = await orderService.createOrder({ licensePlanId: planId, quantity: 1 })
     orderResult.value = res.payload
-  } catch {
-    orderError.value = 'Failed to place order. Please try again.'
+  } catch (err: unknown) {
+    const msg: string | undefined = (err as { response?: { data?: { messages?: string[] } } })?.response?.data?.messages?.[0]
+    if (msg === PENDING_INVOICE_MSG) {
+      orderError.value = msg
+      setTimeout(() => router.push({ path: '/user/invoice' }), 1500)
+    } else {
+      orderError.value = 'Failed to place order. Please try again.'
+    }
   } finally {
     buyingPlanId.value = null
   }
