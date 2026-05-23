@@ -18,11 +18,13 @@ import com.alexistdev.geolicense.models.repository.RoleMenuRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -75,6 +77,8 @@ public class MenuServiceTest {
         menu.setCode(menuRequest.getCode());
         menu.setSortOrder(Integer.parseInt(menuRequest.getSortOrder()));
     }
+
+    // ─── addMenu ────────────────────────────────────────────────────────────────
 
     @Test
     @Order(1)
@@ -140,7 +144,89 @@ public class MenuServiceTest {
 
     @Test
     @Order(5)
-    @DisplayName("5. Should return list of MenuResponse mapped from RoleMenus when role has menus")
+    @DisplayName("5. Should throw NumberFormatException when sortOrder is empty string")
+    void addMenu_WhenSortOrderIsEmpty_ShouldThrowNumberFormatException() {
+        menuRequest.setSortOrder("");
+
+        Assertions.assertThrows(NumberFormatException.class,
+                () -> menuService.addMenu(menuRequest));
+
+        verify(menuRepo, never()).save(any(Menu.class));
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Should throw IllegalArgumentException when parentId is empty string")
+    void addMenu_WhenParentIdIsEmptyString_ShouldThrowIllegalArgumentException() {
+        menuRequest.setParentId("");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> menuService.addMenu(menuRequest));
+
+        verify(menuRepo, never()).save(any(Menu.class));
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Should pass correctly mapped entity fields to repository on save")
+    void addMenu_ShouldPassCorrectlyMappedEntityToRepository() {
+        when(menuRepo.save(any(Menu.class))).thenReturn(menu);
+        when(messagesUtils.getMessage("menu.add.success")).thenReturn("Menu added successfully");
+
+        menuService.addMenu(menuRequest);
+
+        ArgumentCaptor<Menu> menuCaptor = ArgumentCaptor.forClass(Menu.class);
+        verify(menuRepo).save(menuCaptor.capture());
+
+        Menu captured = menuCaptor.getValue();
+        Assertions.assertEquals(menuRequest.getName(), captured.getName());
+        Assertions.assertEquals(menuRequest.getUrlink(), captured.getUrlink());
+        Assertions.assertEquals(menuRequest.getClasslink(), captured.getClasslink());
+        Assertions.assertEquals(Integer.parseInt(menuRequest.getSortOrder()), captured.getSortOrder());
+        Assertions.assertEquals(menuRequest.getIcon(), captured.getIcon());
+        Assertions.assertEquals(menuRequest.getTypeMenu(), captured.getTypeMenu());
+        Assertions.assertEquals(menuRequest.getCode(), captured.getCode());
+        Assertions.assertEquals(UUID.fromString(menuRequest.getParentId()), captured.getParentId());
+        Assertions.assertEquals("System", captured.getCreatedBy());
+        Assertions.assertEquals("System", captured.getModifiedBy());
+        Assertions.assertNotNull(captured.getCreatedDate());
+        Assertions.assertNotNull(captured.getModifiedDate());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Should set null parentId on entity when parentId is not provided")
+    void addMenu_WhenParentIdIsNull_ShouldSaveEntityWithNullParentId() {
+        menuRequest.setParentId(null);
+        menu.setParentId(null);
+        when(menuRepo.save(any(Menu.class))).thenReturn(menu);
+        when(messagesUtils.getMessage("menu.add.success")).thenReturn("Menu added successfully");
+
+        menuService.addMenu(menuRequest);
+
+        ArgumentCaptor<Menu> menuCaptor = ArgumentCaptor.forClass(Menu.class);
+        verify(menuRepo).save(menuCaptor.capture());
+
+        Assertions.assertNull(menuCaptor.getValue().getParentId());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Should call MessagesUtils with correct key on addMenu success")
+    void addMenu_ShouldCallMessagesUtilsWithSuccessKey() {
+        when(menuRepo.save(any(Menu.class))).thenReturn(menu);
+        when(messagesUtils.getMessage("menu.add.success")).thenReturn("Menu added successfully");
+
+        menuService.addMenu(menuRequest);
+
+        verify(messagesUtils, times(1)).getMessage("menu.add.success");
+    }
+
+    // ─── getMenusByRole ──────────────────────────────────────────────────────────
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Should return list of MenuResponse mapped from RoleMenus when role has menus")
     void getMenusByRole_WhenRoleHasMenus_ShouldReturnMenuResponseList() {
         RoleMenu roleMenu1 = new RoleMenu();
         roleMenu1.setRole(Role.ADMIN);
@@ -180,8 +266,8 @@ public class MenuServiceTest {
     }
 
     @Test
-    @Order(6)
-    @DisplayName("6. Should return empty list when role has no menus")
+    @Order(11)
+    @DisplayName("11. Should return empty list when role has no menus")
     void getMenusByRole_WhenRoleHasNoMenus_ShouldReturnEmptyList() {
         when(roleMenuRepo.findByRole(Role.USER)).thenReturn(List.of());
 
@@ -193,8 +279,8 @@ public class MenuServiceTest {
     }
 
     @Test
-    @Order(7)
-    @DisplayName("7. Should correctly map all menu fields to MenuResponse")
+    @Order(12)
+    @DisplayName("12. Should correctly map all menu fields to MenuResponse")
     void getMenusByRole_ShouldMapAllMenuFieldsCorrectly() {
         RoleMenu roleMenu = new RoleMenu();
         roleMenu.setRole(Role.USER);
@@ -216,5 +302,70 @@ public class MenuServiceTest {
         Assertions.assertEquals(parentId.toString(), response.getParentId());
         Assertions.assertEquals(menuRequest.getTypeMenu(), response.getTypeMenu());
         Assertions.assertEquals(menuRequest.getCode(), response.getCode());
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Should return different menus for ADMIN and USER roles")
+    void getMenusByRole_ShouldReturnDifferentMenusForDifferentRoles() {
+        RoleMenu adminRoleMenu = new RoleMenu();
+        adminRoleMenu.setRole(Role.ADMIN);
+        adminRoleMenu.setMenu(menu);
+
+        Menu userMenu = new Menu();
+        userMenu.setId(UUID.randomUUID());
+        userMenu.setName("user-dashboard");
+        userMenu.setUrlink("/user/dashboard");
+        userMenu.setCode("MN_USER");
+        userMenu.setTypeMenu(1);
+        userMenu.setSortOrder(1);
+
+        RoleMenu userRoleMenu = new RoleMenu();
+        userRoleMenu.setRole(Role.USER);
+        userRoleMenu.setMenu(userMenu);
+
+        when(roleMenuRepo.findByRole(Role.ADMIN)).thenReturn(List.of(adminRoleMenu));
+        when(roleMenuRepo.findByRole(Role.USER)).thenReturn(List.of(userRoleMenu));
+
+        List<MenuResponse> adminResult = menuService.getMenusByRole(Role.ADMIN);
+        List<MenuResponse> userResult = menuService.getMenusByRole(Role.USER);
+
+        Assertions.assertEquals(1, adminResult.size());
+        Assertions.assertEquals(1, userResult.size());
+        Assertions.assertNotEquals(adminResult.getFirst().getId(), userResult.getFirst().getId());
+        Assertions.assertEquals(menu.getName(), adminResult.getFirst().getName());
+        Assertions.assertEquals(userMenu.getName(), userResult.getFirst().getName());
+
+        verify(roleMenuRepo, times(1)).findByRole(Role.ADMIN);
+        verify(roleMenuRepo, times(1)).findByRole(Role.USER);
+    }
+
+    // ─── findByCode ──────────────────────────────────────────────────────────────
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Should return menu when code exists")
+    void findByCode_WhenCodeExists_ShouldReturnMenu() {
+        when(menuRepo.findByCodeIncludingDeleted("MN12")).thenReturn(Optional.of(menu));
+
+        Menu result = menuService.findByCode("MN12");
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(menuId, result.getId());
+        Assertions.assertEquals(menu.getName(), result.getName());
+        Assertions.assertEquals(menu.getCode(), result.getCode());
+        verify(menuRepo, times(1)).findByCodeIncludingDeleted("MN12");
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Should return null when code does not exist")
+    void findByCode_WhenCodeDoesNotExist_ShouldReturnNull() {
+        when(menuRepo.findByCodeIncludingDeleted("UNKNOWN")).thenReturn(Optional.empty());
+
+        Menu result = menuService.findByCode("UNKNOWN");
+
+        Assertions.assertNull(result);
+        verify(menuRepo, times(1)).findByCodeIncludingDeleted("UNKNOWN");
     }
 }
