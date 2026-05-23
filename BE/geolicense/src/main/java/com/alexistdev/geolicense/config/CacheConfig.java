@@ -38,6 +38,7 @@ public class CacheConfig {
                                         BasicPolymorphicTypeValidator.builder()
                                                 .allowIfSubType("com.alexistdev.geolicense")
                                                 .allowIfSubType("java.util")
+                                                .allowIfSubType("java.math")
                                                 .build()
                                 )
                                 .build()
