@@ -17,6 +17,7 @@ import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -194,7 +195,7 @@ public class ProductServiceTest {
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
+        Assertions.assertEquals(entity.getId(), result.getContent().getFirst().getId());
 
         verify(productRepo, times(1)).findByIsDeletedFalse(pageable);
     }
@@ -230,8 +231,8 @@ public class ProductServiceTest {
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getTotalElements());
-        Assertions.assertEquals(entity.getId(), result.getContent().get(0).getId());
-        Assertions.assertEquals(entity.getName(), result.getContent().get(0).getName());
+        Assertions.assertEquals(entity.getId(), result.getContent().getFirst().getId());
+        Assertions.assertEquals(entity.getName(), result.getContent().getFirst().getName());
 
         verify(productRepo, times(1)).findByFilter(keyword, pageable);
     }
@@ -408,5 +409,111 @@ public class ProductServiceTest {
     void deleteProduct_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> productService.deleteProduct("invalid-uuid"));
+    }
+
+    // ─── entity mapping (ArgumentCaptor) ─────────────────────────────────────────
+
+    @Test
+    @Order(20)
+    @DisplayName("20. addProduct should save entity with null ID, correct fields, and System audit fields for a new product")
+    void addProduct_ShouldSaveNewEntityWithNullIdAndCorrectMappedFields() {
+        when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.empty());
+        when(productRepo.save(any(Product.class))).thenReturn(entity);
+
+        productService.addProduct(request);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+
+        Product saved = captor.getValue();
+        Assertions.assertNull(saved.getId());
+        Assertions.assertEquals(request.getName(), saved.getName());
+        Assertions.assertEquals(request.getSku(), saved.getSku());
+        Assertions.assertEquals(request.getVersion(), saved.getVersion());
+        Assertions.assertEquals(request.getDescription(), saved.getDescription());
+        Assertions.assertEquals("System", saved.getCreatedBy());
+        Assertions.assertEquals("System", saved.getModifiedBy());
+        Assertions.assertNotNull(saved.getCreatedDate());
+        Assertions.assertNotNull(saved.getModifiedDate());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. addProduct when restoring deleted product should save entity with existing ID and deleted=false")
+    void addProduct_WhenRestoringDeletedProduct_ShouldSaveEntityWithExistingIdAndDeletedFalse() {
+        Product deletedProduct = new Product();
+        deletedProduct.setId(productId);
+        deletedProduct.setName(request.getName());
+        deletedProduct.setDeleted(true);
+
+        when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.of(deletedProduct));
+        when(productRepo.save(any(Product.class))).thenReturn(entity);
+
+        productService.addProduct(request);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+
+        Product saved = captor.getValue();
+        Assertions.assertEquals(productId, saved.getId());
+        Assertions.assertFalse(saved.getDeleted());
+        Assertions.assertEquals(request.getName(), saved.getName());
+        Assertions.assertEquals(request.getSku(), saved.getSku());
+        Assertions.assertEquals(request.getVersion(), saved.getVersion());
+        Assertions.assertEquals(request.getDescription(), saved.getDescription());
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. updateProduct should save entity with correct product ID, all mapped fields, and System audit fields")
+    void updateProduct_ShouldSaveEntityWithCorrectProductIdAndMappedFields() {
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.empty());
+        when(productRepo.save(any(Product.class))).thenReturn(entity);
+
+        productService.updateProduct(request, productId.toString());
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+
+        Product saved = captor.getValue();
+        Assertions.assertEquals(productId, saved.getId());
+        Assertions.assertEquals(request.getName(), saved.getName());
+        Assertions.assertEquals(request.getSku(), saved.getSku());
+        Assertions.assertEquals(request.getVersion(), saved.getVersion());
+        Assertions.assertEquals(request.getDescription(), saved.getDescription());
+        Assertions.assertEquals("System", saved.getCreatedBy());
+        Assertions.assertEquals("System", saved.getModifiedBy());
+        Assertions.assertNotNull(saved.getCreatedDate());
+        Assertions.assertNotNull(saved.getModifiedDate());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("23. updateProduct when existing product is soft-deleted should set deleted=false before saving")
+    void updateProduct_WhenExistingProductIsSoftDeleted_ShouldSetDeletedFalseBeforeSave() {
+        entity.setDeleted(true);
+
+        when(productRepo.findByProductId(productId)).thenReturn(Optional.of(entity));
+        when(productRepo.findByNameIncludingDeleted(request.getName())).thenReturn(Optional.empty());
+        when(productRepo.save(any(Product.class))).thenReturn(entity);
+
+        productService.updateProduct(request, productId.toString());
+
+        Assertions.assertFalse(entity.getDeleted());
+        verify(productRepo, times(1)).save(any(Product.class));
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. findProductById should map isActive as false when product is inactive")
+    void findProductById_WhenProductIsInactive_ShouldMapIsActiveAsFalse() {
+        entity.setActive(false);
+        when(productRepo.findById(productId)).thenReturn(Optional.of(entity));
+
+        ProductResponse response = productService.findProductById(productId.toString());
+
+        Assertions.assertFalse(response.isActive());
+        verify(productRepo, times(1)).findById(productId);
     }
 }

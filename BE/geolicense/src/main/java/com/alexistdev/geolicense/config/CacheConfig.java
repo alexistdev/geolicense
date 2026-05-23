@@ -26,30 +26,34 @@ import java.time.Duration;
 public class CacheConfig {
 
     public static final String MENU_CACHE = "menu";
+    public static final String PRODUCT_DETAIL_CACHE = "product-detail";
+    public static final String MARKETPLACE_PRODUCTS_CACHE = "marketplace-products";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
-        RedisCacheConfiguration menuCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
+        RedisSerializationContext.SerializationPair<Object> jsonSerializer =
+                RedisSerializationContext.SerializationPair.fromSerializer(
+                        GenericJacksonJsonRedisSerializer.builder()
+                                .enableDefaultTyping(
+                                        BasicPolymorphicTypeValidator.builder()
+                                                .allowIfSubType("com.alexistdev.geolicense")
+                                                .allowIfSubType("java.util")
+                                                .build()
+                                )
+                                .build()
+                );
+
+        RedisCacheConfiguration base = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
                 )
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(
-                                GenericJacksonJsonRedisSerializer.builder()
-                                        .enableDefaultTyping(
-                                                BasicPolymorphicTypeValidator.builder()
-                                                        .allowIfSubType("com.alexistdev.geolicense")
-                                                        .allowIfSubType("java.util")
-                                                        .build()
-                                        )
-                                        .build()
-                        )
-                )
+                .serializeValuesWith(jsonSerializer)
                 .disableCachingNullValues();
 
         return RedisCacheManager.builder(redisConnectionFactory)
-                .withCacheConfiguration(MENU_CACHE, menuCacheConfig)
+                .withCacheConfiguration(MENU_CACHE, base.entryTtl(Duration.ofHours(1)))
+                .withCacheConfiguration(PRODUCT_DETAIL_CACHE, base.entryTtl(Duration.ofMinutes(15)))
+                .withCacheConfiguration(MARKETPLACE_PRODUCTS_CACHE, base.entryTtl(Duration.ofMinutes(5)))
                 .build();
     }
 }

@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.config.CacheConfig;
 import com.alexistdev.geolicense.dto.request.ProductRequest;
 import com.alexistdev.geolicense.dto.response.ProductResponse;
 import com.alexistdev.geolicense.exceptions.ExistingException;
@@ -16,6 +17,8 @@ import com.alexistdev.geolicense.models.entity.Product;
 import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,6 +49,7 @@ public class ProductService {
         return productRepo.findByFilter(keyword, pageable);
     }
 
+    @CacheEvict(value = CacheConfig.MARKETPLACE_PRODUCTS_CACHE, allEntries = true)
     public ProductResponse addProduct(ProductRequest request) {
         Optional<Product> foundProduct = productRepo.findByNameIncludingDeleted(request.getName());
 
@@ -71,6 +75,10 @@ public class ProductService {
                 .build();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PRODUCT_DETAIL_CACHE, key = "#id"),
+            @CacheEvict(value = CacheConfig.MARKETPLACE_PRODUCTS_CACHE, allEntries = true)
+    })
     public ProductResponse updateProduct(ProductRequest request, String id) {
         UUID productId = UUID.fromString(id);
         Product existingProduct = productRepo.findByProductId(productId)
@@ -120,6 +128,10 @@ public class ProductService {
                 .build();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PRODUCT_DETAIL_CACHE, key = "#id"),
+            @CacheEvict(value = CacheConfig.MARKETPLACE_PRODUCTS_CACHE, allEntries = true)
+    })
     public void deleteProduct(String id) {
         UUID productId = UUID.fromString(id);
         Product product = productRepo.findById(productId)
