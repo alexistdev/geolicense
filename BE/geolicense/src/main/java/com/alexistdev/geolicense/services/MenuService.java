@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.config.CacheConfig;
 import com.alexistdev.geolicense.dto.request.MenuRequest;
 import com.alexistdev.geolicense.dto.response.MenuResponse;
 import com.alexistdev.geolicense.models.entity.Menu;
@@ -18,6 +19,8 @@ import com.alexistdev.geolicense.models.repository.RoleMenuRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,6 +45,7 @@ public class MenuService {
         this.messagesUtils = messagesUtils;
     }
 
+    @Cacheable(value = CacheConfig.MENU_CACHE, key = "#role.name()")
     public List<MenuResponse> getMenusByRole(Role role) {
         return roleMenuRepo.findByRole(role).stream()
                 .map(RoleMenu::getMenu)
@@ -65,6 +69,7 @@ public class MenuService {
 
 
     @Transactional
+    @CacheEvict(value = CacheConfig.MENU_CACHE, allEntries = true)
     public MenuResponse addMenu(MenuRequest request){
         Menu savedMenu = menuRepo.save(convertToMenu(request));
         String messageSuccess = messagesUtils.getMessage("menu.add.success");

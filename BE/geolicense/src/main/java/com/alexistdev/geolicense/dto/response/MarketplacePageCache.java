@@ -19,10 +19,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductDetailResponse {
-    private String productId;
-    private String name;
-    private String version;
-    private String description;
-    private List<ProductPlanResponse> plans;
+public class MarketplacePageCache {
+    private List<MarketplaceProductResponse> content;
+    private long totalElements;
 }

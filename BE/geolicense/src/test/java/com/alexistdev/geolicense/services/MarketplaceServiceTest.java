@@ -8,6 +8,7 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.dto.response.MarketplacePageCache;
 import com.alexistdev.geolicense.dto.response.MarketplaceProductProjection;
 import com.alexistdev.geolicense.dto.response.MarketplaceProductResponse;
 import com.alexistdev.geolicense.dto.response.ProductDetailResponse;
@@ -23,6 +24,7 @@ import com.alexistdev.geolicense.models.repository.ProductRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -65,6 +67,7 @@ public class MarketplaceServiceTest {
 
     @BeforeEach
     void setUp() {
+        marketplaceService.setSelf(marketplaceService);
         pageable = PageRequest.of(0, 10);
         UUID productId = UUID.randomUUID();
 
@@ -81,6 +84,8 @@ public class MarketplaceServiceTest {
                 .hasTrial(true)
                 .build();
     }
+
+    // ─── getAllMarketplaceProducts ────────────────────────────────────────────────
 
     @Test
     @Order(1)
@@ -164,9 +169,119 @@ public class MarketplaceServiceTest {
         Assertions.assertEquals(2, result.getTotalPages());
     }
 
+    // ─── fetchProducts fallback behavior ─────────────────────────────────────────
+
     @Test
     @Order(5)
-    @DisplayName("5. Should return full product detail with plans when product exists")
+    @DisplayName("5. Should fallback to sort by id ASC when repository throws on ASC-sorted pageable")
+    void fetchProducts_WhenRepositoryThrowsOnAscSortedPageable_ShouldFallbackToSortByIdAsc() {
+        Pageable sortedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
+        Pageable expectedFallback = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+        Page<MarketplaceProductProjection> fallbackPage = new PageImpl<>(List.of(projection), expectedFallback, 1);
+
+        when(marketplaceRepo.findMarketplaceProducts(sortedPageable))
+                .thenThrow(new RuntimeException("Invalid sort field: name"));
+        when(marketplaceRepo.findMarketplaceProducts(expectedFallback)).thenReturn(fallbackPage);
+        when(marketplaceMapper.toResponse(projection)).thenReturn(response);
+
+        Page<MarketplaceProductResponse> result = marketplaceService.getAllMarketplaceProducts(sortedPageable);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.getTotalElements());
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(marketplaceRepo, times(2)).findMarketplaceProducts(captor.capture());
+
+        Pageable fallbackCaptured = captor.getAllValues().get(1);
+        Assertions.assertTrue(fallbackCaptured.getSort().isSorted());
+        Assertions.assertEquals("id", fallbackCaptured.getSort().iterator().next().getProperty());
+        Assertions.assertEquals(Sort.Direction.ASC, fallbackCaptured.getSort().iterator().next().getDirection());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("6. Should fallback to sort by id DESC when repository throws on DESC-sorted pageable")
+    void fetchProducts_WhenRepositoryThrowsOnDescSortedPageable_ShouldFallbackToSortByIdDesc() {
+        Pageable descPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable expectedFallback = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"));
+        Page<MarketplaceProductProjection> fallbackPage = new PageImpl<>(List.of(projection), expectedFallback, 1);
+
+        when(marketplaceRepo.findMarketplaceProducts(descPageable))
+                .thenThrow(new RuntimeException("Invalid sort field: createdAt"));
+        when(marketplaceRepo.findMarketplaceProducts(expectedFallback)).thenReturn(fallbackPage);
+        when(marketplaceMapper.toResponse(projection)).thenReturn(response);
+
+        marketplaceService.getAllMarketplaceProducts(descPageable);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(marketplaceRepo, times(2)).findMarketplaceProducts(captor.capture());
+
+        Pageable fallbackCaptured = captor.getAllValues().get(1);
+        Assertions.assertEquals("id", fallbackCaptured.getSort().iterator().next().getProperty());
+        Assertions.assertEquals(Sort.Direction.DESC, fallbackCaptured.getSort().iterator().next().getDirection());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("7. Should fallback to sort by id ASC when repository throws on unsorted pageable")
+    void fetchProducts_WhenRepositoryThrowsOnUnsortedPageable_ShouldFallbackToSortByIdAsc() {
+        Pageable unsortedPageable = PageRequest.of(0, 10);
+        Pageable expectedFallback = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+        Page<MarketplaceProductProjection> fallbackPage = new PageImpl<>(List.of(projection), expectedFallback, 1);
+
+        when(marketplaceRepo.findMarketplaceProducts(unsortedPageable))
+                .thenThrow(new RuntimeException("Unexpected DB error"));
+        when(marketplaceRepo.findMarketplaceProducts(expectedFallback)).thenReturn(fallbackPage);
+        when(marketplaceMapper.toResponse(projection)).thenReturn(response);
+
+        marketplaceService.getAllMarketplaceProducts(unsortedPageable);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(marketplaceRepo, times(2)).findMarketplaceProducts(captor.capture());
+
+        Pageable fallbackCaptured = captor.getAllValues().get(1);
+        Assertions.assertEquals("id", fallbackCaptured.getSort().iterator().next().getProperty());
+        Assertions.assertEquals(Sort.Direction.ASC, fallbackCaptured.getSort().iterator().next().getDirection());
+    }
+
+    // ─── fetchProducts return type ────────────────────────────────────────────────
+
+    @Test
+    @Order(8)
+    @DisplayName("8. Should return MarketplacePageCache with correct content list and total elements")
+    void fetchProducts_ShouldReturnCacheWithCorrectContentAndTotal() {
+        // total=25 must exceed offset(0)+pageSize(10) to prevent PageImpl from recalculating it
+        Page<MarketplaceProductProjection> repoPage = new PageImpl<>(List.of(projection), pageable, 25);
+        when(marketplaceRepo.findMarketplaceProducts(pageable)).thenReturn(repoPage);
+        when(marketplaceMapper.toResponse(projection)).thenReturn(response);
+
+        MarketplacePageCache cache = marketplaceService.fetchProducts(pageable);
+
+        Assertions.assertNotNull(cache);
+        Assertions.assertEquals(25, cache.getTotalElements());
+        Assertions.assertEquals(1, cache.getContent().size());
+        Assertions.assertEquals(response, cache.getContent().getFirst());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("9. Should return MarketplacePageCache with empty content when no products exist")
+    void fetchProducts_WhenNoProducts_ShouldReturnCacheWithEmptyContentAndZeroTotal() {
+        Page<MarketplaceProductProjection> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+        when(marketplaceRepo.findMarketplaceProducts(pageable)).thenReturn(emptyPage);
+
+        MarketplacePageCache cache = marketplaceService.fetchProducts(pageable);
+
+        Assertions.assertNotNull(cache);
+        Assertions.assertEquals(0, cache.getTotalElements());
+        Assertions.assertTrue(cache.getContent().isEmpty());
+    }
+
+    // ─── getProductDetail ─────────────────────────────────────────────────────────
+
+    @Test
+    @Order(10)
+    @DisplayName("10. Should return full product detail with plans when product exists")
     void getProductDetail_WhenProductExists_ShouldReturnDetailWithPlans() {
         UUID productUUID = UUID.randomUUID();
         UUID planUUID = UUID.randomUUID();
@@ -219,8 +334,8 @@ public class MarketplaceServiceTest {
     }
 
     @Test
-    @Order(6)
-    @DisplayName("6. Should return empty plans list when product has no active plans")
+    @Order(11)
+    @DisplayName("11. Should return empty plans list when product has no active plans")
     void getProductDetail_WhenProductHasNoPlans_ShouldReturnEmptyPlansList() {
         UUID productUUID = UUID.randomUUID();
 
@@ -243,8 +358,114 @@ public class MarketplaceServiceTest {
     }
 
     @Test
-    @Order(7)
-    @DisplayName("7. Should throw NotFoundException when product does not exist")
+    @Order(12)
+    @DisplayName("12. Should map trial flag as true when license type is a trial")
+    void getProductDetail_WhenPlanIsTrialType_ShouldMapTrialFlagAsTrue() {
+        UUID productUUID = UUID.randomUUID();
+
+        LicenseType trialType = mock(LicenseType.class);
+        when(trialType.getName()).thenReturn("TRIAL");
+        when(trialType.is_trial()).thenReturn(true);
+
+        LicensePlan trialPlan = mock(LicensePlan.class);
+        when(trialPlan.getId()).thenReturn(UUID.randomUUID());
+        when(trialPlan.getName()).thenReturn("14-Day Trial");
+        when(trialPlan.getLicenseType()).thenReturn(trialType);
+        when(trialPlan.getPrice()).thenReturn(BigDecimal.ZERO);
+        when(trialPlan.getCurrency()).thenReturn("USD");
+        when(trialPlan.getBillingCycle()).thenReturn("ONE_TIME");
+        when(trialPlan.getDuration_days()).thenReturn(14);
+        when(trialPlan.getMax_seats()).thenReturn(1);
+
+        Product mockProduct = mock(Product.class);
+        when(mockProduct.getId()).thenReturn(productUUID);
+        when(mockProduct.getName()).thenReturn("Trial Product");
+        when(mockProduct.getVersion()).thenReturn("1.0.0");
+        when(mockProduct.getDescription()).thenReturn("Try before you buy");
+
+        when(productRepo.findByProductId(productUUID)).thenReturn(Optional.of(mockProduct));
+        when(licensePlanRepo.findAllActivePlansByProductId(productUUID)).thenReturn(List.of(trialPlan));
+
+        ProductDetailResponse result = marketplaceService.getProductDetail(productUUID.toString());
+
+        Assertions.assertEquals(1, result.getPlans().size());
+        ProductPlanResponse plan = result.getPlans().getFirst();
+        Assertions.assertTrue(plan.isTrial());
+        Assertions.assertEquals("TRIAL", plan.getLicenseType());
+        Assertions.assertEquals(0, BigDecimal.ZERO.compareTo(plan.getPrice()));
+        Assertions.assertEquals(14, plan.getDurationDays());
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. Should return all plans and map each correctly when product has multiple plans")
+    void getProductDetail_WhenProductHasMultiplePlans_ShouldReturnAllPlansInOrder() {
+        UUID productUUID = UUID.randomUUID();
+        UUID monthlyId = UUID.randomUUID();
+        UUID yearlyId = UUID.randomUUID();
+
+        LicenseType standardType = mock(LicenseType.class);
+        when(standardType.getName()).thenReturn("STANDARD");
+        when(standardType.is_trial()).thenReturn(false);
+
+        LicensePlan monthlyPlan = mock(LicensePlan.class);
+        when(monthlyPlan.getId()).thenReturn(monthlyId);
+        when(monthlyPlan.getName()).thenReturn("Monthly");
+        when(monthlyPlan.getLicenseType()).thenReturn(standardType);
+        when(monthlyPlan.getPrice()).thenReturn(new BigDecimal("9.99"));
+        when(monthlyPlan.getCurrency()).thenReturn("USD");
+        when(monthlyPlan.getBillingCycle()).thenReturn("MONTHLY");
+        when(monthlyPlan.getDuration_days()).thenReturn(30);
+        when(monthlyPlan.getMax_seats()).thenReturn(3);
+
+        LicensePlan yearlyPlan = mock(LicensePlan.class);
+        when(yearlyPlan.getId()).thenReturn(yearlyId);
+        when(yearlyPlan.getName()).thenReturn("Yearly");
+        when(yearlyPlan.getLicenseType()).thenReturn(standardType);
+        when(yearlyPlan.getPrice()).thenReturn(new BigDecimal("99.99"));
+        when(yearlyPlan.getCurrency()).thenReturn("USD");
+        when(yearlyPlan.getBillingCycle()).thenReturn("YEARLY");
+        when(yearlyPlan.getDuration_days()).thenReturn(365);
+        when(yearlyPlan.getMax_seats()).thenReturn(10);
+
+        Product mockProduct = mock(Product.class);
+        when(mockProduct.getId()).thenReturn(productUUID);
+        when(mockProduct.getName()).thenReturn("Pro Suite");
+        when(mockProduct.getVersion()).thenReturn("2.0.0");
+        when(mockProduct.getDescription()).thenReturn("Professional suite");
+
+        when(productRepo.findByProductId(productUUID)).thenReturn(Optional.of(mockProduct));
+        when(licensePlanRepo.findAllActivePlansByProductId(productUUID))
+                .thenReturn(List.of(monthlyPlan, yearlyPlan));
+
+        ProductDetailResponse result = marketplaceService.getProductDetail(productUUID.toString());
+
+        Assertions.assertEquals(2, result.getPlans().size());
+
+        ProductPlanResponse monthly = result.getPlans().getFirst();
+        Assertions.assertEquals(monthlyId.toString(), monthly.getPlanId());
+        Assertions.assertEquals("Monthly", monthly.getPlanName());
+        Assertions.assertEquals(new BigDecimal("9.99"), monthly.getPrice());
+        Assertions.assertEquals("MONTHLY", monthly.getBillingCycle());
+        Assertions.assertEquals(30, monthly.getDurationDays());
+        Assertions.assertEquals(3, monthly.getMaxSeats());
+        Assertions.assertFalse(monthly.isTrial());
+
+        ProductPlanResponse yearly = result.getPlans().get(1);
+        Assertions.assertEquals(yearlyId.toString(), yearly.getPlanId());
+        Assertions.assertEquals("Yearly", yearly.getPlanName());
+        Assertions.assertEquals(new BigDecimal("99.99"), yearly.getPrice());
+        Assertions.assertEquals("YEARLY", yearly.getBillingCycle());
+        Assertions.assertEquals(365, yearly.getDurationDays());
+        Assertions.assertEquals(10, yearly.getMaxSeats());
+        Assertions.assertFalse(yearly.isTrial());
+
+        verify(licensePlanRepo, times(1)).findAllActivePlansByProductId(productUUID);
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. Should throw NotFoundException when product does not exist")
     void getProductDetail_WhenProductNotFound_ShouldThrowNotFoundException() {
         UUID productUUID = UUID.randomUUID();
         String productIdStr = productUUID.toString();
@@ -261,8 +482,8 @@ public class MarketplaceServiceTest {
     }
 
     @Test
-    @Order(8)
-    @DisplayName("8. Should throw IllegalArgumentException when product ID is not a valid UUID")
+    @Order(15)
+    @DisplayName("15. Should throw IllegalArgumentException when product ID is not a valid UUID")
     void getProductDetail_WhenInvalidUUID_ShouldThrowIllegalArgumentException() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> marketplaceService.getProductDetail("not-a-valid-uuid"));

@@ -85,7 +85,7 @@ function trialBadgeClass(isTrial: boolean) {
 interface Toast {
   id: number
   message: string
-  type: 'success' | 'error'
+  type: 'success' | 'warning' | 'error'
 }
 const toasts = ref<Toast[]>([])
 let toastSeq = 0
@@ -106,21 +106,17 @@ const modalError = ref<string | null>(null)
 interface LicenseTypeForm {
   name: string
   description: string
-  durationDays: number
-  maxSeats: number
   isTrial: boolean
 }
 
 const form = ref<LicenseTypeForm>({
   name: '',
   description: '',
-  durationDays: 365,
-  maxSeats: 1,
   isTrial: false,
 })
 
 function openModal() {
-  form.value = { name: '', description: '', durationDays: 365, maxSeats: 1, isTrial: false }
+  form.value = { name: '', description: '', isTrial: false }
   modalError.value = null
   showModal.value = true
 }
@@ -135,21 +131,11 @@ async function submitLicenseType() {
     modalError.value = 'Name is required.'
     return
   }
-  if (form.value.durationDays <= 0) {
-    modalError.value = 'Duration must be greater than 0.'
-    return
-  }
-  if (form.value.maxSeats <= 0) {
-    modalError.value = 'Max seats must be greater than 0.'
-    return
-  }
   modalLoading.value = true
   try {
     await MasterLicenseTypeService.addLicenseType({
       name: form.value.name.trim(),
       description: form.value.description.trim(),
-      durationDays: form.value.durationDays,
-      maxSeats: form.value.maxSeats,
       isTrial: form.value.isTrial,
     })
     closeModal()
@@ -188,7 +174,7 @@ async function confirmDelete() {
   try {
     await MasterLicenseTypeService.deleteLicenseType(deleteTarget.value.id)
     closeDeleteModal()
-    showToast('License type successfully deleted.')
+    showToast('License type successfully deleted.', 'error')
     await fetchLicenseTypes()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { messages?: string[] } } }
@@ -211,8 +197,6 @@ interface EditLicenseTypeForm {
   id: string
   name: string
   description: string
-  durationDays: number
-  maxSeats: number
   isTrial: boolean
 }
 
@@ -220,8 +204,6 @@ const editForm = ref<EditLicenseTypeForm>({
   id: '',
   name: '',
   description: '',
-  durationDays: 365,
-  maxSeats: 1,
   isTrial: false,
 })
 
@@ -230,8 +212,6 @@ function openEditModal(licenseType: LicenseTypePayload) {
     id: licenseType.id,
     name: licenseType.name,
     description: licenseType.description,
-    durationDays: licenseType.durationDays,
-    maxSeats: licenseType.maxSeats,
     isTrial: licenseType.isTrial,
   }
   editModalError.value = null
@@ -248,26 +228,16 @@ async function submitEditLicenseType() {
     editModalError.value = 'Name is required.'
     return
   }
-  if (editForm.value.durationDays <= 0) {
-    editModalError.value = 'Duration must be greater than 0.'
-    return
-  }
-  if (editForm.value.maxSeats <= 0) {
-    editModalError.value = 'Max seats must be greater than 0.'
-    return
-  }
   editModalLoading.value = true
   try {
     await MasterLicenseTypeService.updateLicenseType({
       id: editForm.value.id,
       name: editForm.value.name.trim(),
       description: editForm.value.description.trim(),
-      durationDays: editForm.value.durationDays,
-      maxSeats: editForm.value.maxSeats,
       isTrial: editForm.value.isTrial,
     })
     closeEditModal()
-    showToast('License type successfully updated.')
+    showToast('License type successfully updated.', 'warning')
     await fetchLicenseTypes()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { messages?: string[] } } }
@@ -405,12 +375,6 @@ async function submitEditLicenseType() {
                   DESCRIPTION
                 </th>
                 <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  DURATION (DAYS)
-                </th>
-                <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  MAX SEATS
-                </th>
-                <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                   TYPE LICENSE
                 </th>
                 <th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest text-right">
@@ -432,12 +396,6 @@ async function submitEditLicenseType() {
                     <div class="h-3 w-40 bg-surface-container rounded"></div>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="h-3 w-16 bg-surface-container rounded"></div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="h-3 w-16 bg-surface-container rounded"></div>
-                  </td>
-                  <td class="px-6 py-4">
                     <div class="h-6 w-20 bg-surface-container rounded-full"></div>
                   </td>
                   <td class="px-6 py-4 text-right">
@@ -448,7 +406,7 @@ async function submitEditLicenseType() {
 
               <!-- Empty state -->
               <tr v-else-if="licenseTypes.length === 0">
-                <td colspan="6" class="px-6 py-16 text-center text-on-surface-variant">
+                <td colspan="4" class="px-6 py-16 text-center text-on-surface-variant">
                   <span class="material-symbols-outlined text-4xl block mb-2">badge</span>
                   No license types found.
                 </td>
@@ -471,16 +429,6 @@ async function submitEditLicenseType() {
                 </td>
                 <td class="px-6 py-4 max-w-xs">
                   <p class="text-sm text-on-surface-variant truncate">{{ licenseType.description || '—' }}</p>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="text-sm font-mono font-medium text-on-surface-variant">
-                    {{ licenseType.durationDays.toLocaleString() }} days
-                  </span>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="text-sm font-mono font-medium text-on-surface-variant">
-                    {{ licenseType.maxSeats.toLocaleString() }}
-                  </span>
                 </td>
                 <td class="px-6 py-4">
                   <span
@@ -577,14 +525,14 @@ async function submitEditLicenseType() {
             v-for="toast in toasts"
             :key="toast.id"
             class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold min-w-64 max-w-sm"
-            :class="
-              toast.type === 'success'
-                ? 'bg-primary-fixed text-on-primary-fixed-variant'
-                : 'bg-error-container text-on-error-container'
-            "
+            :class="{
+              'bg-green-100 text-green-800': toast.type === 'success',
+              'bg-amber-100 text-amber-800': toast.type === 'warning',
+              'bg-error-container text-on-error-container': toast.type === 'error',
+            }"
           >
             <span class="material-symbols-outlined text-base shrink-0">
-              {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+              {{ toast.type === 'success' ? 'check_circle' : toast.type === 'warning' ? 'edit_note' : 'delete_forever' }}
             </span>
             <span class="flex-1">{{ toast.message }}</span>
           </div>
@@ -700,37 +648,6 @@ async function submitEditLicenseType() {
                 ></textarea>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Duration (Days)</label>
-                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">calendar_month</span>
-                    <input
-                      v-model.number="editForm.durationDays"
-                      type="number"
-                      min="1"
-                      placeholder="365"
-                      class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
-                      :disabled="editModalLoading"
-                    />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Max Seats</label>
-                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">group</span>
-                    <input
-                      v-model.number="editForm.maxSeats"
-                      type="number"
-                      min="1"
-                      placeholder="1"
-                      class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
-                      :disabled="editModalLoading"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div class="flex items-center justify-between py-1">
                 <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Trial License</label>
                 <button
@@ -825,37 +742,6 @@ async function submitEditLicenseType() {
                 ></textarea>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Duration (Days)</label>
-                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">calendar_month</span>
-                    <input
-                      v-model.number="form.durationDays"
-                      type="number"
-                      min="1"
-                      placeholder="365"
-                      class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
-                      :disabled="modalLoading"
-                    />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Max Seats</label>
-                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">group</span>
-                    <input
-                      v-model.number="form.maxSeats"
-                      type="number"
-                      min="1"
-                      placeholder="1"
-                      class="w-full pl-10 pr-4 py-3 bg-surface-container rounded-xl text-on-surface placeholder:text-outline border-none focus:ring-2 focus:ring-primary/30 text-sm"
-                      :disabled="modalLoading"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div class="flex items-center justify-between py-1">
                 <label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Trial License</label>
                 <button
@@ -902,36 +788,5 @@ async function submitEditLicenseType() {
 </template>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-.modal-enter-active .relative,
-.modal-leave-active .relative {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-.modal-enter-from .relative {
-  transform: scale(0.95) translateY(8px);
-  opacity: 0;
-}
 
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
-}
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
-.toast-move {
-  transition: transform 0.3s ease;
-}
 </style>

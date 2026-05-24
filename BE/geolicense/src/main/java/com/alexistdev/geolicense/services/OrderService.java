@@ -71,6 +71,11 @@ public class OrderService {
             throw new BadRequestException(msgInactive);
         }
 
+        if (invoiceRepo.existsPendingInvoiceByUserId(user.getId())) {
+            String msgPending = messagesUtils.getMessage("order.service.pendinginvoice");
+            throw new BadRequestException(msgPending);
+        }
+
         int quantity = request.quantity();
         Orders orderSaved = ordersRepo.save(createOrder(licensePlan, user));
         OrderItem orderItemSaved = orderItemRepo.save(createOrderItem(orderSaved, licensePlan, quantity));

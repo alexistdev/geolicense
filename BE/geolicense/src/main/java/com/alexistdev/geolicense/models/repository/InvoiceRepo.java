@@ -35,4 +35,7 @@ public interface InvoiceRepo extends JpaRepository<Invoice, UUID> {
     @Query("SELECT inv FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.id = :invoiceId AND inv.isDeleted = false")
     Optional<Invoice> findByUserIdAndInvoiceIdAndIsDeletedFalse(@Param("userId") UUID userId, @Param("invoiceId") UUID invoiceId);
 
+    @Query("SELECT COUNT(inv) > 0 FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.status = 0 AND inv.isDeleted = false")
+    boolean existsPendingInvoiceByUserId(@Param("userId") UUID userId);
+
 }

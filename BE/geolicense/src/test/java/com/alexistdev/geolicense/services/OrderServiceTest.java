@@ -79,8 +79,6 @@ class OrderServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-    // --- helpers ---
-
     private Orders buildSavedOrder(String orderNumber) {
         Orders o = new Orders();
         o.setId(UUID.randomUUID());
@@ -103,8 +101,6 @@ class OrderServiceTest {
         when(orderItemRepo.save(any(OrderItem.class))).thenReturn(savedItem);
         when(invoiceRepo.save(any(Invoice.class))).thenReturn(new Invoice());
     }
-
-    // --- tests ---
 
     @Test
     @Order(1)
@@ -390,5 +386,22 @@ class OrderServiceTest {
         Invoice capturedInvoice = invoiceCaptor.getValue();
         BigDecimal expected = capturedInvoice.getAmount().add(new BigDecimal(capturedInvoice.getUniqueCode()));
         assertEquals(expected, capturedInvoice.getTotalAmount());
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. createOrder - should throw BadRequestException when user has a pending invoice")
+    void createOrder_shouldThrowBadRequestException_whenUserHasPendingInvoice() {
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended("test@example.com")).thenReturn(Optional.of(user));
+        when(licensePlanRepo.findById(request.licensePlanId())).thenReturn(Optional.of(licensePlan));
+        when(invoiceRepo.existsPendingInvoiceByUserId(user.getId())).thenReturn(true);
+        when(messagesUtils.getMessage(eq("order.service.pendinginvoice")))
+                .thenReturn("You have a pending invoice. Please complete your payment before placing a new order.");
+
+        assertThrows(BadRequestException.class, () -> orderService.createOrder(request));
+
+        verify(ordersRepo, never()).save(any());
+        verify(orderItemRepo, never()).save(any());
+        verify(invoiceRepo, never()).save(any(Invoice.class));
     }
 }
