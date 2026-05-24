@@ -71,7 +71,7 @@ public class InvoiceController {
 
     @GetMapping("/search")
     public ResponseEntity<ResponseData<Page<InvoiceResponse>>> searchInvoices(
-            @RequestParam String keyword,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") @PositiveOrZero int page,
             @RequestParam(defaultValue = "10") @PositiveOrZero int size,
             @RequestParam(defaultValue = "id") String sortBy,
