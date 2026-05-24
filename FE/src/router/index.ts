@@ -11,6 +11,7 @@ import MarketplaceView from '@/modules/user/marketplace/views/MarketplaceView.vu
 import MarketplaceDetailView from '@/modules/user/marketplace/views/MarketplaceDetailView.vue'
 import InvoiceView from '@/modules/user/invoice/views/InvoiceView.vue'
 import InvoiceDetailView from '@/modules/user/invoice/views/InvoiceDetailView.vue'
+import BillingInvoiceView from '@/modules/administrator/billing/invoices/views/BillingInvoiceView.vue'
 
 
 const router = createRouter({
@@ -34,6 +35,11 @@ const router = createRouter({
       path: '/admin/products',
       name: 'admin-product',
       component: MasterProductView,
+    },
+    {
+      path: '/admin/invoices',
+      name: 'admin-invoice',
+      component: BillingInvoiceView,
     },
     {
       path: '/admin/license_types',
