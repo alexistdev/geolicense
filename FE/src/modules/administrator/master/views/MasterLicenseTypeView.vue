@@ -787,6 +787,29 @@ async function submitEditLicenseType() {
   </DashboardLayout>
 </template>
 
-<style scoped>
+<style>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
 
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.toast-move {
+  transition: transform 0.3s ease;
+}
 </style>
