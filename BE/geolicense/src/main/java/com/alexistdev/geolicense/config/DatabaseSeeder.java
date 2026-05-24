@@ -74,7 +74,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedRoleMenus(){
         log.info("START: Seeding Role Menu");
         Map<Role, List<String>> roleMenuCode = Map.of(
-          Role.ADMIN, List.of("ad1","ad2","ad3","ad4","ad5","ad6"),
+          Role.ADMIN, List.of("ad1","ad2","ad3","dm1","dm2","dm3","dm4","dm5"),
           Role.USER, List.of("us1", "us2","us3","us4","us5")
         );
 
@@ -105,16 +105,21 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void seedChildAdmin(){
         log.info("START: Seeding Child Menu Admin");
-        Menu menuParentAdmin = menuService.findByCode("ad2");
-        if(menuParentAdmin != null){
-            MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdmin.getId(),2,"ad3","bx bx-server");
-            MenuRequest menuChildAdmin2 = createMenu("Licenses", "/admin/licenses", 2, menuParentAdmin.getId(),2,"ad4","bx bx-server");
-            MenuRequest menuChildAdmin3 = createMenu("Products", "/admin/products", 2, menuParentAdmin.getId(),2,"ad5","bx bx-server");
-            MenuRequest menuChildAdmin4 = createMenu("Licenses Type", "/admin/license_types", 2, menuParentAdmin.getId(),2,"ad6","bx bx-server");
+        Menu menuParentAdminMaster = menuService.findByCode("ad2");
+        Menu menuParentAdminTransactions = menuService.findByCode("ad3");
+        if(menuParentAdminMaster != null){
+            MenuRequest menuChildAdmin1 = createMenu("Users", "/admin/users", 2, menuParentAdminMaster.getId(),2,"dm1","bx bx-server");
+            MenuRequest menuChildAdmin2 = createMenu("Licenses", "/admin/licenses", 2, menuParentAdminMaster.getId(),2,"dm2","bx bx-server");
+            MenuRequest menuChildAdmin3 = createMenu("Products", "/admin/products", 2, menuParentAdminMaster.getId(),2,"dm3","bx bx-server");
+            MenuRequest menuChildAdmin4 = createMenu("Licenses Type", "/admin/license_types", 2, menuParentAdminMaster.getId(),2,"dm4","bx bx-server");
             menuService.addMenu(menuChildAdmin1);
             menuService.addMenu(menuChildAdmin2);
             menuService.addMenu(menuChildAdmin3);
             menuService.addMenu(menuChildAdmin4);
+        }
+        if(menuParentAdminTransactions != null){
+            MenuRequest menuChildAdmin5 = createMenu("Invoices", "/admin/invoices", 2, menuParentAdminTransactions.getId(),2,"dm5","bx bx-server");
+            menuService.addMenu(menuChildAdmin5);
         }
         log.info("END: Seeding Child Menu Admin");
     }
@@ -133,8 +138,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("START: Seeding Menu Admin");
         MenuRequest menuAdmin1 = createMenu("Dashboard", "/admin/dashboard", 1, null,1, "ad1","bx bx-home-alt");
         MenuRequest menuAdmin2 = createMenu("Master Data", "#", 2, null,1,"ad2","bx bx-book-alt");
+        MenuRequest menuAdmin3 = createMenu("Billing", "#", 3, null,1,"ad3","bx bx-book-alt");
         menuService.addMenu(menuAdmin1);
         menuService.addMenu(menuAdmin2);
+        menuService.addMenu(menuAdmin3);
         log.info("END: Seeding Menu Admin");
     }
 
