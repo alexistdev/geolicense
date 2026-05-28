@@ -324,4 +324,59 @@ public class InvoiceServiceTest {
         verifyNoInteractions(orderItemRepo);
         verifyNoInteractions(invoiceMapper);
     }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. getInvoiceDetailByIdAdmin - returns invoice detail when invoice exists")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceExists_ShouldReturnInvoiceDetailResponse() {
+        String invoiceId = invoice.getId().toString();
+        List<OrderItem> items = Collections.emptyList();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(items);
+        when(invoiceMapper.toDetailResponse(invoice, items)).thenReturn(invoiceDetailResponse);
+
+        InvoiceDetailResponse result = invoiceService.getInvoiceDetailByIdAdmin(invoiceId);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
+        Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
+        Assertions.assertEquals("USD", result.currency());
+        Assertions.assertEquals(1, result.status());
+        Assertions.assertTrue(result.items().isEmpty());
+
+        verifyNoInteractions(userRepo);
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verify(orderItemRepo, times(1)).findByOrdersId(orders.getId());
+        verify(invoiceMapper, times(1)).toDetailResponse(invoice, items);
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. getInvoiceDetailByIdAdmin - throws BadRequestException when invoice ID is not a valid UUID")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.getInvoiceDetailByIdAdmin("not-a-uuid"));
+
+        verifyNoInteractions(userRepo);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(orderItemRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. getInvoiceDetailByIdAdmin - throws NotFoundException when invoice is not found")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailByIdAdmin(invoiceId));
+
+        verifyNoInteractions(userRepo);
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verifyNoInteractions(orderItemRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
 }

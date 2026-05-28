@@ -674,4 +674,84 @@ public class InvoiceControllerTest {
 
         verify(invoiceService, times(1)).getInvoiceDetailById("not-a-uuid", TEST_USER_EMAIL);
     }
+
+    // ─── GET /api/v1/invoices/{invoiceId} (admin) ─────────────────────────────
+
+    @Test
+    @Order(31)
+    @DisplayName("31. GET /invoices/{invoiceId} returns 200 with invoice detail when invoice exists")
+    public void testGetInvoiceById_found_returns200WithInvoiceDetail() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        InvoiceDetailResponse response = new InvoiceDetailResponse(
+                invoiceId, "INV-2026-001", "ORD-2026-001",
+                new BigDecimal("99.99"), BigDecimal.ZERO, BigDecimal.ZERO,
+                523, new BigDecimal("622.99"),
+                "USD", 1, new Date(),
+                Collections.emptyList()
+        );
+
+        when(invoiceService.getInvoiceDetailByIdAdmin(invoiceId.toString())).thenReturn(response);
+        when(messagesUtils.getMessage("invoice.controller.found")).thenReturn(INVOICE_FOUND_MESSAGE);
+
+        mockMvc.perform(get("/api/v1/invoices/{invoiceId}", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value(INVOICE_FOUND_MESSAGE))
+                .andExpect(jsonPath("$.payload.id").value(invoiceId.toString()))
+                .andExpect(jsonPath("$.payload.orderNumber").value("ORD-2026-001"))
+                .andExpect(jsonPath("$.payload.invoiceNumber").value("INV-2026-001"))
+                .andExpect(jsonPath("$.payload.amount").value(99.99))
+                .andExpect(jsonPath("$.payload.discount").value(0))
+                .andExpect(jsonPath("$.payload.tax").value(0))
+                .andExpect(jsonPath("$.payload.uniqueCode").value(523))
+                .andExpect(jsonPath("$.payload.totalAmount").value(622.99))
+                .andExpect(jsonPath("$.payload.currency").value("USD"))
+                .andExpect(jsonPath("$.payload.status").value(1))
+                .andExpect(jsonPath("$.payload.items").isArray());
+
+        verify(invoiceService, times(1)).getInvoiceDetailByIdAdmin(invoiceId.toString());
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("32. GET /invoices/{invoiceId} returns 404 when invoice is not found")
+    public void testGetInvoiceById_invoiceNotFound_returns404() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+
+        when(invoiceService.getInvoiceDetailByIdAdmin(invoiceId.toString()))
+                .thenThrow(new NotFoundException("Invoice " + invoiceId + " not found"));
+
+        mockMvc.perform(get("/api/v1/invoices/{invoiceId}", invoiceId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).getInvoiceDetailByIdAdmin(invoiceId.toString());
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("33. GET /invoices/{invoiceId} returns 400 when invoiceId is not a valid UUID")
+    public void testGetInvoiceById_invalidUUID_returns400() throws Exception {
+        when(invoiceService.getInvoiceDetailByIdAdmin("not-a-uuid"))
+                .thenThrow(new BadRequestException("Invalid invoice ID format: not-a-uuid"));
+
+        mockMvc.perform(get("/api/v1/invoices/{invoiceId}", "not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).getInvoiceDetailByIdAdmin("not-a-uuid");
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("34. GET /invoices/ with trailing slash and no ID returns 400")
+    public void testGetInvoiceById_emptySegment_returns400() throws Exception {
+        when(messagesUtils.getMessage("invoice.service.invalidid", "")).thenReturn("Invalid invoice ID format: ");
+
+        mockMvc.perform(get("/api/v1/invoices/"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verifyNoInteractions(invoiceService);
+    }
 }

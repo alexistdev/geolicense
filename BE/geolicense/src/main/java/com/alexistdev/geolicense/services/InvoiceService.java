@@ -84,4 +84,23 @@ public class InvoiceService {
         List<OrderItem> items = orderItemRepo.findByOrdersId(invoice.getOrders().getId());
         return invoiceMapper.toDetailResponse(invoice, items);
     }
+
+    public InvoiceDetailResponse getInvoiceDetailByIdAdmin(String InvoiceId) {
+        UUID invoiceId;
+        try {
+            invoiceId = UUID.fromString(InvoiceId);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", InvoiceId));
+        }
+
+        var invoice = invoiceRepo.findById(invoiceId)
+                .orElseThrow(() -> {
+                    String messageError = messagesUtils.getMessage("invoice.service.notfound", InvoiceId);
+                    log.error(messageError);
+                    return new NotFoundException(messageError);
+                });
+
+        List<OrderItem> items = orderItemRepo.findByOrdersId(invoice.getOrders().getId());
+        return invoiceMapper.toDetailResponse(invoice, items);
+    }
 }

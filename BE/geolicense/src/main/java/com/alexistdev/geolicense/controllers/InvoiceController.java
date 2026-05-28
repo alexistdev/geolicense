@@ -100,6 +100,20 @@ public class InvoiceController {
         return ResponseEntity.ok(responseData);
     }
 
+    @GetMapping("/")
+    public ResponseEntity<ResponseData<InvoiceDetailResponse>> getInvoiceByIdEmpty() {
+        throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", ""));
+    }
+
+    @GetMapping("/{invoiceId}")
+    public ResponseEntity<ResponseData<InvoiceDetailResponse>> getInvoiceById(@PathVariable String invoiceId) {
+        ResponseData<InvoiceDetailResponse> responseData = new ResponseData<>();
+        responseData.setPayload(invoiceService.getInvoiceDetailByIdAdmin(invoiceId));
+        responseData.getMessages().add(messagesUtils.getMessage("invoice.controller.found"));
+        responseData.setStatus(true);
+        return ResponseEntity.ok(responseData);
+    }
+
     @GetMapping("/me/")
     public ResponseEntity<ResponseData<InvoiceResponse>> getMyInvoiceWithEmptyId() {
         throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", ""));
