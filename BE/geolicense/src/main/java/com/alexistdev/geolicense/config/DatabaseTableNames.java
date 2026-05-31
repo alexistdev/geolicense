@@ -14,5 +14,8 @@ public class DatabaseTableNames {
     public static final String TB_PAYMENT = "glo_payments";
     public static final String TB_INVOICE = "glo_invoices";
     public static final String TB_ORDER_ITEM = "glo_order_items";
+    public static final String TB_PAYMENT_METHOD = "glo_payment_methods";
+    public static final String TB_BANK_ACCOUNT = "glo_bank_accounts";
+    public static final String TB_PAYMENT_GATEWAY_CONFIG = "glo_payment_gateway_configs";
 
 }

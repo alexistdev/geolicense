@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>License Management ERD + Payment Gateway</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 1800px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 32px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    p.subtitle {
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      overflow-x: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .section-label.existing {
+      background: #1e3a5f;
+      color: #7dd3fc;
+      border: 1px solid #38bdf8;
+    }
+
+    .section-label.new {
+      background: #14532d;
+      color: #86efac;
+      border: 1px solid #4ade80;
+    }
+
+    .flows {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+    }
+
+    .flow {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .flow pre {
+      color: #38bdf8;
+      font-size: 14px;
+      line-height: 1.9;
+      margin: 0;
+    }
+
+    .flow pre .highlight {
+      color: #4ade80;
+      font-weight: bold;
+    }
+
+    .legend {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .legend-card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .legend-card.new-entity {
+      border-color: #4ade80;
+    }
+
+    .legend-card h3 {
+      margin-top: 0;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-card.new-entity h3 {
+      color: #4ade80;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .badge.new {
+      background: #14532d;
+      color: #86efac;
+      border: 1px solid #4ade80;
+    }
+
+    .badge.modified {
+      background: #451a03;
+      color: #fdba74;
+      border: 1px solid #f97316;
+    }
+
+    .legend-card p {
+      margin-bottom: 0;
+      line-height: 1.7;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .legend-card ul {
+      margin: 8px 0 0 0;
+      padding-left: 18px;
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .divider {
+      margin: 32px 0 16px 0;
+      border: none;
+      border-top: 1px solid #1e293b;
+    }
+
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .diff-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .diff-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .diff-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tag-done   { color: #4ade80; font-weight: 700; }
+    .tag-new    { color: #4ade80; font-weight: 700; }
+    .tag-miss   { color: #f87171; font-weight: 700; }
+    .tag-mod    { color: #fdba74; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>License Management ERD + Payment Gateway</h1>
+    <p class="subtitle">
+      Extended from Production Ready ERD — adds <strong>PaymentMethod</strong>,
+      <strong>BankAccount</strong>, and <strong>PaymentGatewayConfig</strong>
+      to support admin-configured Bank Transfer and Xendit (or other gateways).
+    </p>
+
+    <!-- ERD Diagram -->
+    <div class="card">
+      <div class="mermaid">
+        erDiagram
+
+          CLIENT {
+            uuid id PK
+            string name
+            string email
+            string phone
+            string company
+            string country
+            timestamp created_at
+          }
+
+          PRODUCT {
+            uuid id PK
+            string name
+            string version
+            string description
+            string sku
+            boolean is_active
+            timestamp created_at
+          }
+
+          LICENSE_TYPE {
+            uuid id PK
+            string name
+            string description
+            boolean is_trial
+          }
+
+          LICENSE_PLAN {
+            uuid id PK
+            uuid product_id FK
+            uuid license_type_id FK
+            string name
+            string billing_cycle
+            int duration_days
+            int max_seats
+            decimal price
+            string currency
+            boolean is_active
+            timestamp created_at
+          }
+
+          ORDERS {
+            uuid id PK
+            uuid client_id FK
+            string order_number
+            decimal total_amount
+            string currency
+            string status
+            timestamp created_at
+          }
+
+          ORDER_ITEM {
+            uuid id PK
+            uuid order_id FK
+            uuid license_plan_id FK
+            int quantity
+            decimal unit_price
+            decimal total_price
+          }
+
+          PAYMENT_METHOD {
+            uuid id PK
+            string type
+            string display_name
+            boolean is_active
+            int sort_order
+            timestamp created_at
+          }
+
+          BANK_ACCOUNT {
+            uuid id PK
+            uuid payment_method_id FK
+            string bank_name
+            string account_number
+            string account_holder
+            boolean is_main
+            boolean is_active
+            timestamp created_at
+          }
+
+          PAYMENT_GATEWAY_CONFIG {
+            uuid id PK
+            uuid payment_method_id FK
+            string api_key
+            string webhook_token
+            string extra_config
+            timestamp created_at
+          }
+
+          PAYMENT {
+            uuid id PK
+            uuid order_id FK
+            uuid payment_method_id FK
+            uuid bank_account_id FK
+            string provider
+            string provider_reference
+            string snapshot_bank_name
+            string snapshot_account_number
+            string snapshot_account_holder
+            decimal amount
+            string currency
+            string status
+            timestamp paid_at
+            timestamp created_at
+          }
+
+          INVOICE {
+            uuid id PK
+            uuid order_id FK
+            string invoice_number
+            decimal amount
+            string currency
+            string status
+            timestamp issued_at
+          }
+
+          LICENSE {
+            uuid id PK
+            uuid client_id FK
+            uuid product_id FK
+            uuid license_plan_id FK
+            uuid order_item_id FK
+            string license_key
+            string status
+            int max_seats
+            int used_seats
+            timestamp issued_at
+            timestamp expires_at
+            timestamp created_at
+          }
+
+          LICENSE_ACTIVATION {
+            uuid id PK
+            uuid license_id FK
+            string machine_id
+            string machine_name
+            string os_info
+            string ip_address
+            boolean is_active
+            timestamp activated_at
+            timestamp last_seen_at
+          }
+
+          RENEWAL {
+            uuid id PK
+            uuid license_id FK
+            uuid order_id FK
+            timestamp renewed_at
+            timestamp old_expires_at
+            timestamp new_expires_at
+          }
+
+          AUDIT_LOG {
+            uuid id PK
+            uuid license_id FK
+            uuid client_id FK
+            string action
+            string performed_by
+            jsonb metadata
+            timestamp created_at
+          }
+
+          CLIENT ||--o{ ORDERS : places
+          CLIENT ||--o{ LICENSE : owns
+
+          PRODUCT ||--o{ LICENSE_PLAN : has
+
+          LICENSE_TYPE ||--o{ LICENSE_PLAN : defines
+
+          ORDERS ||--o{ ORDER_ITEM : contains
+
+          LICENSE_PLAN ||--o{ ORDER_ITEM : purchased_as
+
+          ORDERS ||--o{ PAYMENT : paid_via
+
+          ORDERS ||--|| INVOICE : generates
+
+          ORDER_ITEM ||--o| LICENSE : creates
+
+          LICENSE_PLAN ||--o{ LICENSE : used_by
+
+          PRODUCT ||--o{ LICENSE : licensed_for
+
+          LICENSE ||--o{ LICENSE_ACTIVATION : activated_on
+
+          LICENSE ||--o{ RENEWAL : renewed_via
+
+          ORDERS ||--o{ RENEWAL : used_for
+
+          LICENSE ||--o{ AUDIT_LOG : tracked_by
+
+          CLIENT ||--o{ AUDIT_LOG : associated_with
+
+          PAYMENT_METHOD ||--o{ BANK_ACCOUNT : has
+          PAYMENT_METHOD ||--o| PAYMENT_GATEWAY_CONFIG : configured_by
+          PAYMENT_METHOD ||--o{ PAYMENT : used_in
+          BANK_ACCOUNT ||--o{ PAYMENT : selected_for
+      </div>
+    </div>
+
+    <!-- Implementation Status -->
+    <hr class="divider" />
+    <h2>Implementation Status</h2>
+    <div class="card">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>Entity</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>CLIENT / User</td>       <td><span class="tag-done">Done</span></td>   <td>User entity — also covers auth, roles, session</td></tr>
+          <tr><td>PRODUCT</td>             <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>LICENSE_TYPE</td>        <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>LICENSE_PLAN</td>        <td><span class="tag-done">Done</span></td>   <td>Note: uses snake_case field names (duration_days, max_seats)</td></tr>
+          <tr><td>ORDERS</td>              <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>ORDER_ITEM</td>          <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>INVOICE</td>             <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>LICENSE</td>             <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>LICENSE_ACTIVATION</td>  <td><span class="tag-done">Done</span></td>   <td></td></tr>
+          <tr><td>PAYMENT</td>             <td><span class="tag-mod">Modified</span></td> <td>Add: payment_method_id, bank_account_id (FK, nullable), snapshot fields</td></tr>
+          <tr><td>PAYMENT_METHOD</td>      <td><span class="tag-new">New</span></td>     <td>Admin-configured payment options (BANK_TRANSFER, XENDIT, OTHER)</td></tr>
+          <tr><td>BANK_ACCOUNT</td>        <td><span class="tag-new">New</span></td>     <td>Multiple accounts per BANK_TRANSFER method; is_main = default display</td></tr>
+          <tr><td>PAYMENT_GATEWAY_CONFIG</td><td><span class="tag-new">New</span></td>   <td>API key + webhook token for Xendit and future gateways</td></tr>
+          <tr><td>RENEWAL</td>             <td><span class="tag-miss">Not yet</span></td> <td>Needed for license renewal flow</td></tr>
+          <tr><td>AUDIT_LOG</td>           <td><span class="tag-miss">Not yet</span></td> <td>Append-only; write from LicenseService + InvoiceService</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Flows -->
+    <div class="flows">
+
+      <div class="flow">
+        <h2>Bank Transfer Flow (Manual)</h2>
+        <pre>
+USER
+  ↓
+GET /payment-methods
+  → returns PAYMENT_METHOD list
+  → BANK_TRANSFER includes all active
+    BANK_ACCOUNT rows
+
+USER picks a bank account
+  ↓
+POST /invoices/{id}/submit-payment
+  { paymentMethodId, bankAccountId,
+    providerReference }
+  ↓
+<span class="highlight">PAYMENT saved</span>
+  provider         ← snapshot from BANK_ACCOUNT
+  bank_account_id  ← FK
+  snapshot_*       ← copied at submit time
+  status           = PENDING
+  ↓
+INVOICE → AWAITING_VERIFICATION
+  ↓
+ADMIN reviews → approve / reject
+  ↓
+<span class="highlight">LICENSE GENERATED</span>
+        </pre>
+      </div>
+
+      <div class="flow">
+        <h2>Xendit Flow (Automated)</h2>
+        <pre>
+USER
+  ↓
+GET /payment-methods
+  → returns XENDIT option
+
+USER selects Xendit
+  ↓
+POST /invoices/{id}/submit-payment
+  { paymentMethodId }
+  ↓
+Backend calls Xendit API
+  (using PAYMENT_GATEWAY_CONFIG.api_key)
+  ↓
+Returns payment URL to user
+  ↓
+<span class="highlight">PAYMENT saved</span>
+  provider          = "XENDIT"
+  provider_reference = Xendit invoice ID
+  status            = PENDING
+  ↓
+USER pays on Xendit page
+  ↓
+POST /webhooks/xendit
+  (verified via webhook_token)
+  ↓
+<span class="highlight">Auto-validate invoice</span>
+  PAYMENT  → VERIFIED
+  INVOICE  → PAID
+  ORDER    → COMPLETED
+  ↓
+<span class="highlight">LICENSE GENERATED</span>
+        </pre>
+      </div>
+
+      <div class="flow">
+        <h2>Admin: Configure Payment Methods</h2>
+        <pre>
+POST /admin/payment-methods
+  { type: "BANK_TRANSFER",
+    displayName: "Bank Transfer",
+    isActive: true,
+    sortOrder: 1 }
+  ↓
+<span class="highlight">PAYMENT_METHOD created</span>
+
+POST /admin/payment-methods/{id}/bank-accounts
+  { bankName: "BCA",
+    accountNumber: "1234567890",
+    accountHolder: "PT Geolicense",
+    isMain: true }
+  ↓
+<span class="highlight">BANK_ACCOUNT created</span>
+
+PUT /admin/bank-accounts/{id}/set-main
+  → updates is_main flag
+
+─────────────────────────────
+
+POST /admin/payment-methods
+  { type: "XENDIT", ... }
+  ↓
+PUT /admin/payment-methods/{id}/gateway-config
+  { apiKey: "...",
+    webhookToken: "..." }
+  ↓
+<span class="highlight">PAYMENT_GATEWAY_CONFIG saved</span>
+        </pre>
+      </div>
+
+    </div>
+
+    <!-- Legend -->
+    <hr class="divider" />
+    <h2>Entity Notes</h2>
+    <div class="legend">
+
+      <div class="legend-card new-entity">
+        <h3>PAYMENT_METHOD <span class="badge new">New</span></h3>
+        <p>Admin-created top-level payment option. The <code>type</code> enum controls which child config is used.</p>
+        <ul>
+          <li><strong>BANK_TRANSFER</strong> → has child BANK_ACCOUNT rows</li>
+          <li><strong>XENDIT</strong> → has one PAYMENT_GATEWAY_CONFIG row</li>
+          <li><strong>OTHER</strong> → extensible for future gateways</li>
+          <li><code>sort_order</code> controls display order to users</li>
+        </ul>
+      </div>
+
+      <div class="legend-card new-entity">
+        <h3>BANK_ACCOUNT <span class="badge new">New</span></h3>
+        <p>One-to-many under a BANK_TRANSFER payment method. Admin adds multiple accounts; user picks which they transferred to.</p>
+        <ul>
+          <li><code>is_main</code> = highlighted/default in the UI</li>
+          <li><code>is_active</code> = soft toggle without deleting</li>
+          <li>Soft-delete so Payment FK remains valid even after deactivation</li>
+        </ul>
+      </div>
+
+      <div class="legend-card new-entity">
+        <h3>PAYMENT_GATEWAY_CONFIG <span class="badge new">New</span></h3>
+        <p>Stores provider-specific secrets. One row per gateway-type PaymentMethod (unique FK).</p>
+        <ul>
+          <li><code>api_key</code> — store encrypted at rest</li>
+          <li><code>webhook_token</code> — used to verify inbound webhook calls</li>
+          <li><code>extra_config</code> — JSON for provider-specific fields (e.g. Xendit channel type)</li>
+        </ul>
+      </div>
+
+      <div class="legend-card" style="border-color:#f97316;">
+        <h3>PAYMENT <span class="badge modified">Modified</span></h3>
+        <p>Existing entity — two new FKs and three snapshot fields added.</p>
+        <ul>
+          <li><code>payment_method_id</code> FK — which method was used</li>
+          <li><code>bank_account_id</code> FK — nullable; only set for BANK_TRANSFER</li>
+          <li><code>snapshot_bank_name/account_number/account_holder</code> — copied at submit time so the record is self-contained even if the bank account is later deleted</li>
+        </ul>
+      </div>
+
+      <div class="legend-card">
+        <h3>LICENSE_PLAN</h3>
+        <p>Menyimpan pricing, billing cycle, duration, dan max seats.</p>
+      </div>
+
+      <div class="legend-card">
+        <h3>ORDER_ITEM</h3>
+        <p>Menyimpan snapshot harga saat transaksi berlangsung.</p>
+      </div>
+
+      <div class="legend-card">
+        <h3>LICENSE</h3>
+        <p>Representasi final hasil pembelian software license.</p>
+      </div>
+
+      <div class="legend-card">
+        <h3>LICENSE_ACTIVATION</h3>
+        <p>Tracking device dan machine yang menggunakan license.</p>
+      </div>
+
+      <div class="legend-card">
+        <h3>RENEWAL</h3>
+        <p>Tracking histori perpanjangan license. Belum diimplementasi.</p>
+        <ul>
+          <li>Dibuat saat user melakukan renewal order untuk license yang sudah ada</li>
+          <li>Update <code>License.expiresAt</code> ke <code>new_expires_at</code></li>
+        </ul>
+      </div>
+
+      <div class="legend-card">
+        <h3>AUDIT_LOG</h3>
+        <p>Append-only log untuk semua aksi penting. Belum diimplementasi.</p>
+        <ul>
+          <li>Tidak perlu soft-delete atau BaseEntity auditing</li>
+          <li><code>metadata</code> JSON untuk payload fleksibel per action type</li>
+          <li>Ditulis dari LicenseService, InvoiceService, dan activation flow</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      securityLevel: 'loose',
+      er: {
+        useMaxWidth: true
+      },
+      themeVariables: {
+        primaryColor: '#1e293b',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#64748b',
+        tertiaryColor: '#0f172a'
+      }
+    });
+  </script>
+</body>
+</html>
