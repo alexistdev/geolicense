@@ -63,10 +63,11 @@ function goToPage(page: number) {
   fetchInvoices(page)
 }
 
-function invoiceStatus(status: number): { label: string; cls: string } {
-  if (status === 1) return { label: 'Paid', cls: 'bg-green-500/10 text-green-400' }
-  if (status === 2) return { label: 'Cancelled', cls: 'bg-error/10 text-error' }
-  return { label: 'Pending', cls: 'bg-yellow-500/10 text-yellow-400' }
+function invoiceStatus(status: string): { label: string; cls: string } {
+  if (status === 'PAID') return { label: 'Paid', cls: 'bg-green-500/10 text-green-400' }
+  if (status === 'CANCELLED') return { label: 'Cancelled', cls: 'bg-error/10 text-error' }
+  if (status === 'AWAITING_VERIFICATION') return { label: 'Awaiting Verification', cls: 'bg-blue-500/10 text-blue-400' }
+  return { label: 'Unpaid', cls: 'bg-yellow-500/10 text-yellow-400' }
 }
 
 function formatAmount(amount: number, currency: string): string {

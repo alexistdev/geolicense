@@ -41,10 +41,11 @@ function formatAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
 }
 
-function invoiceStatus(status: number): { label: string; cls: string } {
-  if (status === 1) return { label: 'Paid', cls: 'bg-green-500/10 text-green-400 border border-green-500/20' }
-  if (status === 2) return { label: 'Cancelled', cls: 'bg-error/10 text-error border border-error/20' }
-  return { label: 'Pending', cls: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }
+function invoiceStatus(status: string): { label: string; cls: string } {
+  if (status === 'PAID') return { label: 'Paid', cls: 'bg-green-500/10 text-green-400 border border-green-500/20' }
+  if (status === 'CANCELLED') return { label: 'Cancelled', cls: 'bg-error/10 text-error border border-error/20' }
+  if (status === 'AWAITING_VERIFICATION') return { label: 'Awaiting Verification', cls: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' }
+  return { label: 'Unpaid', cls: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }
 }
 
 onMounted(() => fetchDetail())

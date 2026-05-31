@@ -11,6 +11,7 @@ import MarketplaceView from '@/modules/user/marketplace/views/MarketplaceView.vu
 import MarketplaceDetailView from '@/modules/user/marketplace/views/MarketplaceDetailView.vue'
 import InvoiceView from '@/modules/user/invoice/views/InvoiceView.vue'
 import InvoiceDetailView from '@/modules/user/invoice/views/InvoiceDetailView.vue'
+import InvoicePaymentView from '@/modules/user/invoice/views/InvoicePaymentView.vue'
 import BillingInvoiceView from '@/modules/administrator/billing/invoices/views/BillingInvoiceView.vue'
 import BillingDetailInvoiceView from '@/modules/administrator/billing/invoices/views/BillingDetailInvoiceView.vue'
 
@@ -71,6 +72,11 @@ const router = createRouter({
       path: '/user/invoice/:id',
       name: 'user-invoice-detail',
       component: InvoiceDetailView,
+    },
+    {
+      path: '/user/invoice/:id/payment',
+      name: 'user-invoice-payment',
+      component: InvoicePaymentView,
     },
     {
       path: '/user/marketplace/:productId',

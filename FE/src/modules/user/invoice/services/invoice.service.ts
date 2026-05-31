@@ -10,6 +10,11 @@ export interface InvoicePageParams {
   direction: 'asc' | 'desc'
 }
 
+export interface SubmitPaymentPayload {
+  provider: string
+  providerReference: string
+}
+
 class InvoiceService {
   async getMyInvoices(params: InvoicePageParams): Promise<InvoiceResponse> {
     const response = await apiClient.get<InvoiceResponse>(`${BASE_PATH}/me`, { params })
@@ -18,6 +23,11 @@ class InvoiceService {
 
   async getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailResponse> {
     const response = await apiClient.get<InvoiceDetailResponse>(`${BASE_PATH}/me/${invoiceId}`)
+    return response.data
+  }
+
+  async submitPayment(invoiceId: string, payload: SubmitPaymentPayload): Promise<{ messages: string[]; status: boolean }> {
+    const response = await apiClient.post<{ messages: string[]; status: boolean }>(`${BASE_PATH}/${invoiceId}/payment`, payload)
     return response.data
   }
 }

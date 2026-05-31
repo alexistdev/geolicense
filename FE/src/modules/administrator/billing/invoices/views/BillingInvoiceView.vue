@@ -88,10 +88,11 @@ const pageNumbers = computed<(number | '...')[]>(() => {
   return pages
 })
 
-function invoiceStatus(status: number): { label: string; cls: string } {
-  if (status === 1) return { label: 'Paid', cls: 'bg-green-100 text-green-800' }
-  if (status === 2) return { label: 'Cancelled', cls: 'bg-error-container text-on-error-container' }
-  return { label: 'Pending', cls: 'bg-amber-100 text-amber-800' }
+function invoiceStatus(status: string): { label: string; cls: string } {
+  if (status === 'PAID') return { label: 'Paid', cls: 'bg-green-100 text-green-800' }
+  if (status === 'CANCELLED') return { label: 'Cancelled', cls: 'bg-error-container text-on-error-container' }
+  if (status === 'AWAITING_VERIFICATION') return { label: 'Awaiting Verification', cls: 'bg-blue-100 text-blue-800' }
+  return { label: 'Unpaid', cls: 'bg-amber-100 text-amber-800' }
 }
 
 function formatAmount(amount: number, currency: string): string {
@@ -162,7 +163,7 @@ void showToast
               Paid
             </p>
             <h3 class="text-3xl font-headline font-bold text-on-surface">
-              {{ invoices.filter((i) => i.status === 1).length }}
+              {{ invoices.filter((i) => i.status === 'PAID').length }}
             </h3>
           </div>
           <div class="w-12 h-12 bg-tertiary-fixed rounded-xl flex items-center justify-center">
@@ -177,7 +178,7 @@ void showToast
               Pending
             </p>
             <h3 class="text-3xl font-headline font-bold text-on-surface">
-              {{ invoices.filter((i) => i.status === 0).length }}
+              {{ invoices.filter((i) => i.status === 'UNPAID').length }}
             </h3>
           </div>
           <div class="w-12 h-12 bg-secondary-fixed rounded-xl flex items-center justify-center">

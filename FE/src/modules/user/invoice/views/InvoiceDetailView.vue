@@ -41,10 +41,11 @@ function formatAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
 }
 
-function invoiceStatus(status: number): { label: string; cls: string } {
-  if (status === 1) return { label: 'Paid', cls: 'bg-green-500/10 text-green-400 border border-green-500/20' }
-  if (status === 2) return { label: 'Cancelled', cls: 'bg-error/10 text-error border border-error/20' }
-  return { label: 'Pending', cls: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }
+function invoiceStatus(status: string): { label: string; cls: string } {
+  if (status === 'PAID') return { label: 'Paid', cls: 'bg-green-500/10 text-green-400 border border-green-500/20' }
+  if (status === 'CANCELLED') return { label: 'Cancelled', cls: 'bg-error/10 text-error border border-error/20' }
+  if (status === 'AWAITING_VERIFICATION') return { label: 'Awaiting Verification', cls: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' }
+  return { label: 'Unpaid', cls: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }
 }
 
 onMounted(() => fetchDetail())
@@ -98,12 +99,22 @@ onMounted(() => fetchDetail())
               <h1 class="text-4xl font-black tracking-tight text-white mt-1">Invoice Detail</h1>
               <p class="text-on-surface-variant text-sm mt-1 font-mono">{{ invoice.invoiceNumber }}</p>
             </div>
-            <span
-              class="self-start md:self-auto px-4 py-1.5 rounded-full text-[0.6875rem] font-black uppercase tracking-widest"
-              :class="invoiceStatus(invoice.status).cls"
-            >
-              {{ invoiceStatus(invoice.status).label }}
-            </span>
+            <div class="flex items-center gap-3 self-start md:self-auto">
+              <span
+                class="px-4 py-1.5 rounded-full text-[0.6875rem] font-black uppercase tracking-widest"
+                :class="invoiceStatus(invoice.status).cls"
+              >
+                {{ invoiceStatus(invoice.status).label }}
+              </span>
+              <button
+                v-if="invoice.status === 'UNPAID'"
+                class="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-on-primary text-sm font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
+                @click="router.push({ name: 'user-invoice-payment', params: { id: invoiceId } })"
+              >
+                <span class="material-symbols-outlined text-base">payments</span>
+                Confirm Payment
+              </button>
+            </div>
           </div>
         </div>
 
