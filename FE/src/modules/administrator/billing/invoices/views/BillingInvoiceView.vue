@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import adminInvoiceService from '@/modules/administrator/billing/invoices/services/invoice.service.ts'
 import type { InvoiceItem } from '@/modules/administrator/billing/invoices/services/invoice.service.ts'
 
+const router = useRouter()
 const PAGE_SIZE = 10
 
 const invoices = ref<InvoiceItem[]>([])
@@ -299,7 +301,8 @@ void showToast
                 v-else
                 v-for="item in invoices"
                 :key="item.id"
-                class="hover:bg-surface-container-low transition-colors"
+                class="hover:bg-surface-container-low transition-colors cursor-pointer"
+                @click="router.push({ name: 'admin-invoice-detail', params: { id: item.id } })"
               >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-4">

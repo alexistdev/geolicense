@@ -1,4 +1,8 @@
-import type { InvoiceItem, InvoiceResponse } from '@/modules/user/invoice/models/invoice.response.ts'
+import type {
+  InvoiceItem,
+  InvoiceResponse,
+  InvoiceDetailResponse,
+} from '@/modules/user/invoice/models/invoice.response.ts'
 import apiClient from '@/modules/shared/api/api.client.ts'
 
 const BASE_PATH = '/invoices'
@@ -32,6 +36,11 @@ class AdminInvoiceService {
     const response = await apiClient.get<InvoiceResponse>(`${BASE_PATH}/search`, {
       params: { keyword, ...params },
     })
+    return response.data
+  }
+
+  async getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailResponse> {
+    const response = await apiClient.get<InvoiceDetailResponse>(`${BASE_PATH}/${invoiceId}`)
     return response.data
   }
 }
