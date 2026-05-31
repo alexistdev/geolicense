@@ -262,6 +262,11 @@ void showToast
                 >
                   Status
                 </th>
+                <th
+                  class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-container">
@@ -286,12 +291,15 @@ void showToast
                   <td class="px-6 py-4">
                     <div class="h-6 w-20 bg-surface-container rounded-full"></div>
                   </td>
+                  <td class="px-6 py-4">
+                    <div class="h-8 w-28 bg-surface-container rounded-lg"></div>
+                  </td>
                 </tr>
               </template>
 
               <!-- Empty state -->
               <tr v-else-if="invoices.length === 0">
-                <td colspan="5" class="px-6 py-16 text-center text-on-surface-variant">
+                <td colspan="6" class="px-6 py-16 text-center text-on-surface-variant">
                   <span class="material-symbols-outlined text-4xl block mb-2">receipt_long</span>
                   No invoices found.
                 </td>
@@ -337,6 +345,16 @@ void showToast
                   >
                     {{ invoiceStatus(item.status).label }}
                   </span>
+                </td>
+                <td class="px-6 py-4" @click.stop>
+                  <button
+                    v-if="item.status === 'AWAITING_VERIFICATION'"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800 text-xs font-bold hover:bg-blue-200 transition-colors"
+                    @click="router.push({ name: 'admin-invoice-detail', params: { id: item.id } })"
+                  >
+                    <span class="material-symbols-outlined text-sm">payments</span>
+                    Review Payment
+                  </button>
                 </td>
               </tr>
             </tbody>

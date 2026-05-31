@@ -43,6 +43,14 @@ class AdminInvoiceService {
     const response = await apiClient.get<InvoiceDetailResponse>(`${BASE_PATH}/${invoiceId}`)
     return response.data
   }
+
+  async validateInvoice(invoiceId: string): Promise<void> {
+    await apiClient.patch(`${BASE_PATH}/${invoiceId}/validate`)
+  }
+
+  async rejectPayment(invoiceId: string): Promise<void> {
+    await apiClient.patch(`${BASE_PATH}/${invoiceId}/reject`)
+  }
 }
 
 export type { InvoiceItem }
