@@ -266,4 +266,41 @@ public class PaymentRepoTest {
     void testExistsById_notFound() {
         Assertions.assertFalse(paymentRepo.existsById(UUID.randomUUID()));
     }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. Should find active payment by order ID")
+    void testFindByOrdersId_returnsActivePayment() {
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<Payment> result = paymentRepo.findByOrdersId(testOrders.getId());
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("pi_001", result.get().getProviderReference());
+        Assertions.assertEquals("Stripe", result.get().getProvider());
+        Assertions.assertFalse(result.get().getDeleted());
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. Should return empty when all payments for the order are soft-deleted")
+    void testFindByOrdersId_returnsEmptyWhenAllDeleted() {
+        paymentRepo.delete(testPayment);
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<Payment> result = paymentRepo.findByOrdersId(testOrders.getId());
+
+        Assertions.assertFalse(result.isPresent());
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. Should return empty when order ID does not exist")
+    void testFindByOrdersId_returnsEmptyForUnknownOrderId() {
+        Optional<Payment> result = paymentRepo.findByOrdersId(UUID.randomUUID());
+
+        Assertions.assertFalse(result.isPresent());
+    }
 }

@@ -96,8 +96,6 @@ public class InvoiceControllerTest {
         );
     }
 
-    // ─── GET /api/v1/invoices ─────────────────────────────────────────────────
-
     @Test
     @Order(1)
     @DisplayName("1. GET /invoices with invoices present returns 200 with status true")
@@ -299,8 +297,6 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].status").value(1));
     }
 
-    // ─── GET /api/v1/invoices/search ──────────────────────────────────────────
-
     @Test
     @Order(12)
     @DisplayName("12. GET /invoices/search with matching results returns 200 with status true")
@@ -434,8 +430,6 @@ public class InvoiceControllerTest {
 
         verify(invoiceService, times(1)).getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"));
     }
-
-    // ─── GET /api/v1/invoices/me ──────────────────────────────────────────────
 
     @Test
     @Order(19)
@@ -573,8 +567,6 @@ public class InvoiceControllerTest {
         verify(invoiceService, times(2)).getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class));
     }
 
-    // ─── GET /api/v1/invoices/me/{invoiceId} ─────────────────────────────────
-
     @Test
     @Order(26)
     @DisplayName("26. GET /invoices/me/{invoiceId} returns 200 with invoice detail when found")
@@ -675,8 +667,6 @@ public class InvoiceControllerTest {
         verify(invoiceService, times(1)).getInvoiceDetailById("not-a-uuid", TEST_USER_EMAIL);
     }
 
-    // ─── GET /api/v1/invoices/{invoiceId} (admin) ─────────────────────────────
-
     @Test
     @Order(31)
     @DisplayName("31. GET /invoices/{invoiceId} returns 200 with invoice detail when invoice exists")
@@ -753,5 +743,66 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.status").value(false));
 
         verifyNoInteractions(invoiceService);
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("35. PATCH /invoices/{invoiceId}/validate returns 200 when invoice is validated successfully")
+    public void testValidateInvoice_success_returns200() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doNothing().when(invoiceService).validateInvoice(invoiceId.toString());
+        when(messagesUtils.getMessage("invoice.controller.validated"))
+                .thenReturn("Invoice validated and license issued successfully");
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/validate", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value("Invoice validated and license issued successfully"));
+
+        verify(invoiceService, times(1)).validateInvoice(invoiceId.toString());
+    }
+
+    @Test
+    @Order(36)
+    @DisplayName("36. PATCH /invoices/{invoiceId}/validate returns 404 when invoice is not found")
+    public void testValidateInvoice_invoiceNotFound_returns404() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new NotFoundException("Invoice not found"))
+                .when(invoiceService).validateInvoice(invoiceId.toString());
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/validate", invoiceId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).validateInvoice(invoiceId.toString());
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("37. PATCH /invoices/{invoiceId}/validate returns 400 when invoice is already validated")
+    public void testValidateInvoice_alreadyValidated_returns400() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new BadRequestException("Invoice already validated"))
+                .when(invoiceService).validateInvoice(invoiceId.toString());
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/validate", invoiceId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).validateInvoice(invoiceId.toString());
+    }
+
+    @Test
+    @Order(38)
+    @DisplayName("38. PATCH /invoices/{invoiceId}/validate returns 400 when invoiceId is not a valid UUID")
+    public void testValidateInvoice_invalidUUID_returns400() throws Exception {
+        doThrow(new BadRequestException("Invalid invoice ID format: not-a-uuid"))
+                .when(invoiceService).validateInvoice("not-a-uuid");
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/validate", "not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).validateInvoice("not-a-uuid");
     }
 }

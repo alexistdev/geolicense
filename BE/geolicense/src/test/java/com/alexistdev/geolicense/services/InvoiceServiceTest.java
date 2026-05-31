@@ -8,17 +8,22 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.dto.request.LicenseRequest;
 import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.InvoiceMapper;
 import com.alexistdev.geolicense.models.entity.Invoice;
+import com.alexistdev.geolicense.models.entity.LicensePlan;
 import com.alexistdev.geolicense.models.entity.OrderItem;
 import com.alexistdev.geolicense.models.entity.Orders;
+import com.alexistdev.geolicense.models.entity.Payment;
 import com.alexistdev.geolicense.models.entity.User;
 import com.alexistdev.geolicense.models.repository.InvoiceRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
+import com.alexistdev.geolicense.models.repository.OrdersRepo;
+import com.alexistdev.geolicense.models.repository.PaymentRepo;
 import com.alexistdev.geolicense.models.repository.UserRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
@@ -59,6 +64,15 @@ public class InvoiceServiceTest {
     private OrderItemRepo orderItemRepo;
 
     @Mock
+    private OrdersRepo ordersRepo;
+
+    @Mock
+    private PaymentRepo paymentRepo;
+
+    @Mock
+    private LicenseService licenseService;
+
+    @Mock
     private MessagesUtils messagesUtils;
 
     @InjectMocks
@@ -66,10 +80,14 @@ public class InvoiceServiceTest {
 
     private Pageable pageable;
     private Invoice invoice;
+    private Invoice pendingInvoice;
     private InvoiceResponse invoiceResponse;
     private InvoiceDetailResponse invoiceDetailResponse;
     private User user;
     private Orders orders;
+    private Payment payment;
+    private LicensePlan testLicensePlan;
+    private OrderItem testOrderItem;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +100,7 @@ public class InvoiceServiceTest {
         orders = new Orders();
         orders.setId(UUID.randomUUID());
         orders.setOrderNumber("ORD-2026-001");
+        orders.setUser(user);
 
         invoice = new Invoice();
         invoice.setId(UUID.randomUUID());
@@ -93,6 +112,30 @@ public class InvoiceServiceTest {
         invoice.setCurrency("USD");
         invoice.setStatus(1);
         invoice.setIssuedAt(LocalDateTime.now());
+
+        pendingInvoice = new Invoice();
+        pendingInvoice.setId(UUID.randomUUID());
+        pendingInvoice.setOrders(orders);
+        pendingInvoice.setInvoiceNumber("INV-2026-PENDING");
+        pendingInvoice.setAmount(new BigDecimal("99.9900"));
+        pendingInvoice.setUniqueCode(456);
+        pendingInvoice.setTotalAmount(new BigDecimal("199.9900"));
+        pendingInvoice.setCurrency("USD");
+        pendingInvoice.setStatus(0);
+        pendingInvoice.setIssuedAt(LocalDateTime.now());
+
+        payment = new Payment();
+        payment.setId(UUID.randomUUID());
+        payment.setOrders(orders);
+        payment.setStatus(0);
+
+        testLicensePlan = new LicensePlan();
+        testLicensePlan.setId(UUID.randomUUID());
+
+        testOrderItem = new OrderItem();
+        testOrderItem.setId(UUID.randomUUID());
+        testOrderItem.setOrders(orders);
+        testOrderItem.setLicensePlan(testLicensePlan);
 
         invoiceResponse = new InvoiceResponse(
                 invoice.getId(),
@@ -378,5 +421,109 @@ public class InvoiceServiceTest {
         verify(invoiceRepo, times(1)).findById(invoice.getId());
         verifyNoInteractions(orderItemRepo);
         verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. validateInvoice - validates pending invoice, updates all statuses, and creates a license")
+    void validateInvoice_WhenPendingInvoiceWithOneItem_ShouldUpdateStatusesAndCreateLicense() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(payment));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(List.of(testOrderItem));
+
+        invoiceService.validateInvoice(invoiceId);
+
+        Assertions.assertEquals(1, payment.getStatus());
+        Assertions.assertEquals(1, orders.getStatus());
+        Assertions.assertEquals(1, pendingInvoice.getStatus());
+
+        verify(paymentRepo, times(1)).save(payment);
+        verify(ordersRepo, times(1)).save(orders);
+        verify(invoiceRepo, times(1)).save(pendingInvoice);
+        verify(licenseService, times(1)).addLicense(any(LicenseRequest.class));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. validateInvoice - throws BadRequestException when invoiceId is not a valid UUID")
+    void validateInvoice_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.validateInvoice("not-a-uuid"));
+
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. validateInvoice - throws NotFoundException when invoice does not exist")
+    void validateInvoice_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(pendingInvoice.getId());
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. validateInvoice - throws BadRequestException when invoice is already validated")
+    void validateInvoice_WhenInvoiceAlreadyValidated_ShouldThrowBadRequestException() {
+        // invoice has status=1 (already validated)
+        String invoiceId = invoice.getId().toString();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice already validated");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. validateInvoice - throws NotFoundException when payment is not found for the order")
+    void validateInvoice_WhenPaymentNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Payment not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(pendingInvoice.getId());
+        verify(paymentRepo, times(1)).findByOrdersId(orders.getId());
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. validateInvoice - calls addLicense once per order item")
+    void validateInvoice_WhenMultipleOrderItems_ShouldCallAddLicenseForEachItem() {
+        OrderItem secondItem = new OrderItem();
+        secondItem.setId(UUID.randomUUID());
+        secondItem.setOrders(orders);
+        secondItem.setLicensePlan(testLicensePlan);
+
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(payment));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(List.of(testOrderItem, secondItem));
+
+        invoiceService.validateInvoice(invoiceId);
+
+        verify(licenseService, times(2)).addLicense(any(LicenseRequest.class));
     }
 }

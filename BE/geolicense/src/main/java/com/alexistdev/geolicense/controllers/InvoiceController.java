@@ -114,6 +114,15 @@ public class InvoiceController {
         return ResponseEntity.ok(responseData);
     }
 
+    @PatchMapping("/{invoiceId}/validate")
+    public ResponseEntity<ResponseData<Void>> validateInvoice(@PathVariable String invoiceId) {
+        ResponseData<Void> responseData = new ResponseData<>();
+        invoiceService.validateInvoice(invoiceId);
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("invoice.controller.validated"));
+        return ResponseEntity.ok(responseData);
+    }
+
     @GetMapping("/me/")
     public ResponseEntity<ResponseData<InvoiceResponse>> getMyInvoiceWithEmptyId() {
         throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", ""));
