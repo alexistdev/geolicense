@@ -1,3 +1,5 @@
+export type InvoiceStatus = 'UNPAID' | 'AWAITING_VERIFICATION' | 'PAID' | 'CANCELLED'
+
 export interface InvoiceItem {
   id: string
   orderNumber: string
@@ -6,7 +8,7 @@ export interface InvoiceItem {
   uniqueCode: number
   totalAmount: number
   currency: string
-  status: number
+  status: InvoiceStatus
   issuedAt: string
 }
 
@@ -48,7 +50,7 @@ export interface InvoiceDetail {
   uniqueCode: number
   totalAmount: number
   currency: string
-  status: number
+  status: InvoiceStatus
   issuedAt: string
   items: OrderItemDetail[]
 }

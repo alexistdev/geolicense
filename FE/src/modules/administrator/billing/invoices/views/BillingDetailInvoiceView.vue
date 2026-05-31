@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
-import invoiceService from '@/modules/user/invoice/services/invoice.service.ts'
+import adminInvoiceService from '@/modules/administrator/billing/invoices/services/invoice.service.ts'
 import type { InvoiceDetail } from '@/modules/user/invoice/models/invoice.response.ts'
 
 const route = useRoute()
@@ -12,6 +12,11 @@ const invoice = ref<InvoiceDetail | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+const confirmAction = ref<'approve' | 'reject' | null>(null)
+const actionLoading = ref(false)
+const actionError = ref<string | null>(null)
+const actionSuccess = ref<string | null>(null)
+
 const invoiceId = computed(() => route.params['id'] as string)
 
 async function fetchDetail() {
@@ -19,7 +24,7 @@ async function fetchDetail() {
   loading.value = true
   error.value = null
   try {
-    const res = await invoiceService.getInvoiceDetail(invoiceId.value)
+    const res = await adminInvoiceService.getInvoiceDetail(invoiceId.value)
     if (res.status) {
       invoice.value = res.payload
     } else {
@@ -30,6 +35,29 @@ async function fetchDetail() {
     error.value = err.response?.data?.messages?.[0] ?? 'Failed to load invoice.'
   } finally {
     loading.value = false
+  }
+}
+
+async function confirmAndExecute() {
+  if (!confirmAction.value) return
+  actionLoading.value = true
+  actionError.value = null
+  try {
+    if (confirmAction.value === 'approve') {
+      await adminInvoiceService.validateInvoice(invoiceId.value)
+      actionSuccess.value = 'Payment approved. License has been issued.'
+    } else {
+      await adminInvoiceService.rejectPayment(invoiceId.value)
+      actionSuccess.value = 'Payment rejected successfully.'
+    }
+    confirmAction.value = null
+    await fetchDetail()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { messages?: string[] } } }
+    actionError.value = err.response?.data?.messages?.[0] ?? 'Action failed. Please try again.'
+    confirmAction.value = null
+  } finally {
+    actionLoading.value = false
   }
 }
 
@@ -75,7 +103,7 @@ onMounted(() => fetchDetail())
           <p class="text-on-surface-variant text-sm">{{ error }}</p>
           <button
             class="px-5 py-2 rounded-md bg-surface-container text-on-surface text-sm font-semibold hover:bg-surface-container-high transition-colors"
-            @click="router.push({ name: 'user-invoice' })"
+            @click="router.push({ name: 'admin-invoice' })"
           >
             Back to Invoices
           </button>
@@ -89,7 +117,7 @@ onMounted(() => fetchDetail())
         <div class="mb-10">
           <button
             class="text-primary hover:text-primary-fixed transition-colors flex items-center gap-1 text-sm font-medium mb-6"
-            @click="router.push({ name: 'user-invoice' })"
+            @click="router.push({ name: 'admin-invoice' })"
           >
             <span class="material-symbols-outlined text-base">arrow_back</span> Back to Invoices
           </button>
@@ -99,21 +127,29 @@ onMounted(() => fetchDetail())
               <h1 class="text-4xl font-black tracking-tight text-white mt-1">Invoice Detail</h1>
               <p class="text-on-surface-variant text-sm mt-1 font-mono">{{ invoice.invoiceNumber }}</p>
             </div>
-            <div class="flex items-center gap-3 self-start md:self-auto">
+            <div class="flex items-center gap-3 flex-wrap self-start md:self-auto">
               <span
                 class="px-4 py-1.5 rounded-full text-[0.6875rem] font-black uppercase tracking-widest"
                 :class="invoiceStatus(invoice.status).cls"
               >
                 {{ invoiceStatus(invoice.status).label }}
               </span>
-              <button
-                v-if="invoice.status === 'UNPAID'"
-                class="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-on-primary text-sm font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
-                @click="router.push({ name: 'user-invoice-payment', params: { id: invoiceId } })"
-              >
-                <span class="material-symbols-outlined text-base">payments</span>
-                Confirm Payment
-              </button>
+              <template v-if="invoice.status === 'AWAITING_VERIFICATION'">
+                <button
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm font-bold hover:bg-green-500/30 transition-colors border border-green-500/30"
+                  @click="confirmAction = 'approve'"
+                >
+                  <span class="material-symbols-outlined text-base">check_circle</span>
+                  Approve
+                </button>
+                <button
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-error/20 text-error text-sm font-bold hover:bg-error/30 transition-colors border border-error/30"
+                  @click="confirmAction = 'reject'"
+                >
+                  <span class="material-symbols-outlined text-base">cancel</span>
+                  Reject
+                </button>
+              </template>
             </div>
           </div>
         </div>
@@ -274,5 +310,121 @@ onMounted(() => fetchDetail())
       </template>
 
     </div>
+
+    <!-- Action success / error banner -->
+    <Teleport to="body">
+      <Transition name="toast">
+        <div
+          v-if="actionSuccess"
+          class="fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold bg-green-100 text-green-800 min-w-64 max-w-sm"
+        >
+          <span class="material-symbols-outlined text-base shrink-0">check_circle</span>
+          <span class="flex-1">{{ actionSuccess }}</span>
+          <button class="ml-2 text-green-600 hover:text-green-900" @click="actionSuccess = null">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      </Transition>
+      <Transition name="toast">
+        <div
+          v-if="actionError"
+          class="fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold bg-error-container text-on-error-container min-w-64 max-w-sm"
+        >
+          <span class="material-symbols-outlined text-base shrink-0">error</span>
+          <span class="flex-1">{{ actionError }}</span>
+          <button class="ml-2" @click="actionError = null">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      </Transition>
+
+      <!-- Confirmation modal -->
+      <Transition name="modal">
+        <div
+          v-if="confirmAction"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          @click.self="confirmAction = null"
+        >
+          <div class="bg-surface-container rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="flex items-center gap-4 mb-6">
+              <div
+                class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                :class="confirmAction === 'approve' ? 'bg-green-500/20' : 'bg-error/20'"
+              >
+                <span
+                  class="material-symbols-outlined text-2xl"
+                  :class="confirmAction === 'approve' ? 'text-green-400' : 'text-error'"
+                >
+                  {{ confirmAction === 'approve' ? 'check_circle' : 'cancel' }}
+                </span>
+              </div>
+              <div>
+                <h3 class="text-lg font-black text-on-surface">
+                  {{ confirmAction === 'approve' ? 'Approve Payment' : 'Reject Payment' }}
+                </h3>
+                <p class="text-sm text-on-surface-variant mt-0.5">
+                  {{ confirmAction === 'approve'
+                    ? 'This will validate the payment and issue the license.'
+                    : 'This will reject the submitted payment proof.' }}
+                </p>
+              </div>
+            </div>
+            <p class="text-sm text-on-surface-variant mb-8">
+              Are you sure you want to
+              <span class="font-bold" :class="confirmAction === 'approve' ? 'text-green-400' : 'text-error'">
+                {{ confirmAction === 'approve' ? 'approve' : 'reject' }}
+              </span>
+              the payment for invoice <span class="font-mono font-bold text-on-surface">{{ invoice?.invoiceNumber }}</span>?
+              This action cannot be undone.
+            </p>
+            <div class="flex gap-3 justify-end">
+              <button
+                class="px-5 py-2 rounded-lg bg-surface-container-high text-on-surface text-sm font-semibold hover:bg-surface-container-highest transition-colors"
+                :disabled="actionLoading"
+                @click="confirmAction = null"
+              >
+                Cancel
+              </button>
+              <button
+                class="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-60"
+                :class="confirmAction === 'approve'
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'bg-error text-on-error hover:bg-error/80'"
+                :disabled="actionLoading"
+                @click="confirmAndExecute"
+              >
+                <span v-if="actionLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                {{ confirmAction === 'approve' ? 'Approve' : 'Reject' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
   </DashboardLayout>
 </template>
+
+<style>
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from > div,
+.modal-leave-to > div {
+  transform: scale(0.95);
+}
+</style>

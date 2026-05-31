@@ -8,6 +8,8 @@
 
 package com.alexistdev.geolicense.dto.response;
 
+import com.alexistdev.geolicense.models.entity.InvoiceStatus;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
@@ -20,7 +22,7 @@ public record InvoiceResponse(
         int uniqueCode,
         BigDecimal totalAmount,
         String currency,
-        int status,
+        InvoiceStatus status,
         Date issuedAt
 ) {
 }

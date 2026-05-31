@@ -9,6 +9,7 @@
 package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.Invoice;
+import com.alexistdev.geolicense.models.entity.InvoiceStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,7 +36,7 @@ public interface InvoiceRepo extends JpaRepository<Invoice, UUID> {
     @Query("SELECT inv FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.id = :invoiceId AND inv.isDeleted = false")
     Optional<Invoice> findByUserIdAndInvoiceIdAndIsDeletedFalse(@Param("userId") UUID userId, @Param("invoiceId") UUID invoiceId);
 
-    @Query("SELECT COUNT(inv) > 0 FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.status = 0 AND inv.isDeleted = false")
-    boolean existsPendingInvoiceByUserId(@Param("userId") UUID userId);
+    @Query("SELECT COUNT(inv) > 0 FROM Invoice inv WHERE inv.orders.user.id = :userId AND inv.status = :status AND inv.isDeleted = false")
+    boolean existsPendingInvoiceByUserId(@Param("userId") UUID userId, @Param("status") InvoiceStatus status);
 
 }

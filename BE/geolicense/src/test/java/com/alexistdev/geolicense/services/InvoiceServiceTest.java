@@ -8,17 +8,18 @@
 
 package com.alexistdev.geolicense.services;
 
+import com.alexistdev.geolicense.dto.request.LicenseRequest;
+import com.alexistdev.geolicense.dto.request.SubmitPaymentRequest;
 import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.InvoiceMapper;
-import com.alexistdev.geolicense.models.entity.Invoice;
-import com.alexistdev.geolicense.models.entity.OrderItem;
-import com.alexistdev.geolicense.models.entity.Orders;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import com.alexistdev.geolicense.models.repository.InvoiceRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
+import com.alexistdev.geolicense.models.repository.OrdersRepo;
+import com.alexistdev.geolicense.models.repository.PaymentRepo;
 import com.alexistdev.geolicense.models.repository.UserRepo;
 import com.alexistdev.geolicense.utils.MessagesUtils;
 import org.junit.jupiter.api.*;
@@ -59,6 +60,15 @@ public class InvoiceServiceTest {
     private OrderItemRepo orderItemRepo;
 
     @Mock
+    private OrdersRepo ordersRepo;
+
+    @Mock
+    private PaymentRepo paymentRepo;
+
+    @Mock
+    private LicenseService licenseService;
+
+    @Mock
     private MessagesUtils messagesUtils;
 
     @InjectMocks
@@ -66,10 +76,14 @@ public class InvoiceServiceTest {
 
     private Pageable pageable;
     private Invoice invoice;
+    private Invoice pendingInvoice;
     private InvoiceResponse invoiceResponse;
     private InvoiceDetailResponse invoiceDetailResponse;
     private User user;
     private Orders orders;
+    private Payment payment;
+    private LicensePlan testLicensePlan;
+    private OrderItem testOrderItem;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +96,7 @@ public class InvoiceServiceTest {
         orders = new Orders();
         orders.setId(UUID.randomUUID());
         orders.setOrderNumber("ORD-2026-001");
+        orders.setUser(user);
 
         invoice = new Invoice();
         invoice.setId(UUID.randomUUID());
@@ -91,8 +106,32 @@ public class InvoiceServiceTest {
         invoice.setUniqueCode(523);
         invoice.setTotalAmount(new BigDecimal("622.9900"));
         invoice.setCurrency("USD");
-        invoice.setStatus(1);
+        invoice.setStatus(InvoiceStatus.PAID);
         invoice.setIssuedAt(LocalDateTime.now());
+
+        pendingInvoice = new Invoice();
+        pendingInvoice.setId(UUID.randomUUID());
+        pendingInvoice.setOrders(orders);
+        pendingInvoice.setInvoiceNumber("INV-2026-PENDING");
+        pendingInvoice.setAmount(new BigDecimal("99.9900"));
+        pendingInvoice.setUniqueCode(456);
+        pendingInvoice.setTotalAmount(new BigDecimal("199.9900"));
+        pendingInvoice.setCurrency("USD");
+        pendingInvoice.setStatus(InvoiceStatus.UNPAID);
+        pendingInvoice.setIssuedAt(LocalDateTime.now());
+
+        payment = new Payment();
+        payment.setId(UUID.randomUUID());
+        payment.setOrders(orders);
+        payment.setStatus(PaymentStatus.PENDING);
+
+        testLicensePlan = new LicensePlan();
+        testLicensePlan.setId(UUID.randomUUID());
+
+        testOrderItem = new OrderItem();
+        testOrderItem.setId(UUID.randomUUID());
+        testOrderItem.setOrders(orders);
+        testOrderItem.setLicensePlan(testLicensePlan);
 
         invoiceResponse = new InvoiceResponse(
                 invoice.getId(),
@@ -102,7 +141,7 @@ public class InvoiceServiceTest {
                 523,
                 new BigDecimal("622.9900"),
                 "USD",
-                1,
+                InvoiceStatus.PAID,
                 new Date()
         );
 
@@ -116,7 +155,7 @@ public class InvoiceServiceTest {
                 523,
                 new BigDecimal("622.9900"),
                 "USD",
-                1,
+                InvoiceStatus.PAID,
                 new Date(),
                 Collections.emptyList()
         );
@@ -138,7 +177,7 @@ public class InvoiceServiceTest {
         Assertions.assertEquals("INV-2026-001", response.invoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.9900"), response.amount());
         Assertions.assertEquals("USD", response.currency());
-        Assertions.assertEquals(1, response.status());
+        Assertions.assertEquals(InvoiceStatus.PAID, response.status());
 
         verify(invoiceRepo, times(1)).findByIsDeletedFalse(pageable);
         verify(invoiceMapper, times(1)).toResponse(invoice);
@@ -269,7 +308,7 @@ public class InvoiceServiceTest {
         Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
         Assertions.assertEquals("USD", result.currency());
-        Assertions.assertEquals(1, result.status());
+        Assertions.assertEquals(InvoiceStatus.PAID, result.status());
         Assertions.assertTrue(result.items().isEmpty());
 
         verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
@@ -323,5 +362,417 @@ public class InvoiceServiceTest {
         verify(invoiceRepo, times(1)).findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId());
         verifyNoInteractions(orderItemRepo);
         verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("13. getInvoiceDetailByIdAdmin - returns invoice detail when invoice exists")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceExists_ShouldReturnInvoiceDetailResponse() {
+        String invoiceId = invoice.getId().toString();
+        List<OrderItem> items = Collections.emptyList();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(items);
+        when(invoiceMapper.toDetailResponse(invoice, items)).thenReturn(invoiceDetailResponse);
+
+        InvoiceDetailResponse result = invoiceService.getInvoiceDetailByIdAdmin(invoiceId);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
+        Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
+        Assertions.assertEquals("USD", result.currency());
+        Assertions.assertEquals(InvoiceStatus.PAID, result.status());
+        Assertions.assertTrue(result.items().isEmpty());
+
+        verifyNoInteractions(userRepo);
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verify(orderItemRepo, times(1)).findByOrdersId(orders.getId());
+        verify(invoiceMapper, times(1)).toDetailResponse(invoice, items);
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("14. getInvoiceDetailByIdAdmin - throws BadRequestException when invoice ID is not a valid UUID")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.getInvoiceDetailByIdAdmin("not-a-uuid"));
+
+        verifyNoInteractions(userRepo);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(orderItemRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("15. getInvoiceDetailByIdAdmin - throws NotFoundException when invoice is not found")
+    void getInvoiceDetailByIdAdmin_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = invoice.getId().toString();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.getInvoiceDetailByIdAdmin(invoiceId));
+
+        verifyNoInteractions(userRepo);
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verifyNoInteractions(orderItemRepo);
+        verifyNoInteractions(invoiceMapper);
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("16. validateInvoice - validates pending invoice, updates all statuses, and creates a license")
+    void validateInvoice_WhenPendingInvoiceWithOneItem_ShouldUpdateStatusesAndCreateLicense() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(payment));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(List.of(testOrderItem));
+
+        invoiceService.validateInvoice(invoiceId);
+
+        Assertions.assertEquals(PaymentStatus.VERIFIED, payment.getStatus());
+        Assertions.assertEquals(OrderStatus.COMPLETED, orders.getStatus());
+        Assertions.assertEquals(InvoiceStatus.PAID, pendingInvoice.getStatus());
+
+        verify(paymentRepo, times(1)).save(payment);
+        verify(ordersRepo, times(1)).save(orders);
+        verify(invoiceRepo, times(1)).save(pendingInvoice);
+        verify(licenseService, times(1)).addLicense(any(LicenseRequest.class));
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("17. validateInvoice - throws BadRequestException when invoiceId is not a valid UUID")
+    void validateInvoice_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.validateInvoice("not-a-uuid"));
+
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("18. validateInvoice - throws NotFoundException when invoice does not exist")
+    void validateInvoice_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(pendingInvoice.getId());
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. validateInvoice - throws BadRequestException when invoice is already validated")
+    void validateInvoice_WhenInvoiceAlreadyValidated_ShouldThrowBadRequestException() {
+        // invoice has status=1 (already validated)
+        String invoiceId = invoice.getId().toString();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice already validated");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(invoice.getId());
+        verifyNoInteractions(paymentRepo);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. validateInvoice - throws NotFoundException when payment is not found for the order")
+    void validateInvoice_WhenPaymentNotFound_ShouldThrowNotFoundException() {
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Payment not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.validateInvoice(invoiceId));
+
+        verify(invoiceRepo, times(1)).findById(pendingInvoice.getId());
+        verify(paymentRepo, times(1)).findByOrdersId(orders.getId());
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. validateInvoice - calls addLicense once per order item")
+    void validateInvoice_WhenMultipleOrderItems_ShouldCallAddLicenseForEachItem() {
+        OrderItem secondItem = new OrderItem();
+        secondItem.setId(UUID.randomUUID());
+        secondItem.setOrders(orders);
+        secondItem.setLicensePlan(testLicensePlan);
+
+        String invoiceId = pendingInvoice.getId().toString();
+        when(invoiceRepo.findById(pendingInvoice.getId())).thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(payment));
+        when(orderItemRepo.findByOrdersId(orders.getId())).thenReturn(List.of(testOrderItem, secondItem));
+
+        invoiceService.validateInvoice(invoiceId);
+
+        verify(licenseService, times(2)).addLicense(any(LicenseRequest.class));
+    }
+
+    // ── rejectPayment ─────────────────────────────────────────────────────────
+
+    @Test
+    @Order(22)
+    @DisplayName("22. rejectPayment - rejects pending payment and resets invoice to UNPAID")
+    void rejectPayment_WhenInvoiceAwaitingVerification_ShouldRejectPaymentAndResetInvoice() {
+        Invoice awaitingInvoice = new Invoice();
+        awaitingInvoice.setId(UUID.randomUUID());
+        awaitingInvoice.setOrders(orders);
+        awaitingInvoice.setStatus(InvoiceStatus.AWAITING_VERIFICATION);
+
+        Payment pendingPayment = new Payment();
+        pendingPayment.setId(UUID.randomUUID());
+        pendingPayment.setOrders(orders);
+        pendingPayment.setStatus(PaymentStatus.PENDING);
+
+        String invoiceIdStr = awaitingInvoice.getId().toString();
+        when(invoiceRepo.findById(awaitingInvoice.getId())).thenReturn(Optional.of(awaitingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(pendingPayment));
+
+        invoiceService.rejectPayment(invoiceIdStr);
+
+        Assertions.assertEquals(PaymentStatus.REJECTED, pendingPayment.getStatus());
+        Assertions.assertEquals(InvoiceStatus.UNPAID, awaitingInvoice.getStatus());
+        verify(paymentRepo, times(1)).save(pendingPayment);
+        verify(invoiceRepo, times(1)).save(awaitingInvoice);
+        verifyNoInteractions(ordersRepo);
+        verifyNoInteractions(licenseService);
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("23. rejectPayment - throws BadRequestException when invoiceId is not a valid UUID")
+    void rejectPayment_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.rejectPayment("not-a-uuid"));
+
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("24. rejectPayment - throws NotFoundException when invoice does not exist")
+    void rejectPayment_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceIdStr = UUID.randomUUID().toString();
+        when(invoiceRepo.findById(any(UUID.class))).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.rejectPayment(invoiceIdStr));
+
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("25. rejectPayment - throws BadRequestException when invoice is not awaiting verification")
+    void rejectPayment_WhenInvoiceIsNotAwaiting_ShouldThrowBadRequestException() {
+        // invoice has status PAID — cannot transition to UNPAID
+        String invoiceIdStr = invoice.getId().toString();
+        when(invoiceRepo.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice is not awaiting verification");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.rejectPayment(invoiceIdStr));
+
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("26. rejectPayment - throws NotFoundException when payment is not found for the order")
+    void rejectPayment_WhenPaymentNotFound_ShouldThrowNotFoundException() {
+        Invoice awaitingInvoice = new Invoice();
+        awaitingInvoice.setId(UUID.randomUUID());
+        awaitingInvoice.setOrders(orders);
+        awaitingInvoice.setStatus(InvoiceStatus.AWAITING_VERIFICATION);
+
+        String invoiceIdStr = awaitingInvoice.getId().toString();
+        when(invoiceRepo.findById(awaitingInvoice.getId())).thenReturn(Optional.of(awaitingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Payment not found");
+
+        assertThrows(NotFoundException.class, () -> invoiceService.rejectPayment(invoiceIdStr));
+
+        verify(paymentRepo, times(1)).findByOrdersId(orders.getId());
+        verify(paymentRepo, never()).save(any());
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("27. rejectPayment - throws BadRequestException when payment is not in pending status")
+    void rejectPayment_WhenPaymentIsNotPending_ShouldThrowBadRequestException() {
+        Invoice awaitingInvoice = new Invoice();
+        awaitingInvoice.setId(UUID.randomUUID());
+        awaitingInvoice.setOrders(orders);
+        awaitingInvoice.setStatus(InvoiceStatus.AWAITING_VERIFICATION);
+
+        Payment verifiedPayment = new Payment();
+        verifiedPayment.setId(UUID.randomUUID());
+        verifiedPayment.setOrders(orders);
+        verifiedPayment.setStatus(PaymentStatus.VERIFIED);
+
+        String invoiceIdStr = awaitingInvoice.getId().toString();
+        when(invoiceRepo.findById(awaitingInvoice.getId())).thenReturn(Optional.of(awaitingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(verifiedPayment));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Payment is not pending");
+
+        assertThrows(BadRequestException.class, () -> invoiceService.rejectPayment(invoiceIdStr));
+
+        verify(paymentRepo, never()).save(any());
+        verify(invoiceRepo, never()).save(any());
+    }
+
+    // ── submitPayment ─────────────────────────────────────────────────────────
+
+    @Test
+    @Order(28)
+    @DisplayName("28. submitPayment - creates new payment and sets invoice to AWAITING_VERIFICATION")
+    void submitPayment_WhenNoExistingPayment_ShouldCreatePaymentAndUpdateInvoice() {
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+        String invoiceIdStr = pendingInvoice.getId().toString();
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), pendingInvoice.getId()))
+                .thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.empty());
+
+        invoiceService.submitPayment(invoiceIdStr, user.getEmail(), request);
+
+        Assertions.assertEquals(InvoiceStatus.AWAITING_VERIFICATION, pendingInvoice.getStatus());
+        verify(paymentRepo, times(1)).save(any(Payment.class));
+        verify(invoiceRepo, times(1)).save(pendingInvoice);
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("29. submitPayment - updates existing rejected payment on resubmit")
+    void submitPayment_WhenExistingRejectedPayment_ShouldUpdatePaymentAndUpdateInvoice() {
+        Payment rejectedPayment = new Payment();
+        rejectedPayment.setId(UUID.randomUUID());
+        rejectedPayment.setOrders(orders);
+        rejectedPayment.setStatus(PaymentStatus.REJECTED);
+
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-99999");
+        String invoiceIdStr = pendingInvoice.getId().toString();
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), pendingInvoice.getId()))
+                .thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(rejectedPayment));
+
+        invoiceService.submitPayment(invoiceIdStr, user.getEmail(), request);
+
+        Assertions.assertEquals(PaymentStatus.PENDING, rejectedPayment.getStatus());
+        Assertions.assertEquals("BANK_TRANSFER", rejectedPayment.getProvider());
+        Assertions.assertEquals("REF-99999", rejectedPayment.getProviderReference());
+        Assertions.assertEquals(InvoiceStatus.AWAITING_VERIFICATION, pendingInvoice.getStatus());
+        verify(paymentRepo, times(1)).save(rejectedPayment);
+        verify(invoiceRepo, times(1)).save(pendingInvoice);
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("30. submitPayment - throws BadRequestException when invoiceId is not a valid UUID")
+    void submitPayment_WhenInvoiceIdIsInvalidUUID_ShouldThrowBadRequestException() {
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invalid invoice ID format: not-a-uuid");
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+
+        assertThrows(BadRequestException.class,
+                () -> invoiceService.submitPayment("not-a-uuid", user.getEmail(), request));
+
+        verifyNoInteractions(userRepo);
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("31. submitPayment - throws NotFoundException when user is not found")
+    void submitPayment_WhenUserNotFound_ShouldThrowNotFoundException() {
+        String invoiceIdStr = pendingInvoice.getId().toString();
+        String email = "unknown@example.com";
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(email)).thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("User not found");
+
+        assertThrows(NotFoundException.class,
+                () -> invoiceService.submitPayment(invoiceIdStr, email, request));
+
+        verifyNoInteractions(invoiceRepo);
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("32. submitPayment - throws NotFoundException when invoice is not found")
+    void submitPayment_WhenInvoiceNotFound_ShouldThrowNotFoundException() {
+        String invoiceIdStr = pendingInvoice.getId().toString();
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), pendingInvoice.getId()))
+                .thenReturn(Optional.empty());
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice not found");
+
+        assertThrows(NotFoundException.class,
+                () -> invoiceService.submitPayment(invoiceIdStr, user.getEmail(), request));
+
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("33. submitPayment - throws BadRequestException when invoice cannot accept payment in current status")
+    void submitPayment_WhenInvoiceStatusIsInvalid_ShouldThrowBadRequestException() {
+        // invoice has status PAID — cannot transition to AWAITING_VERIFICATION
+        String invoiceIdStr = invoice.getId().toString();
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoice.getId()))
+                .thenReturn(Optional.of(invoice));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Invoice cannot accept payment");
+
+        assertThrows(BadRequestException.class,
+                () -> invoiceService.submitPayment(invoiceIdStr, user.getEmail(), request));
+
+        verifyNoInteractions(paymentRepo);
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("34. submitPayment - throws BadRequestException when payment is already submitted and pending")
+    void submitPayment_WhenPaymentAlreadyPending_ShouldThrowBadRequestException() {
+        // payment fixture has status PENDING — PENDING cannot transition to PENDING
+        SubmitPaymentRequest request = new SubmitPaymentRequest("BANK_TRANSFER", "REF-12345");
+        String invoiceIdStr = pendingInvoice.getId().toString();
+
+        when(userRepo.findByEmailByRoleNotAdminNotSuspended(user.getEmail())).thenReturn(Optional.of(user));
+        when(invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), pendingInvoice.getId()))
+                .thenReturn(Optional.of(pendingInvoice));
+        when(paymentRepo.findByOrdersId(orders.getId())).thenReturn(Optional.of(payment));
+        when(messagesUtils.getMessage(anyString(), anyString())).thenReturn("Payment already submitted");
+
+        assertThrows(BadRequestException.class,
+                () -> invoiceService.submitPayment(invoiceIdStr, user.getEmail(), request));
+
+        verify(paymentRepo, never()).save(any());
+        verify(invoiceRepo, never()).save(any());
     }
 }

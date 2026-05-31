@@ -9,17 +9,20 @@
 package com.alexistdev.geolicense.controllers;
 
 import com.alexistdev.geolicense.dto.ResponseData;
+import com.alexistdev.geolicense.dto.request.SubmitPaymentRequest;
 import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.services.InvoiceService;
 import com.alexistdev.geolicense.utils.MessagesUtils;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -71,7 +74,7 @@ public class InvoiceController {
 
     @GetMapping("/search")
     public ResponseEntity<ResponseData<Page<InvoiceResponse>>> searchInvoices(
-            @RequestParam String keyword,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") @PositiveOrZero int page,
             @RequestParam(defaultValue = "10") @PositiveOrZero int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -98,6 +101,51 @@ public class InvoiceController {
 
         responseData.setPayload(invoicePage);
         return ResponseEntity.ok(responseData);
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<ResponseData<InvoiceDetailResponse>> getInvoiceByIdEmpty() {
+        throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", ""));
+    }
+
+    @GetMapping("/{invoiceId}")
+    public ResponseEntity<ResponseData<InvoiceDetailResponse>> getInvoiceById(@PathVariable String invoiceId) {
+        ResponseData<InvoiceDetailResponse> responseData = new ResponseData<>();
+        responseData.setPayload(invoiceService.getInvoiceDetailByIdAdmin(invoiceId));
+        responseData.getMessages().add(messagesUtils.getMessage("invoice.controller.found"));
+        responseData.setStatus(true);
+        return ResponseEntity.ok(responseData);
+    }
+
+    @PatchMapping("/{invoiceId}/validate")
+    public ResponseEntity<ResponseData<Void>> validateInvoice(@PathVariable String invoiceId) {
+        ResponseData<Void> responseData = new ResponseData<>();
+        invoiceService.validateInvoice(invoiceId);
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("invoice.controller.validated"));
+        return ResponseEntity.ok(responseData);
+    }
+
+    @PatchMapping("/{invoiceId}/reject")
+    public ResponseEntity<ResponseData<Void>> rejectPayment(@PathVariable String invoiceId) {
+        ResponseData<Void> responseData = new ResponseData<>();
+        invoiceService.rejectPayment(invoiceId);
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("invoice.controller.rejected"));
+        return ResponseEntity.ok(responseData);
+    }
+
+    @PostMapping("/{invoiceId}/payment")
+    public ResponseEntity<ResponseData<Void>> submitPayment(
+            @PathVariable String invoiceId,
+            @Valid @RequestBody SubmitPaymentRequest request
+    ) {
+        String email = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        ResponseData<Void> responseData = new ResponseData<>();
+        invoiceService.submitPayment(invoiceId, email, request);
+        responseData.setStatus(true);
+        responseData.getMessages().add(messagesUtils.getMessage("payment.controller.success"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
     @GetMapping("/me/")

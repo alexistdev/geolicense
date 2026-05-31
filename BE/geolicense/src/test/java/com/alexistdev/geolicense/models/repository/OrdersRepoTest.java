@@ -9,6 +9,7 @@
 package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.Orders;
+import com.alexistdev.geolicense.models.entity.OrderStatus;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +46,8 @@ public class OrdersRepoTest {
         User testUser = createUser("test@example.com");
         entityManager.persist(testUser);
 
-        testOrder = entityManager.persist(createOrder(testUser, "ORD-001", "USD", 0, false));
-        testOrderDeleted = entityManager.persist(createOrder(testUser, "ORD-002", "USD", 1, true));
+        testOrder = entityManager.persist(createOrder(testUser, "ORD-001", "USD", OrderStatus.PENDING, false));
+        testOrderDeleted = entityManager.persist(createOrder(testUser, "ORD-002", "USD", OrderStatus.COMPLETED, true));
         entityManager.flush();
     }
 
@@ -63,7 +64,7 @@ public class OrdersRepoTest {
         return user;
     }
 
-    private Orders createOrder(User user, String orderNumber, String currency, int status, boolean deleted) {
+    private Orders createOrder(User user, String orderNumber, String currency, OrderStatus status, boolean deleted) {
         Orders order = new Orders();
         order.setUser(user);
         order.setOrderNumber(orderNumber);
@@ -84,14 +85,14 @@ public class OrdersRepoTest {
         User user = createUser("new@example.com");
         entityManager.persist(user);
 
-        Orders newOrder = createOrder(user, "ORD-NEW", "EUR", 0, false);
+        Orders newOrder = createOrder(user, "ORD-NEW", "EUR", OrderStatus.PENDING, false);
         Orders saved = ordersRepo.save(newOrder);
 
         Assertions.assertNotNull(saved);
         Assertions.assertNotNull(saved.getId());
         Assertions.assertEquals("ORD-NEW", saved.getOrderNumber());
         Assertions.assertEquals("EUR", saved.getCurrency());
-        Assertions.assertEquals(0, saved.getStatus());
+        Assertions.assertEquals(OrderStatus.PENDING, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
@@ -105,7 +106,7 @@ public class OrdersRepoTest {
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals("ORD-001", result.get().getOrderNumber());
         Assertions.assertEquals("USD", result.get().getCurrency());
-        Assertions.assertEquals(0, result.get().getStatus());
+        Assertions.assertEquals(OrderStatus.PENDING, result.get().getStatus());
         Assertions.assertFalse(result.get().getDeleted());
     }
 
@@ -147,7 +148,7 @@ public class OrdersRepoTest {
     void testFindAll_multipleActiveOrders() {
         User user = createUser("another@example.com");
         entityManager.persist(user);
-        entityManager.persist(createOrder(user, "ORD-003", "EUR", 0, false));
+        entityManager.persist(createOrder(user, "ORD-003", "EUR", OrderStatus.PENDING, false));
         entityManager.flush();
 
         List<Orders> result = ordersRepo.findAll();
@@ -200,7 +201,7 @@ public class OrdersRepoTest {
     void testCount_afterSave() {
         User user = createUser("count@example.com");
         entityManager.persist(user);
-        ordersRepo.save(createOrder(user, "ORD-COUNT", "USD", 0, false));
+        ordersRepo.save(createOrder(user, "ORD-COUNT", "USD", OrderStatus.PENDING, false));
         entityManager.flush();
 
         long count = ordersRepo.count();
@@ -212,7 +213,7 @@ public class OrdersRepoTest {
     @Order(11)
     @DisplayName("11. Should persist updated fields on an existing order")
     void testUpdate_persistsChanges() {
-        testOrder.setStatus(2);
+        testOrder.setStatus(OrderStatus.COMPLETED);
         testOrder.setOrderNumber("ORD-001-UPDATED");
         ordersRepo.save(testOrder);
         entityManager.flush();
@@ -221,7 +222,7 @@ public class OrdersRepoTest {
         Optional<Orders> result = ordersRepo.findById(testOrder.getId());
 
         Assertions.assertTrue(result.isPresent());
-        Assertions.assertEquals(2, result.get().getStatus());
+        Assertions.assertEquals(OrderStatus.COMPLETED, result.get().getStatus());
         Assertions.assertEquals("ORD-001-UPDATED", result.get().getOrderNumber());
     }
 
