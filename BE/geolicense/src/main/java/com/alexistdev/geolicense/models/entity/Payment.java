@@ -44,6 +44,26 @@ public class Payment extends BaseEntity<String> implements Serializable {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Orders orders;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_method_id", referencedColumnName = "id")
+    private PaymentMethod paymentMethod;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_account_id", referencedColumnName = "id")
+    private BankAccount bankAccount;
+
+    @Size(max = 100)
+    @Column(name = "snapshot_bank_name", length = 100)
+    private String snapshotBankName;
+
+    @Size(max = 50)
+    @Column(name = "snapshot_account_number", length = 50)
+    private String snapshotAccountNumber;
+
+    @Size(max = 100)
+    @Column(name = "snapshot_account_holder", length = 100)
+    private String snapshotAccountHolder;
+
     @NotBlank
     @Size(max = 255)
     @Column(name="provider", nullable = false)

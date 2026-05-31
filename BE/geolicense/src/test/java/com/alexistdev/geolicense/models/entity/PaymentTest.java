@@ -25,6 +25,8 @@ public class PaymentTest {
     private UUID id;
     private Payment payment;
     private Orders orders;
+    private PaymentMethod paymentMethod;
+    private BankAccount bankAccount;
     private static Validator validator;
 
     @BeforeAll
@@ -50,9 +52,29 @@ public class PaymentTest {
         orders.setCurrency("USD");
         orders.setStatus(OrderStatus.PENDING);
 
+        paymentMethod = new PaymentMethod();
+        paymentMethod.setId(UUID.randomUUID());
+        paymentMethod.setType(PaymentMethodType.BANK_TRANSFER);
+        paymentMethod.setDisplayName("Bank Transfer");
+        paymentMethod.setIsActive(true);
+
+        bankAccount = new BankAccount();
+        bankAccount.setId(UUID.randomUUID());
+        bankAccount.setPaymentMethod(paymentMethod);
+        bankAccount.setBankName("Bank Central Asia");
+        bankAccount.setAccountNumber("1234567890");
+        bankAccount.setAccountHolder("Test User");
+        bankAccount.setIsMain(true);
+        bankAccount.setIsActive(true);
+
         payment = new Payment();
         payment.setId(id);
         payment.setOrders(orders);
+        payment.setPaymentMethod(paymentMethod);
+        payment.setBankAccount(bankAccount);
+        payment.setSnapshotBankName("Bank Central Asia");
+        payment.setSnapshotAccountNumber("1234567890");
+        payment.setSnapshotAccountHolder("Test User");
         payment.setProvider("Stripe");
         payment.setProviderReference("pi_3N0x");
         payment.setAmount(new BigDecimal("99.99"));
@@ -73,6 +95,11 @@ public class PaymentTest {
         Assertions.assertNotNull(id);
         Assertions.assertEquals(id, payment.getId());
         Assertions.assertEquals(orders, payment.getOrders());
+        Assertions.assertEquals(paymentMethod, payment.getPaymentMethod());
+        Assertions.assertEquals(bankAccount, payment.getBankAccount());
+        Assertions.assertEquals("Bank Central Asia", payment.getSnapshotBankName());
+        Assertions.assertEquals("1234567890", payment.getSnapshotAccountNumber());
+        Assertions.assertEquals("Test User", payment.getSnapshotAccountHolder());
         Assertions.assertEquals("Stripe", payment.getProvider());
         Assertions.assertEquals("pi_3N0x", payment.getProviderReference());
         Assertions.assertEquals(new BigDecimal("99.99"), payment.getAmount());
@@ -95,9 +122,25 @@ public class PaymentTest {
         newOrders.setId(UUID.randomUUID());
         newOrders.setOrderNumber("ORD-2026-999");
 
+        PaymentMethod newPaymentMethod = new PaymentMethod();
+        newPaymentMethod.setId(UUID.randomUUID());
+        newPaymentMethod.setType(PaymentMethodType.XENDIT);
+        newPaymentMethod.setDisplayName("Xendit");
+
+        BankAccount newBankAccount = new BankAccount();
+        newBankAccount.setId(UUID.randomUUID());
+        newBankAccount.setBankName("Mandiri");
+        newBankAccount.setAccountNumber("0987654321");
+        newBankAccount.setAccountHolder("New User");
+
         Payment newPayment = new Payment();
         newPayment.setId(newId);
         newPayment.setOrders(newOrders);
+        newPayment.setPaymentMethod(newPaymentMethod);
+        newPayment.setBankAccount(newBankAccount);
+        newPayment.setSnapshotBankName("Mandiri");
+        newPayment.setSnapshotAccountNumber("0987654321");
+        newPayment.setSnapshotAccountHolder("New User");
         newPayment.setProvider("PayPal");
         newPayment.setProviderReference("PAYID-XYZ");
         newPayment.setAmount(new BigDecimal("199.50"));
@@ -107,6 +150,11 @@ public class PaymentTest {
 
         Assertions.assertEquals(newId, newPayment.getId());
         Assertions.assertEquals(newOrders, newPayment.getOrders());
+        Assertions.assertEquals(newPaymentMethod, newPayment.getPaymentMethod());
+        Assertions.assertEquals(newBankAccount, newPayment.getBankAccount());
+        Assertions.assertEquals("Mandiri", newPayment.getSnapshotBankName());
+        Assertions.assertEquals("0987654321", newPayment.getSnapshotAccountNumber());
+        Assertions.assertEquals("New User", newPayment.getSnapshotAccountHolder());
         Assertions.assertEquals("PayPal", newPayment.getProvider());
         Assertions.assertEquals("PAYID-XYZ", newPayment.getProviderReference());
         Assertions.assertEquals(new BigDecimal("199.50"), newPayment.getAmount());
@@ -264,8 +312,8 @@ public class PaymentTest {
 
     @Test
     @Order(15)
-    @DisplayName("15. Test amount defaults to 0")
-    void testAmountDefaultsToZero() {
+    @DisplayName("15. Test amount defaults to null")
+    void testAmountDefaultsToNull() {
         Payment newPayment = new Payment();
         Assertions.assertNull(newPayment.getAmount(), "amount should default to null");
     }
@@ -302,5 +350,65 @@ public class PaymentTest {
     void testIsDeletedDefaultsFalse() {
         Payment newPayment = new Payment();
         Assertions.assertFalse(newPayment.getDeleted(), "isDeleted should default to false");
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("19. Test snapshotBankName size validation")
+    void testSnapshotBankNameSizeValidation() {
+        payment.setSnapshotBankName("B".repeat(101));
+
+        var violations = validator.validate(payment);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when snapshotBankName exceeds 100 characters");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("snapshotBankName")),
+                "Violation should be on the snapshotBankName field"
+        );
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("20. Test snapshotAccountNumber size validation")
+    void testSnapshotAccountNumberSizeValidation() {
+        payment.setSnapshotAccountNumber("A".repeat(51));
+
+        var violations = validator.validate(payment);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when snapshotAccountNumber exceeds 50 characters");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("snapshotAccountNumber")),
+                "Violation should be on the snapshotAccountNumber field"
+        );
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("21. Test snapshotAccountHolder size validation")
+    void testSnapshotAccountHolderSizeValidation() {
+        payment.setSnapshotAccountHolder("H".repeat(101));
+
+        var violations = validator.validate(payment);
+        Assertions.assertFalse(violations.isEmpty(), "Validation should fail when snapshotAccountHolder exceeds 100 characters");
+        Assertions.assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("snapshotAccountHolder")),
+                "Violation should be on the snapshotAccountHolder field"
+        );
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("22. Test paymentMethod and bankAccount are optional")
+    void testPaymentMethodAndBankAccountAreOptional() {
+        payment.setPaymentMethod(null);
+        payment.setBankAccount(null);
+
+        var violations = validator.validate(payment);
+        Assertions.assertTrue(
+                violations.stream().noneMatch(v -> v.getPropertyPath().toString().equals("paymentMethod")),
+                "paymentMethod should be optional"
+        );
+        Assertions.assertTrue(
+                violations.stream().noneMatch(v -> v.getPropertyPath().toString().equals("bankAccount")),
+                "bankAccount should be optional"
+        );
     }
 }
