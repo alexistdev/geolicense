@@ -15,7 +15,7 @@ import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.models.entity.*;
 import com.alexistdev.geolicense.models.repository.*;
 import com.alexistdev.geolicense.utils.MessagesUtils;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;

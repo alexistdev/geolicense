@@ -9,6 +9,7 @@
 package com.alexistdev.geolicense.services;
 
 import com.alexistdev.geolicense.dto.request.LicenseRequest;
+import com.alexistdev.geolicense.dto.request.SubmitPaymentRequest;
 import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
@@ -27,7 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -71,13 +74,16 @@ public class InvoiceService {
         return invoiceRepo.findByUserId(user.getId(), pageable).map(invoiceMapper::toResponse);
     }
 
-    public InvoiceDetailResponse getInvoiceDetailById(String InvoiceId, String email) {
-        UUID invoiceId;
+    private UUID parseInvoiceId(String invoiceIdStr) {
         try {
-            invoiceId = UUID.fromString(InvoiceId);
+            return UUID.fromString(invoiceIdStr);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", InvoiceId));
+            throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", invoiceIdStr));
         }
+    }
+
+    public InvoiceDetailResponse getInvoiceDetailById(String InvoiceId, String email) {
+        UUID invoiceId = parseInvoiceId(InvoiceId);
         User user = userRepo.findByEmailByRoleNotAdminNotSuspended(email)
                 .orElseThrow(() -> {
                     String messageError = messagesUtils.getMessage("order.service.usernotfound", email);
@@ -97,12 +103,7 @@ public class InvoiceService {
     }
 
     public InvoiceDetailResponse getInvoiceDetailByIdAdmin(String InvoiceId) {
-        UUID invoiceId;
-        try {
-            invoiceId = UUID.fromString(InvoiceId);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", InvoiceId));
-        }
+        UUID invoiceId = parseInvoiceId(InvoiceId);
 
         var invoice = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> {
@@ -117,12 +118,7 @@ public class InvoiceService {
 
     @Transactional
     public void validateInvoice(String invoiceIdStr) {
-        UUID invoiceId;
-        try {
-            invoiceId = UUID.fromString(invoiceIdStr);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException(messagesUtils.getMessage("invoice.service.invalidid", invoiceIdStr));
-        }
+        UUID invoiceId = parseInvoiceId(invoiceIdStr);
 
         Invoice invoice = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> {
@@ -162,5 +158,91 @@ public class InvoiceService {
                     .build();
             licenseService.addLicense(licenseRequest);
         }
+    }
+
+    @Transactional
+    public void rejectPayment(String invoiceIdStr) {
+        UUID invoiceId = parseInvoiceId(invoiceIdStr);
+
+        Invoice invoice = invoiceRepo.findById(invoiceId)
+                .orElseThrow(() -> {
+                    String msg = messagesUtils.getMessage("invoice.service.notfound", invoiceIdStr);
+                    log.error(msg);
+                    return new NotFoundException(msg);
+                });
+
+        if (!invoice.getStatus().canTransitionTo(InvoiceStatus.UNPAID)) {
+            throw new BadRequestException(
+                    messagesUtils.getMessage("invoice.service.not.awaiting", invoiceIdStr));
+        }
+
+        Orders orders = invoice.getOrders();
+
+        Payment payment = paymentRepo.findByOrdersId(orders.getId())
+                .orElseThrow(() -> {
+                    String msg = messagesUtils.getMessage("invoice.service.payment.notfound", orders.getId().toString());
+                    log.error(msg);
+                    return new NotFoundException(msg);
+                });
+
+        if (!payment.getStatus().canTransitionTo(PaymentStatus.REJECTED)) {
+            throw new BadRequestException(
+                    messagesUtils.getMessage("invoice.service.payment.not.pending", invoiceIdStr));
+        }
+
+        payment.setStatus(PaymentStatus.REJECTED);
+        paymentRepo.save(payment);
+
+        invoice.setStatus(InvoiceStatus.UNPAID);
+        invoiceRepo.save(invoice);
+    }
+
+    @Transactional
+    public void submitPayment(String invoiceIdStr, String email, SubmitPaymentRequest request) {
+        UUID invoiceId = parseInvoiceId(invoiceIdStr);
+
+        User user = userRepo.findByEmailByRoleNotAdminNotSuspended(email)
+                .orElseThrow(() -> {
+                    String msg = messagesUtils.getMessage("order.service.usernotfound", email);
+                    log.error(msg);
+                    return new NotFoundException(msg);
+                });
+
+        Invoice invoice = invoiceRepo.findByUserIdAndInvoiceIdAndIsDeletedFalse(user.getId(), invoiceId)
+                .orElseThrow(() -> {
+                    String msg = messagesUtils.getMessage("invoice.service.notfound", invoiceIdStr);
+                    log.error(msg);
+                    return new NotFoundException(msg);
+                });
+
+        if (!invoice.getStatus().canTransitionTo(InvoiceStatus.AWAITING_VERIFICATION)) {
+            throw new BadRequestException(
+                    messagesUtils.getMessage("invoice.service.invalid.status", invoiceIdStr));
+        }
+
+        Orders orders = invoice.getOrders();
+        Optional<Payment> existingPayment = paymentRepo.findByOrdersId(orders.getId());
+
+        Payment payment;
+        if (existingPayment.isPresent()) {
+            payment = existingPayment.get();
+            if (!payment.getStatus().canTransitionTo(PaymentStatus.PENDING)) {
+                throw new BadRequestException(
+                        messagesUtils.getMessage("invoice.service.payment.already.submitted", invoiceIdStr));
+            }
+        } else {
+            payment = new Payment();
+            payment.setOrders(orders);
+            payment.setAmount(invoice.getTotalAmount());
+            payment.setCurrency(invoice.getCurrency());
+        }
+        payment.setProvider(request.provider());
+        payment.setProviderReference(request.providerReference());
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepo.save(payment);
+
+        invoice.setStatus(InvoiceStatus.AWAITING_VERIFICATION);
+        invoiceRepo.save(invoice);
     }
 }

@@ -35,6 +35,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -805,5 +806,153 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.status").value(false));
 
         verify(invoiceService, times(1)).validateInvoice("not-a-uuid");
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("39. PATCH /invoices/{invoiceId}/reject returns 200 when payment is rejected successfully")
+    public void testRejectPayment_success_returns200() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doNothing().when(invoiceService).rejectPayment(invoiceId.toString());
+        when(messagesUtils.getMessage("invoice.controller.rejected"))
+                .thenReturn("Payment rejected. Invoice has been reset so the user can resubmit.");
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/reject", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value("Payment rejected. Invoice has been reset so the user can resubmit."));
+
+        verify(invoiceService, times(1)).rejectPayment(invoiceId.toString());
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("40. PATCH /invoices/{invoiceId}/reject returns 404 when invoice is not found")
+    public void testRejectPayment_invoiceNotFound_returns404() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new NotFoundException("Invoice not found"))
+                .when(invoiceService).rejectPayment(invoiceId.toString());
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/reject", invoiceId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).rejectPayment(invoiceId.toString());
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("41. PATCH /invoices/{invoiceId}/reject returns 400 when invoice is not awaiting verification")
+    public void testRejectPayment_invoiceNotAwaiting_returns400() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new BadRequestException("Invoice is not awaiting verification and cannot be rejected"))
+                .when(invoiceService).rejectPayment(invoiceId.toString());
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/reject", invoiceId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).rejectPayment(invoiceId.toString());
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("42. PATCH /invoices/{invoiceId}/reject returns 400 when invoiceId is not a valid UUID")
+    public void testRejectPayment_invalidUUID_returns400() throws Exception {
+        doThrow(new BadRequestException("Invalid invoice ID format: not-a-uuid"))
+                .when(invoiceService).rejectPayment("not-a-uuid");
+
+        mockMvc.perform(patch("/api/v1/invoices/{invoiceId}/reject", "not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).rejectPayment("not-a-uuid");
+    }
+
+    @Test
+    @Order(43)
+    @DisplayName("43. POST /invoices/{invoiceId}/payment returns 201 when payment is submitted successfully")
+    public void testSubmitPayment_success_returns201() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+        doNothing().when(invoiceService).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+        when(messagesUtils.getMessage("payment.controller.success"))
+                .thenReturn("Payment submitted successfully and is awaiting admin verification");
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/payment", invoiceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"BANK_TRANSFER\",\"providerReference\":\"REF-12345\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.messages[0]").value("Payment submitted successfully and is awaiting admin verification"));
+
+        verify(invoiceService, times(1)).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+    }
+
+    @Test
+    @Order(44)
+    @DisplayName("44. POST /invoices/{invoiceId}/payment returns 404 when invoice is not found")
+    public void testSubmitPayment_invoiceNotFound_returns404() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new NotFoundException("Invoice not found"))
+                .when(invoiceService).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/payment", invoiceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"BANK_TRANSFER\",\"providerReference\":\"REF-12345\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+    }
+
+    @Test
+    @Order(45)
+    @DisplayName("45. POST /invoices/{invoiceId}/payment returns 400 when invoice cannot accept payment in current status")
+    public void testSubmitPayment_invalidInvoiceStatus_returns400() throws Exception {
+        setUpSecurityContext();
+        UUID invoiceId = UUID.randomUUID();
+        doThrow(new BadRequestException("Invoice cannot accept payment in its current status"))
+                .when(invoiceService).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/payment", invoiceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"BANK_TRANSFER\",\"providerReference\":\"REF-12345\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).submitPayment(eq(invoiceId.toString()), eq(TEST_USER_EMAIL), any());
+    }
+
+    @Test
+    @Order(46)
+    @DisplayName("46. POST /invoices/{invoiceId}/payment returns 400 when invoiceId is not a valid UUID")
+    public void testSubmitPayment_invalidUUID_returns400() throws Exception {
+        setUpSecurityContext();
+        doThrow(new BadRequestException("Invalid invoice ID format: not-a-uuid"))
+                .when(invoiceService).submitPayment(eq("not-a-uuid"), eq(TEST_USER_EMAIL), any());
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/payment", "not-a-uuid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"BANK_TRANSFER\",\"providerReference\":\"REF-12345\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        verify(invoiceService, times(1)).submitPayment(eq("not-a-uuid"), eq(TEST_USER_EMAIL), any());
+    }
+
+    @Test
+    @Order(47)
+    @DisplayName("47. POST /invoices/{invoiceId}/payment returns 400 when request body is missing required fields")
+    public void testSubmitPayment_missingRequiredFields_returns400() throws Exception {
+        UUID invoiceId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/payment", invoiceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(invoiceService);
     }
 }

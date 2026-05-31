@@ -77,6 +77,10 @@ public class SecurityConfiguration {
                                 "/api/v1/invoices/*").hasAuthority(Role.ADMIN.toString())
                         .requestMatchers(HttpMethod.PATCH,
                                 "/api/v1/invoices/*/validate").hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/invoices/*/payment").hasAuthority(Role.USER.toString())
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/v1/invoices/*/reject").hasAuthority(Role.ADMIN.toString())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
