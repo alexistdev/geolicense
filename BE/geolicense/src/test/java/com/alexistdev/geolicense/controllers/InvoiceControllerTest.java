@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.alexistdev.geolicense.dto.response.InvoiceDetailResponse;
 import com.alexistdev.geolicense.dto.response.InvoiceResponse;
+import com.alexistdev.geolicense.models.entity.InvoiceStatus;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.GlobalExceptionHandler;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
@@ -91,7 +92,7 @@ public class InvoiceControllerTest {
                 523,
                 new BigDecimal("622.99"),
                 "USD",
-                1,
+                InvoiceStatus.UNPAID,
                 new Date()
         );
     }
@@ -281,7 +282,7 @@ public class InvoiceControllerTest {
     public void testGetAllInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
         String orderNumber = "ORD-2026-001";
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), 523, new BigDecimal("672.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-002", new BigDecimal("149.99"), 523, new BigDecimal("672.99"), "USD", InvoiceStatus.PAID, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoices(any(Pageable.class))).thenReturn(page);
@@ -294,7 +295,7 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-002"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(149.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
-                .andExpect(jsonPath("$.payload.content[0].status").value(1));
+                .andExpect(jsonPath("$.payload.content[0].status").value("PAID"));
     }
 
     @Test
@@ -414,7 +415,7 @@ public class InvoiceControllerTest {
     @DisplayName("18. GET /invoices/search returns correctly mapped response fields")
     public void testSearchInvoices_returnsCorrectlyMappedResponseFields() throws Exception {
         UUID invoiceId = UUID.randomUUID();
-        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), 523, new BigDecimal("622.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, "ORD-2026-001", "INV-2026-001", new BigDecimal("99.99"), 523, new BigDecimal("622.99"), "USD", InvoiceStatus.PAID, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"))).thenReturn(page);
@@ -426,7 +427,7 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-001"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(99.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
-                .andExpect(jsonPath("$.payload.content[0].status").value(1));
+                .andExpect(jsonPath("$.payload.content[0].status").value("PAID"));
 
         verify(invoiceService, times(1)).getAllInvoicesByInvoiceNumber(any(Pageable.class), eq("INV-2026-001"));
     }
@@ -534,7 +535,7 @@ public class InvoiceControllerTest {
         setUpSecurityContext();
         UUID invoiceId = UUID.randomUUID();
         String orderNumber = "ORD-2026-ME-001";
-        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), 523, new BigDecimal("722.99"), "USD", 1, new Date());
+        InvoiceResponse response = new InvoiceResponse(invoiceId, orderNumber, "INV-2026-ME-001", new BigDecimal("199.99"), 523, new BigDecimal("722.99"), "USD", InvoiceStatus.PAID, new Date());
         Page<InvoiceResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
 
         when(invoiceService.getMyInvoices(eq(TEST_USER_EMAIL), any(Pageable.class))).thenReturn(page);
@@ -547,7 +548,7 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.content[0].invoiceNumber").value("INV-2026-ME-001"))
                 .andExpect(jsonPath("$.payload.content[0].amount").value(199.99))
                 .andExpect(jsonPath("$.payload.content[0].currency").value("USD"))
-                .andExpect(jsonPath("$.payload.content[0].status").value(1));
+                .andExpect(jsonPath("$.payload.content[0].status").value("PAID"));
     }
 
     @Test
@@ -577,7 +578,7 @@ public class InvoiceControllerTest {
                 invoiceId, "INV-2026-001", "ORD-2026-001",
                 new BigDecimal("99.99"), BigDecimal.ZERO, BigDecimal.ZERO,
                 523, new BigDecimal("622.99"),
-                "USD", 1, new Date(),
+                "USD", InvoiceStatus.PAID, new Date(),
                 Collections.emptyList()
         );
 
@@ -597,7 +598,7 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.uniqueCode").value(523))
                 .andExpect(jsonPath("$.payload.totalAmount").value(622.99))
                 .andExpect(jsonPath("$.payload.currency").value("USD"))
-                .andExpect(jsonPath("$.payload.status").value(1))
+                .andExpect(jsonPath("$.payload.status").value("PAID"))
                 .andExpect(jsonPath("$.payload.items").isArray());
 
         verify(invoiceService, times(1)).getInvoiceDetailById(invoiceId.toString(), TEST_USER_EMAIL);
@@ -676,7 +677,7 @@ public class InvoiceControllerTest {
                 invoiceId, "INV-2026-001", "ORD-2026-001",
                 new BigDecimal("99.99"), BigDecimal.ZERO, BigDecimal.ZERO,
                 523, new BigDecimal("622.99"),
-                "USD", 1, new Date(),
+                "USD", InvoiceStatus.PAID, new Date(),
                 Collections.emptyList()
         );
 
@@ -696,7 +697,7 @@ public class InvoiceControllerTest {
                 .andExpect(jsonPath("$.payload.uniqueCode").value(523))
                 .andExpect(jsonPath("$.payload.totalAmount").value(622.99))
                 .andExpect(jsonPath("$.payload.currency").value("USD"))
-                .andExpect(jsonPath("$.payload.status").value(1))
+                .andExpect(jsonPath("$.payload.status").value("PAID"))
                 .andExpect(jsonPath("$.payload.items").isArray());
 
         verify(invoiceService, times(1)).getInvoiceDetailByIdAdmin(invoiceId.toString());

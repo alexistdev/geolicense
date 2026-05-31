@@ -14,11 +14,7 @@ import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.InvoiceMapper;
-import com.alexistdev.geolicense.models.entity.Invoice;
-import com.alexistdev.geolicense.models.entity.OrderItem;
-import com.alexistdev.geolicense.models.entity.Orders;
-import com.alexistdev.geolicense.models.entity.Payment;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import com.alexistdev.geolicense.models.repository.InvoiceRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.models.repository.OrdersRepo;
@@ -135,7 +131,7 @@ public class InvoiceService {
                     return new NotFoundException(msg);
                 });
 
-        if (invoice.getStatus() != 0) {
+        if (!invoice.getStatus().canTransitionTo(InvoiceStatus.PAID)) {
             throw new BadRequestException(messagesUtils.getMessage("invoice.service.already.validated", invoiceIdStr));
         }
 
@@ -148,13 +144,13 @@ public class InvoiceService {
                     return new NotFoundException(msg);
                 });
 
-        payment.setStatus(1);
+        payment.setStatus(PaymentStatus.VERIFIED);
         paymentRepo.save(payment);
 
-        orders.setStatus(1);
+        orders.setStatus(OrderStatus.COMPLETED);
         ordersRepo.save(orders);
 
-        invoice.setStatus(1);
+        invoice.setStatus(InvoiceStatus.PAID);
         invoiceRepo.save(invoice);
 
         List<OrderItem> items = orderItemRepo.findByOrdersId(orders.getId());

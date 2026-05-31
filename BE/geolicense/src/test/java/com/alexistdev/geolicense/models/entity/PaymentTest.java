@@ -48,7 +48,7 @@ public class PaymentTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-2026-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
 
         payment = new Payment();
         payment.setId(id);
@@ -57,7 +57,7 @@ public class PaymentTest {
         payment.setProviderReference("pi_3N0x");
         payment.setAmount(new BigDecimal("99.99"));
         payment.setCurrency("USD");
-        payment.setStatus(0);
+        payment.setStatus(PaymentStatus.PENDING);
         payment.setPaidAt(LocalDateTime.now());
         payment.setCreatedBy("System");
         payment.setModifiedBy("System");
@@ -77,7 +77,7 @@ public class PaymentTest {
         Assertions.assertEquals("pi_3N0x", payment.getProviderReference());
         Assertions.assertEquals(new BigDecimal("99.99"), payment.getAmount());
         Assertions.assertEquals("USD", payment.getCurrency());
-        Assertions.assertEquals(0, payment.getStatus());
+        Assertions.assertEquals(PaymentStatus.PENDING, payment.getStatus());
         Assertions.assertNotNull(payment.getPaidAt());
         Assertions.assertEquals("System", payment.getCreatedBy());
         Assertions.assertEquals("System", payment.getModifiedBy());
@@ -102,7 +102,7 @@ public class PaymentTest {
         newPayment.setProviderReference("PAYID-XYZ");
         newPayment.setAmount(new BigDecimal("199.50"));
         newPayment.setCurrency("EUR");
-        newPayment.setStatus(1);
+        newPayment.setStatus(PaymentStatus.VERIFIED);
         newPayment.setPaidAt(newPaidAt);
 
         Assertions.assertEquals(newId, newPayment.getId());
@@ -111,7 +111,7 @@ public class PaymentTest {
         Assertions.assertEquals("PAYID-XYZ", newPayment.getProviderReference());
         Assertions.assertEquals(new BigDecimal("199.50"), newPayment.getAmount());
         Assertions.assertEquals("EUR", newPayment.getCurrency());
-        Assertions.assertEquals(1, newPayment.getStatus());
+        Assertions.assertEquals(PaymentStatus.VERIFIED, newPayment.getStatus());
         Assertions.assertEquals(newPaidAt, newPayment.getPaidAt());
     }
 
@@ -256,10 +256,10 @@ public class PaymentTest {
 
     @Test
     @Order(14)
-    @DisplayName("14. Test status defaults to 0")
-    void testStatusDefaultsToZero() {
+    @DisplayName("14. Test status defaults to PENDING")
+    void testStatusDefaultsToPending() {
         Payment newPayment = new Payment();
-        Assertions.assertEquals(0, newPayment.getStatus(), "status should default to 0");
+        Assertions.assertEquals(PaymentStatus.PENDING, newPayment.getStatus(), "status should default to PENDING");
     }
 
     @Test
@@ -277,7 +277,7 @@ public class PaymentTest {
         Payment payment2 = new Payment();
         payment2.setId(id);
         payment2.setProvider("PayPal");
-        payment2.setStatus(99);
+        payment2.setStatus(PaymentStatus.REJECTED);
 
         Assertions.assertEquals(payment, payment2, "Payments with the same id should be equal");
         Assertions.assertEquals(payment.hashCode(), payment2.hashCode(),

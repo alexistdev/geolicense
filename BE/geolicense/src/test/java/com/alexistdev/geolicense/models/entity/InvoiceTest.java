@@ -48,7 +48,7 @@ public class InvoiceTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-2026-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
 
         invoice = new Invoice();
         invoice.setId(id);
@@ -58,7 +58,7 @@ public class InvoiceTest {
         invoice.setUniqueCode(523);
         invoice.setTotalAmount(new BigDecimal("622.99"));
         invoice.setCurrency("USD");
-        invoice.setStatus(0);
+        invoice.setStatus(InvoiceStatus.UNPAID);
         invoice.setIssuedAt(LocalDateTime.now());
         invoice.setCreatedBy("System");
         invoice.setModifiedBy("System");
@@ -79,7 +79,7 @@ public class InvoiceTest {
         Assertions.assertEquals(523, invoice.getUniqueCode());
         Assertions.assertEquals(new BigDecimal("622.99"), invoice.getTotalAmount());
         Assertions.assertEquals("USD", invoice.getCurrency());
-        Assertions.assertEquals(0, invoice.getStatus());
+        Assertions.assertEquals(InvoiceStatus.UNPAID, invoice.getStatus());
         Assertions.assertNotNull(invoice.getIssuedAt());
         Assertions.assertEquals("System", invoice.getCreatedBy());
         Assertions.assertEquals("System", invoice.getModifiedBy());
@@ -105,7 +105,7 @@ public class InvoiceTest {
         newInvoice.setUniqueCode(123);
         newInvoice.setTotalAmount(new BigDecimal("422.00"));
         newInvoice.setCurrency("EUR");
-        newInvoice.setStatus(1);
+        newInvoice.setStatus(InvoiceStatus.PAID);
         newInvoice.setIssuedAt(newIssuedAt);
 
         Assertions.assertEquals(newId, newInvoice.getId());
@@ -115,7 +115,7 @@ public class InvoiceTest {
         Assertions.assertEquals(123, newInvoice.getUniqueCode());
         Assertions.assertEquals(new BigDecimal("422.00"), newInvoice.getTotalAmount());
         Assertions.assertEquals("EUR", newInvoice.getCurrency());
-        Assertions.assertEquals(1, newInvoice.getStatus());
+        Assertions.assertEquals(InvoiceStatus.PAID, newInvoice.getStatus());
         Assertions.assertEquals(newIssuedAt, newInvoice.getIssuedAt());
     }
 
@@ -260,10 +260,10 @@ public class InvoiceTest {
 
     @Test
     @Order(14)
-    @DisplayName("14. Test status defaults to 0")
-    void testStatusDefaultsToZero() {
+    @DisplayName("14. Test status defaults to UNPAID")
+    void testStatusDefaultsToUnpaid() {
         Invoice newInvoice = new Invoice();
-        Assertions.assertEquals(0, newInvoice.getStatus(), "status should default to 0");
+        Assertions.assertEquals(InvoiceStatus.UNPAID, newInvoice.getStatus(), "status should default to UNPAID");
     }
 
     @Test
@@ -289,7 +289,7 @@ public class InvoiceTest {
         Invoice invoice2 = new Invoice();
         invoice2.setId(id);
         invoice2.setInvoiceNumber("INV-DIFFERENT");
-        invoice2.setStatus(99);
+        invoice2.setStatus(InvoiceStatus.CANCELLED);
 
         Assertions.assertEquals(invoice, invoice2, "Invoices with the same id should be equal");
         Assertions.assertEquals(invoice.hashCode(), invoice2.hashCode(),

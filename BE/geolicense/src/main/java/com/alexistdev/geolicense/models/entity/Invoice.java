@@ -58,8 +58,9 @@ public class Invoice extends BaseEntity<String> implements Serializable {
     private String currency;
 
     @NotNull
-    @Column(name="status", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private int status=0;
+    @Enumerated(EnumType.STRING)
+    @Column(name="status", nullable = false, length = 50)
+    private InvoiceStatus status = InvoiceStatus.UNPAID;
 
     @NotNull
     @Column(name="issued_at", nullable = false)

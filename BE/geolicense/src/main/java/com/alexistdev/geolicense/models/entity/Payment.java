@@ -63,8 +63,9 @@ public class Payment extends BaseEntity<String> implements Serializable {
     private String currency;
 
     @NotNull
-    @Column(name="status", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private int status=0;
+    @Enumerated(EnumType.STRING)
+    @Column(name="status", nullable = false, length = 50)
+    private PaymentStatus status = PaymentStatus.PENDING;
 
     @NotNull
     @Column(name="paid_at", nullable = false)

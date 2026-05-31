@@ -84,7 +84,7 @@ class OrderServiceTest {
         o.setId(UUID.randomUUID());
         o.setOrderNumber(orderNumber);
         o.setCurrency("USD");
-        o.setStatus(0);
+        o.setStatus(OrderStatus.PENDING);
         return o;
     }
 
@@ -117,7 +117,7 @@ class OrderServiceTest {
         assertEquals("ORD-ABCD1234", response.orderNumber());
         assertEquals(new BigDecimal("100.00"), response.totalAmount());
         assertEquals("USD", response.currency());
-        assertEquals(0, response.status());
+        assertEquals(OrderStatus.PENDING, response.status());
     }
 
     @Test
@@ -189,7 +189,7 @@ class OrderServiceTest {
         assertEquals(8, captured.getOrderNumber().substring(4).length());
         assertEquals(user, captured.getUser());
         assertEquals("USD", captured.getCurrency());
-        assertEquals(0, captured.getStatus());
+        assertEquals(OrderStatus.PENDING, captured.getStatus());
     }
 
     @Test
@@ -287,7 +287,7 @@ class OrderServiceTest {
         Invoice capturedInvoice = invoiceCaptor.getValue();
         assertEquals(new BigDecimal("100.00"), capturedInvoice.getAmount());
         assertEquals("USD", capturedInvoice.getCurrency());
-        assertEquals(0, capturedInvoice.getStatus());
+        assertEquals(InvoiceStatus.UNPAID, capturedInvoice.getStatus());
         assertNotNull(capturedInvoice.getIssuedAt());
         assertNotNull(capturedInvoice.getUniqueCode());
         assertTrue(capturedInvoice.getUniqueCode() >= 100 && capturedInvoice.getUniqueCode() <= 999);
@@ -394,7 +394,7 @@ class OrderServiceTest {
     void createOrder_shouldThrowBadRequestException_whenUserHasPendingInvoice() {
         when(userRepo.findByEmailByRoleNotAdminNotSuspended("test@example.com")).thenReturn(Optional.of(user));
         when(licensePlanRepo.findById(request.licensePlanId())).thenReturn(Optional.of(licensePlan));
-        when(invoiceRepo.existsPendingInvoiceByUserId(user.getId())).thenReturn(true);
+        when(invoiceRepo.existsPendingInvoiceByUserId(user.getId(), InvoiceStatus.UNPAID)).thenReturn(true);
         when(messagesUtils.getMessage(eq("order.service.pendinginvoice")))
                 .thenReturn("You have a pending invoice. Please complete your payment before placing a new order.");
 

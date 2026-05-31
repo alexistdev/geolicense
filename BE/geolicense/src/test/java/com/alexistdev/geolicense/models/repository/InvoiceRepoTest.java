@@ -9,7 +9,9 @@
 package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.Invoice;
+import com.alexistdev.geolicense.models.entity.InvoiceStatus;
 import com.alexistdev.geolicense.models.entity.Orders;
+import com.alexistdev.geolicense.models.entity.OrderStatus;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +81,7 @@ public class InvoiceRepoTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
         orders.setCreatedBy(SYSTEM_USER);
         orders.setModifiedBy(SYSTEM_USER);
         orders.setCreatedDate(new Date());
@@ -95,7 +97,7 @@ public class InvoiceRepoTest {
         invoice.setUniqueCode(523);
         invoice.setTotalAmount(amount.add(new BigDecimal("523")));
         invoice.setCurrency("USD");
-        invoice.setStatus(0);
+        invoice.setStatus(InvoiceStatus.UNPAID);
         invoice.setIssuedAt(LocalDateTime.now());
         invoice.setCreatedBy(SYSTEM_USER);
         invoice.setModifiedBy(SYSTEM_USER);
@@ -118,7 +120,7 @@ public class InvoiceRepoTest {
         Assertions.assertEquals("INV-003", saved.getInvoiceNumber());
         Assertions.assertEquals(new BigDecimal("199.99"), saved.getAmount());
         Assertions.assertEquals("USD", saved.getCurrency());
-        Assertions.assertEquals(0, saved.getStatus());
+        Assertions.assertEquals(InvoiceStatus.UNPAID, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
@@ -235,7 +237,7 @@ public class InvoiceRepoTest {
     @DisplayName("11. Should persist updated fields on an existing invoice")
     void testUpdate_persistsChanges() {
         testInvoice.setAmount(new BigDecimal("150.00"));
-        testInvoice.setStatus(1);
+        testInvoice.setStatus(InvoiceStatus.PAID);
         invoiceRepo.save(testInvoice);
         entityManager.flush();
         entityManager.clear();
@@ -244,7 +246,7 @@ public class InvoiceRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals(0, new BigDecimal("150.00").compareTo(result.get().getAmount()));
-        Assertions.assertEquals(1, result.get().getStatus());
+        Assertions.assertEquals(InvoiceStatus.PAID, result.get().getStatus());
     }
 
     @Test
@@ -555,7 +557,7 @@ public class InvoiceRepoTest {
     void testExistsPendingInvoiceByUserId_returnsTrueWhenPendingExists() {
         UUID userId = testOrders.getUser().getId();
 
-        boolean result = invoiceRepo.existsPendingInvoiceByUserId(userId);
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(userId, InvoiceStatus.UNPAID);
 
         Assertions.assertTrue(result);
     }
@@ -568,7 +570,7 @@ public class InvoiceRepoTest {
         entityManager.flush();
         entityManager.clear();
 
-        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId());
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId(), InvoiceStatus.UNPAID);
 
         Assertions.assertFalse(result);
     }
@@ -577,12 +579,12 @@ public class InvoiceRepoTest {
     @Order(38)
     @DisplayName("38. Should return false when user's invoice has a non-zero status (paid)")
     void testExistsPendingInvoiceByUserId_returnsFalseWhenInvoicePaid() {
-        testInvoice.setStatus(1);
+        testInvoice.setStatus(InvoiceStatus.PAID);
         entityManager.persist(testInvoice);
         entityManager.flush();
         entityManager.clear();
 
-        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId());
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(testOrders.getUser().getId(), InvoiceStatus.UNPAID);
 
         Assertions.assertFalse(result);
     }
@@ -603,7 +605,7 @@ public class InvoiceRepoTest {
         entityManager.persist(anotherUser);
         entityManager.flush();
 
-        boolean result = invoiceRepo.existsPendingInvoiceByUserId(anotherUser.getId());
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(anotherUser.getId(), InvoiceStatus.UNPAID);
 
         Assertions.assertFalse(result);
     }
@@ -612,7 +614,7 @@ public class InvoiceRepoTest {
     @Order(40)
     @DisplayName("40. Should return false for a non-existent user ID")
     void testExistsPendingInvoiceByUserId_returnsFalseForNonExistentUser() {
-        boolean result = invoiceRepo.existsPendingInvoiceByUserId(UUID.randomUUID());
+        boolean result = invoiceRepo.existsPendingInvoiceByUserId(UUID.randomUUID(), InvoiceStatus.UNPAID);
 
         Assertions.assertFalse(result);
     }

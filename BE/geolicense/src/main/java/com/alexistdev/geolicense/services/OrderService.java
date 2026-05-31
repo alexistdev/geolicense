@@ -71,7 +71,7 @@ public class OrderService {
             throw new BadRequestException(msgInactive);
         }
 
-        if (invoiceRepo.existsPendingInvoiceByUserId(user.getId())) {
+        if (invoiceRepo.existsPendingInvoiceByUserId(user.getId(), InvoiceStatus.UNPAID)) {
             String msgPending = messagesUtils.getMessage("order.service.pendinginvoice");
             throw new BadRequestException(msgPending);
         }
@@ -94,7 +94,7 @@ public class OrderService {
         orders.setOrderNumber(this.generateOrderNumber(PREFIX_ORDER));
         orders.setUser(user);
         orders.setCurrency(licensePlan.getCurrency());
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
         return orders;
     }
 
@@ -125,7 +125,7 @@ public class OrderService {
         inv.setInvoiceNumber(this.generateOrderNumber(PREFIX_INVOICE));
         inv.setAmount(item.getTotalPrice());
         inv.setCurrency(order.getCurrency());
-        inv.setStatus(0);
+        inv.setStatus(InvoiceStatus.UNPAID);
         inv.setIssuedAt(now);
         inv.setUniqueCode(uniqueCode);
         inv.setTotalAmount(item.getTotalPrice().add(new BigDecimal(uniqueCode)));

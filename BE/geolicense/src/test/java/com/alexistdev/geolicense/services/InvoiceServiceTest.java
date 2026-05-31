@@ -14,12 +14,7 @@ import com.alexistdev.geolicense.dto.response.InvoiceResponse;
 import com.alexistdev.geolicense.exceptions.BadRequestException;
 import com.alexistdev.geolicense.exceptions.NotFoundException;
 import com.alexistdev.geolicense.mappers.InvoiceMapper;
-import com.alexistdev.geolicense.models.entity.Invoice;
-import com.alexistdev.geolicense.models.entity.LicensePlan;
-import com.alexistdev.geolicense.models.entity.OrderItem;
-import com.alexistdev.geolicense.models.entity.Orders;
-import com.alexistdev.geolicense.models.entity.Payment;
-import com.alexistdev.geolicense.models.entity.User;
+import com.alexistdev.geolicense.models.entity.*;
 import com.alexistdev.geolicense.models.repository.InvoiceRepo;
 import com.alexistdev.geolicense.models.repository.OrderItemRepo;
 import com.alexistdev.geolicense.models.repository.OrdersRepo;
@@ -110,7 +105,7 @@ public class InvoiceServiceTest {
         invoice.setUniqueCode(523);
         invoice.setTotalAmount(new BigDecimal("622.9900"));
         invoice.setCurrency("USD");
-        invoice.setStatus(1);
+        invoice.setStatus(InvoiceStatus.PAID);
         invoice.setIssuedAt(LocalDateTime.now());
 
         pendingInvoice = new Invoice();
@@ -121,13 +116,13 @@ public class InvoiceServiceTest {
         pendingInvoice.setUniqueCode(456);
         pendingInvoice.setTotalAmount(new BigDecimal("199.9900"));
         pendingInvoice.setCurrency("USD");
-        pendingInvoice.setStatus(0);
+        pendingInvoice.setStatus(InvoiceStatus.UNPAID);
         pendingInvoice.setIssuedAt(LocalDateTime.now());
 
         payment = new Payment();
         payment.setId(UUID.randomUUID());
         payment.setOrders(orders);
-        payment.setStatus(0);
+        payment.setStatus(PaymentStatus.PENDING);
 
         testLicensePlan = new LicensePlan();
         testLicensePlan.setId(UUID.randomUUID());
@@ -145,7 +140,7 @@ public class InvoiceServiceTest {
                 523,
                 new BigDecimal("622.9900"),
                 "USD",
-                1,
+                InvoiceStatus.PAID,
                 new Date()
         );
 
@@ -159,7 +154,7 @@ public class InvoiceServiceTest {
                 523,
                 new BigDecimal("622.9900"),
                 "USD",
-                1,
+                InvoiceStatus.PAID,
                 new Date(),
                 Collections.emptyList()
         );
@@ -181,7 +176,7 @@ public class InvoiceServiceTest {
         Assertions.assertEquals("INV-2026-001", response.invoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.9900"), response.amount());
         Assertions.assertEquals("USD", response.currency());
-        Assertions.assertEquals(1, response.status());
+        Assertions.assertEquals(InvoiceStatus.PAID, response.status());
 
         verify(invoiceRepo, times(1)).findByIsDeletedFalse(pageable);
         verify(invoiceMapper, times(1)).toResponse(invoice);
@@ -312,7 +307,7 @@ public class InvoiceServiceTest {
         Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
         Assertions.assertEquals("USD", result.currency());
-        Assertions.assertEquals(1, result.status());
+        Assertions.assertEquals(InvoiceStatus.PAID, result.status());
         Assertions.assertTrue(result.items().isEmpty());
 
         verify(userRepo, times(1)).findByEmailByRoleNotAdminNotSuspended(user.getEmail());
@@ -384,7 +379,7 @@ public class InvoiceServiceTest {
         Assertions.assertEquals("INV-2026-001", result.invoiceNumber());
         Assertions.assertEquals(new BigDecimal("99.9900"), result.amount());
         Assertions.assertEquals("USD", result.currency());
-        Assertions.assertEquals(1, result.status());
+        Assertions.assertEquals(InvoiceStatus.PAID, result.status());
         Assertions.assertTrue(result.items().isEmpty());
 
         verifyNoInteractions(userRepo);
@@ -434,9 +429,9 @@ public class InvoiceServiceTest {
 
         invoiceService.validateInvoice(invoiceId);
 
-        Assertions.assertEquals(1, payment.getStatus());
-        Assertions.assertEquals(1, orders.getStatus());
-        Assertions.assertEquals(1, pendingInvoice.getStatus());
+        Assertions.assertEquals(PaymentStatus.VERIFIED, payment.getStatus());
+        Assertions.assertEquals(OrderStatus.COMPLETED, orders.getStatus());
+        Assertions.assertEquals(InvoiceStatus.PAID, pendingInvoice.getStatus());
 
         verify(paymentRepo, times(1)).save(payment);
         verify(ordersRepo, times(1)).save(orders);

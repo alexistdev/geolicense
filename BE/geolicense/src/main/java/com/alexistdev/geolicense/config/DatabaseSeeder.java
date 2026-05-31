@@ -273,7 +273,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             return;
         }
 
-        Orders order = buildOrder(user, "ORDER-0001", "IDR");
+        Orders order = buildOrder(user);
         order = ordersRepo.save(order);
 
         OrderItem orderItem = buildOrderItem(order, plan, 1);
@@ -287,12 +287,12 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("END: Seeding order flow");
     }
 
-    private Orders buildOrder(User user, String orderNumber, String currency) {
+    private Orders buildOrder(User user) {
         Orders order = new Orders();
         order.setUser(user);
-        order.setOrderNumber(orderNumber);
-        order.setCurrency(currency);
-        order.setStatus(1);
+        order.setOrderNumber("ORDER-0001");
+        order.setCurrency("IDR");
+        order.setStatus(OrderStatus.COMPLETED);
         order.setCreatedBy(SYSTEM_USER);
         order.setModifiedBy(SYSTEM_USER);
         order.setCreatedDate(new java.util.Date());
@@ -323,7 +323,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         payment.setProviderReference(ref);
         payment.setAmount(amount);
         payment.setCurrency(currency);
-        payment.setStatus(1);
+        payment.setStatus(PaymentStatus.VERIFIED);
         payment.setPaidAt(LocalDateTime.now());
         payment.setCreatedBy(SYSTEM_USER);
         payment.setModifiedBy(SYSTEM_USER);
@@ -340,7 +340,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setAmount(amount);
         invoice.setCurrency(currency);
-        invoice.setStatus(1);
+        invoice.setStatus(InvoiceStatus.PAID);
         invoice.setIssuedAt(LocalDateTime.now());
         invoice.setUniqueCode(uniqueCode);
         invoice.setTotalAmount(amount.add(new BigDecimal(uniqueCode)));

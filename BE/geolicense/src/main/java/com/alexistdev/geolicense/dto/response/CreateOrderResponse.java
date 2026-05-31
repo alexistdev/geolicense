@@ -8,6 +8,8 @@
 
 package com.alexistdev.geolicense.dto.response;
 
+import com.alexistdev.geolicense.models.entity.OrderStatus;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -20,6 +22,6 @@ public record CreateOrderResponse(
 
         String currency,
 
-        int status
+        OrderStatus status
 ) {
 }

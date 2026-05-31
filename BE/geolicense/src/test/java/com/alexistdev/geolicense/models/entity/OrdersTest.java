@@ -25,7 +25,7 @@ public class OrdersTest {
     private User user;
     private String orderNumber;
     private String currency;
-    private int status;
+    private OrderStatus status;
     private static Validator validator;
 
     @BeforeAll
@@ -39,7 +39,7 @@ public class OrdersTest {
         id = UUID.randomUUID();
         orderNumber = "ORD-2026-001";
         currency = "USD";
-        status = 0;
+        status = OrderStatus.PENDING;
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -82,7 +82,7 @@ public class OrdersTest {
         UUID newId = UUID.randomUUID();
         String newOrderNumber = "ORD-2026-999";
         String newCurrency = "EUR";
-        int newStatus = 1;
+        OrderStatus newStatus = OrderStatus.COMPLETED;
 
         User newUser = new User();
         newUser.setId(UUID.randomUUID());
@@ -201,10 +201,10 @@ public class OrdersTest {
 
     @Test
     @Order(11)
-    @DisplayName("11. Test status defaults to 0")
-    void testStatusDefaultsToZero() {
+    @DisplayName("11. Test status defaults to PENDING")
+    void testStatusDefaultsToPending() {
         Orders newOrders = new Orders();
-        Assertions.assertEquals(0, newOrders.getStatus(), "status should default to 0");
+        Assertions.assertEquals(OrderStatus.PENDING, newOrders.getStatus(), "status should default to PENDING");
     }
 
     @Test
@@ -214,7 +214,7 @@ public class OrdersTest {
         Orders orders2 = new Orders();
         orders2.setId(id);
         orders2.setOrderNumber("DIFFERENT-ORDER");
-        orders2.setStatus(99);
+        orders2.setStatus(OrderStatus.CANCELLED);
 
         Assertions.assertEquals(orders, orders2, "Orders with the same id should be equal");
         Assertions.assertEquals(orders.hashCode(), orders2.hashCode(),

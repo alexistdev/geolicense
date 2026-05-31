@@ -9,7 +9,9 @@
 package com.alexistdev.geolicense.models.repository;
 
 import com.alexistdev.geolicense.models.entity.Orders;
+import com.alexistdev.geolicense.models.entity.OrderStatus;
 import com.alexistdev.geolicense.models.entity.Payment;
+import com.alexistdev.geolicense.models.entity.PaymentStatus;
 import com.alexistdev.geolicense.models.entity.User;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +77,7 @@ public class PaymentRepoTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
         orders.setCreatedBy(SYSTEM_USER);
         orders.setModifiedBy(SYSTEM_USER);
         orders.setCreatedDate(new Date());
@@ -91,7 +93,7 @@ public class PaymentRepoTest {
         payment.setProviderReference(providerReference);
         payment.setAmount(amount);
         payment.setCurrency(currency);
-        payment.setStatus(0);
+        payment.setStatus(PaymentStatus.PENDING);
         payment.setPaidAt(LocalDateTime.now());
         payment.setCreatedBy(SYSTEM_USER);
         payment.setModifiedBy(SYSTEM_USER);
@@ -115,7 +117,7 @@ public class PaymentRepoTest {
         Assertions.assertEquals("pp_003", saved.getProviderReference());
         Assertions.assertEquals(new BigDecimal("199.99"), saved.getAmount());
         Assertions.assertEquals("EUR", saved.getCurrency());
-        Assertions.assertEquals(0, saved.getStatus());
+        Assertions.assertEquals(PaymentStatus.PENDING, saved.getStatus());
         Assertions.assertEquals(SYSTEM_USER, saved.getCreatedBy());
         Assertions.assertEquals(SYSTEM_USER, saved.getModifiedBy());
     }
@@ -234,7 +236,7 @@ public class PaymentRepoTest {
     @DisplayName("11. Should persist updated fields on an existing payment")
     void testUpdate_persistsChanges() {
         testPayment.setAmount(new BigDecimal("150.00"));
-        testPayment.setStatus(2);
+        testPayment.setStatus(PaymentStatus.VERIFIED);
         paymentRepo.save(testPayment);
         entityManager.flush();
         entityManager.clear();
@@ -243,7 +245,7 @@ public class PaymentRepoTest {
 
         Assertions.assertTrue(result.isPresent());
         Assertions.assertEquals(0, new BigDecimal("150.00").compareTo(result.get().getAmount()));
-        Assertions.assertEquals(2, result.get().getStatus());
+        Assertions.assertEquals(PaymentStatus.VERIFIED, result.get().getStatus());
     }
 
     @Test

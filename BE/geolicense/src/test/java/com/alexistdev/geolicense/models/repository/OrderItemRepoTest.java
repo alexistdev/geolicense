@@ -125,7 +125,7 @@ public class OrderItemRepoTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
         orders.setCreatedBy(SYSTEM_USER);
         orders.setModifiedBy(SYSTEM_USER);
         orders.setCreatedDate(new Date());

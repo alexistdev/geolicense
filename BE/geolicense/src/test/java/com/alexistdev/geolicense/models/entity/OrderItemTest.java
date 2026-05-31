@@ -54,7 +54,7 @@ public class OrderItemTest {
         orders.setUser(user);
         orders.setOrderNumber("ORD-2026-001");
         orders.setCurrency("USD");
-        orders.setStatus(0);
+        orders.setStatus(OrderStatus.PENDING);
 
         Product product = new Product();
         product.setId(UUID.randomUUID());
