@@ -1,7 +1,7 @@
 <x-app-layout title="Dashboard — GeoLicense" header="My Account">
     <div class="p-8 space-y-8">
         <div>
-            <h1 class="text-3xl font-black text-white tracking-tight">Welcome back, {{ explode(' ', $sidebarUser->full_name)[0] }}</h1>
+            <h1 class="text-3xl font-black text-white tracking-tight">Welcome back, {{ explode(' ', auth()->user()->full_name)[0] }}</h1>
             <p class="text-on-surface-variant text-sm mt-1">Here's an overview of your licenses and billing.</p>
         </div>
 
