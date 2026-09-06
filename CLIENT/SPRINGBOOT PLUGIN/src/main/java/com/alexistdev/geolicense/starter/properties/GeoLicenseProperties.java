@@ -12,6 +12,7 @@ public class GeoLicenseProperties {
 
     private String serverUrl;
     private String licenseKey;
+    private String productSku;
     private long verifyIntervalMs = 3_600_000L;
     private int gracePeriodMinutes = 30;
     private List<String> excludePaths = List.of("/actuator/**", "/health/**");

@@ -36,6 +36,7 @@ Add to your `application.properties`:
 ```properties
 geolicense.server-url=http://localhost:8082
 geolicense.license-key=XXXX-XXXX-XXXX-XXXX
+geolicense.product-sku=BILL
 ```
 
 Optional overrides (defaults shown):
@@ -52,6 +53,7 @@ Or in `application.yml`:
 geolicense:
   server-url: http://localhost:8082
   license-key: XXXX-XXXX-XXXX-XXXX
+  product-sku: BILL
   verify-interval-ms: 3600000
   grace-period-minutes: 30
   exclude-paths:
@@ -83,7 +85,7 @@ If activation fails, the application context will **refuse to start** with an `I
 
 | Step | What happens |
 |---|---|
-| App starts | `ApplicationRunner` calls `POST /api/v1/licenses/activate` with `{licenseKey, machineId, osInfo}` |
+| App starts | `ApplicationRunner` calls `POST /api/v1/licenses/activate` with `{licenseKey, machineId, productSku, osInfo}` |
 | Activation succeeds | Token stored in `LicenseHolder` in memory; `valid = true` |
 | Activation fails | Application context startup is aborted (hard fail) |
 | Every request | `LicenseValidationFilter` checks `LicenseHolder.isValid()` |
@@ -117,6 +119,7 @@ geolicense.exclude-paths=/actuator/**,/health/**,/webhook/**
 |---|---|---|
 | `geolicense.server-url` | — | **Required.** Base URL of the GeoLicense server |
 | `geolicense.license-key` | — | **Required.** License key; autoconfiguration is disabled if absent |
+| `geolicense.product-sku` | — | **Required.** SKU of the product this app is licensed for (e.g. `BILL`); activation fails if absent |
 | `geolicense.verify-interval-ms` | `3600000` (1 h) | How often to re-verify the license in milliseconds |
 | `geolicense.grace-period-minutes` | `30` | Minutes traffic is allowed after the last successful verification |
 | `geolicense.exclude-paths` | `/actuator/**`, `/health/**` | Ant-pattern paths exempt from the license filter |

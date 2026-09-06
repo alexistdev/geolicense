@@ -33,12 +33,18 @@ public class LicenseActivationService {
     }
 
     public void activate() {
+        String productSku = properties.getProductSku();
+        if (productSku == null || productSku.isBlank()) {
+            throw new IllegalStateException("geolicense.product-sku is required to activate a license");
+        }
+
         String machineId = machineIdGenerator.generate();
         String osInfo = System.getProperty("os.name") + " " + System.getProperty("os.version");
 
         String body = objectMapper.createObjectNode()
                 .put("licenseKey", properties.getLicenseKey())
                 .put("machineId", machineId)
+                .put("productSku", productSku)
                 .put("osInfo", osInfo)
                 .toString();
 
