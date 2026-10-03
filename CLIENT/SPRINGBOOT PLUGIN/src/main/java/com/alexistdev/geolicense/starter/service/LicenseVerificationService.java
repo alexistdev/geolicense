@@ -44,6 +44,7 @@ public class LicenseVerificationService {
         String body = objectMapper.createObjectNode()
                 .put("token", token)
                 .put("machineId", machineId)
+                .put("productSku", properties.getProductSku())
                 .toString();
 
         try {
